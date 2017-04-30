@@ -150,14 +150,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (load "platform.shen")
 
 (MAPC 'FMAKUNBOUND '(boot writefile openfile importfile))
-(MAKUNBOUND '*NATIVE-PATH*)
 
-#+CLISP (EXT:SAVEINITMEM "shen.mem" :INIT-FUNCTION 'shen.byteloop)
+#+CLISP (EXT:SAVEINITMEM
+  (FORMAT NIL "~A~A" *NATIVE-PATH* "shen.mem")
+  :INIT-FUNCTION 'shen.byteloop)
+
 #+CLISP (QUIT)
 
 #+SBCL (SAVE-LISP-AND-DIE
-  #+WIN32 "shen.exe"
-  #-WIN32 "shen"
+  (FORMAT NIL "~A~A" *NATIVE-PATH* #+WIN32 "shen.exe" #-WIN32 "shen")
   :EXECUTABLE T
   :SAVE-RUNTIME-OPTIONS T
   :TOPLEVEL 'SHEN-TOPLEVEL)
