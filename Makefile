@@ -7,6 +7,12 @@ NestedFolderName=ShenOSKernel-$(KernelVersion)
 
 RunCLisp=clisp -M ./native/clisp/shen.mem -q -m 10MB
 
+ifeq ($(OS),Windows_NT)
+	RunSBCL=./native/sbcl/shen.exe
+else
+	RunSBCL=./native/sbcl/shen
+endif
+
 build-all: build-clisp build-sbcl
 
 build-clisp:
@@ -19,11 +25,7 @@ run-clisp:
 	$(RunCLisp)
 
 run-sbcl:
-ifeq ($(OS),Windows_NT)
-	./native/sbcl/shen.exe
-else
-	./native/sbcl/shen
-endif
+	$(RunSBCL)
 
 test-all: test-clisp test-sbcl
 
@@ -31,11 +33,7 @@ test-clisp:
 	$(RunCLisp) testsuite.shen
 
 test-sbcl:
-ifeq ($(OS),Windows_NT)
-	./native/sbcl/shen.exe testsuite.shen
-else
-	./native/sbcl/shen testsuite.shen
-endif
+	$(RunSBCL) testsuite.shen
 
 fetch:
 	wget $(UrlRoot)/$(ReleaseName)/$(FileName)
@@ -43,4 +41,3 @@ fetch:
 	rm -f $(FileName)
 	rm -rf kernel
 	mv $(NestedFolderName) kernel
-
