@@ -1,6 +1,4 @@
-# shen-cl
-
-## Shen for Common Lisp
+# Shen for Common Lisp
 
   * Fetch kernel sources by running `make fetch`.
   * Build all ports by running `make`.
