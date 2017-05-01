@@ -24,8 +24,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
 ; Assumes *.kl files are in the ./kernel/klambda directory
-; Creates object files and intermediate code in a platform-specific sub-directory under ./native/
-; Creates a binary/executable file in the current directory
+; Creates intermediate code and binaries in a platform-specific sub-directory under ./native/
 
 (SETQ *NATIVE-PATH*
   #+CLISP "./native/clisp/"

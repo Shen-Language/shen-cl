@@ -1,7 +1,13 @@
-shen-cl
+# shen-cl
 
-Build for CLisp: `clisp -i install.lsp`
+## Shen for Common Lisp
 
-Build for SBCL: `sbcl --load install.lsp`
-
-Run for CLisp: `clisp -M shen.mem -q -m 10MB`
+  * Fetch kernel sources by running `make fetch`.
+  * Build all ports by running `make`.
+  * Build the CLisp port with `make build-clisp`.
+  * Build the SBCL port with `make build-sbcl`.
+  * Test all ports with `make test-all`.
+  * Test the CLisp port with `make test-clisp`.
+  * Test the SBCL port with `make test-sbcl`.
+  * Run Shen REPL for CLisp port with `make run-clisp`.
+  * Run Shen REPL for SBCL port with `make run-sbcl`.
