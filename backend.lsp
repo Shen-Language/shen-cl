@@ -23,17 +23,20 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
-(DEFUN shen.mk-kl (V646) (LET ((Shen (read-file V646))) (LET ((KL (MAPCAR (QUOTE shen.produce-kl) Shen))) (LET ((KLString (shen.code-string KL))) (LET ((WriteKL (write-to-file (cn V646 ".kl") KLString))) (LET ((CL (MAPCAR (FUNCTION (LAMBDA (X) (shen.kl-to-lisp () X))) KL))) (LET ((CLString (shen.code-string CL))) (LET ((WriteCL (write-to-file (cn V646 ".lsp") CLString))) (QUOTE shen.ok))))))))) 
+(DEFUN shen.kl-to-lisp (V660 V661)
+  (COND
+    ((CONSP (MEMBER V661 V660)) V661)
+    ((AND (CONSP V661) (AND (EQ (QUOTE type) (CAR V661)) (AND (CONSP (CDR V661)) (AND (CONSP (CDR (CDR V661))) (NULL (CDR (CDR (CDR V661)))))))) (shen.kl-to-lisp V660 (CAR (CDR V661))))
+    ((AND (CONSP V661) (AND (EQ (QUOTE lambda) (CAR V661)) (AND (CONSP (CDR V661)) (AND (CONSP (CDR (CDR V661))) (NULL (CDR (CDR (CDR V661)))))))) (LET ((ChX (shen.ch-T (CAR (CDR V661))))) (CONS (QUOTE FUNCTION) (CONS (CONS (QUOTE LAMBDA) (CONS (CONS ChX ()) (CONS (shen.kl-to-lisp (CONS ChX V660) (SUBST ChX (CAR (CDR V661)) (CAR (CDR (CDR V661))))) ()))) ()))))
+    ((AND (CONSP V661) (AND (EQ (QUOTE let) (CAR V661)) (AND (CONSP (CDR V661)) (AND (CONSP (CDR (CDR V661))) (AND (CONSP (CDR (CDR (CDR V661)))) (NULL (CDR (CDR (CDR (CDR V661)))))))))) (LET ((ChX (shen.ch-T (CAR (CDR V661))))) (CONS (QUOTE LET) (CONS (CONS (CONS ChX (CONS (shen.kl-to-lisp V660 (CAR (CDR (CDR V661)))) ())) ()) (CONS (shen.kl-to-lisp (CONS ChX V660) (SUBST ChX (CAR (CDR V661)) (CAR (CDR (CDR (CDR V661)))))) ())))))
+    ((AND (CONSP V661) (AND (EQ (QUOTE defun) (CAR V661)) (AND (CONSP (CDR V661)) (AND (CONSP (CDR (CDR V661))) (AND (CONSP (CDR (CDR (CDR V661)))) (NULL (CDR (CDR (CDR (CDR V661)))))))))) (CONS (QUOTE DEFUN) (CONS (CAR (CDR V661)) (CONS (CAR (CDR (CDR V661))) (CONS (shen.kl-to-lisp (CAR (CDR (CDR V661))) (CAR (CDR (CDR (CDR V661))))) ())))))
+    ((AND (CONSP V661) (EQ (QUOTE cond) (CAR V661))) (CONS (QUOTE COND) (MAPCAR (FUNCTION (LAMBDA (C) (shen.cond_code V660 C))) (CDR V661))))
+    ((CONSP V661) (LET ((Arguments (MAPCAR (FUNCTION (LAMBDA (Y) (shen.kl-to-lisp V660 Y))) (CDR V661)))) (shen.optimise-application (IF (CONSP (MEMBER (CAR V661) V660)) (CONS (QUOTE shen.apply) (CONS (CAR V661) (CONS (CONS (QUOTE LIST) Arguments) ()))) (IF (CONSP (CAR V661)) (CONS (QUOTE shen.apply) (CONS (shen.kl-to-lisp V660 (CAR V661)) (CONS (CONS (QUOTE LIST) Arguments) ()))) (IF (shen.wrapper (shen.partial-application? (CAR V661) Arguments)) (shen.partially-apply (CAR V661) Arguments) (CONS (shen.maplispsym (CAR V661)) Arguments)))))))
+    ((NULL V661) ())
+    ((EQ (SYMBOLP V661) (QUOTE T)) (CONS (QUOTE QUOTE) (CONS V661 ())))
+    (T V661)))
 
-(DEFUN shen.produce-kl (V647) (COND ((AND (CONSP V647) (AND (EQ (QUOTE define) (CAR V647)) (CONSP (CDR V647)))) (shen.shen->kl (CAR (CDR V647)) (CDR (CDR V647)))) (T V647))) 
-
-(DEFUN shen.code-string (V648) (COND ((NULL V648) "") ((CONSP V648) (cn (shen.app (CAR V648) " 
-
-" (QUOTE shen.r)) (shen.code-string (CDR V648)))) (T (shen.f_error (QUOTE shen.code-string))))) 
-
-(DEFUN shen.kl-to-lisp (V660 V661) (COND ((CONSP (MEMBER V661 V660)) V661) ((AND (CONSP V661) (AND (EQ (QUOTE type) (CAR V661)) (AND (CONSP (CDR V661)) (AND (CONSP (CDR (CDR V661))) (NULL (CDR (CDR (CDR V661)))))))) (shen.kl-to-lisp V660 (CAR (CDR V661)))) ((AND (CONSP V661) (AND (EQ (QUOTE lambda) (CAR V661)) (AND (CONSP (CDR V661)) (AND (CONSP (CDR (CDR V661))) (NULL (CDR (CDR (CDR V661)))))))) (LET ((ChX (shen.ch-T (CAR (CDR V661))))) (CONS (QUOTE FUNCTION) (CONS (CONS (QUOTE LAMBDA) (CONS (CONS ChX ()) (CONS (shen.kl-to-lisp (CONS ChX V660) (SUBST ChX (CAR (CDR V661)) (CAR (CDR (CDR V661))))) ()))) ())))) ((AND (CONSP V661) (AND (EQ (QUOTE let) (CAR V661)) (AND (CONSP (CDR V661)) (AND (CONSP (CDR (CDR V661))) (AND (CONSP (CDR (CDR (CDR V661)))) (NULL (CDR (CDR (CDR (CDR V661)))))))))) (LET ((ChX (shen.ch-T (CAR (CDR V661))))) (CONS (QUOTE LET) (CONS (CONS (CONS ChX (CONS (shen.kl-to-lisp V660 (CAR (CDR (CDR V661)))) ())) ()) (CONS (shen.kl-to-lisp (CONS ChX V660) (SUBST ChX (CAR (CDR V661)) (CAR (CDR (CDR (CDR V661)))))) ()))))) ((AND (CONSP V661) (AND (EQ (QUOTE defun) (CAR V661)) (AND (CONSP (CDR V661)) (AND (CONSP (CDR (CDR V661))) (AND (CONSP (CDR (CDR (CDR V661)))) (NULL (CDR (CDR (CDR (CDR V661)))))))))) (CONS (QUOTE DEFUN) (CONS (CAR (CDR V661)) (CONS (CAR (CDR (CDR V661))) (CONS (shen.kl-to-lisp (CAR (CDR (CDR V661))) (CAR (CDR (CDR (CDR V661))))) ()))))) ((AND (CONSP V661) (EQ (QUOTE cond) (CAR V661))) (CONS (QUOTE COND) (MAPCAR (FUNCTION (LAMBDA (C) (shen.cond_code V660 C))) (CDR V661)))) ((CONSP V661) (LET ((Arguments (MAPCAR (FUNCTION (LAMBDA (Y) (shen.kl-to-lisp V660 Y))) (CDR V661)))) (shen.optimise-application (IF (CONSP (MEMBER (CAR V661) V660)) (CONS (QUOTE shen.apply) (CONS (CAR V661) (CONS (CONS (QUOTE LIST) Arguments) ()))) (IF (CONSP (CAR V661)) (CONS (QUOTE shen.apply) (CONS (shen.kl-to-lisp V660 (CAR V661)) (CONS (CONS (QUOTE LIST) Arguments) ()))) (IF (shen.wrapper (shen.partial-application? (CAR V661) Arguments)) (shen.partially-apply (CAR V661) Arguments) (CONS (shen.maplispsym (CAR V661)) Arguments))))))) ((NULL V661) ()) ((EQ (SYMBOLP V661) (QUOTE T)) (CONS (QUOTE QUOTE) (CONS V661 ()))) (T V661))) 
-
-(DEFUN shen.ch-T (V662) (COND ((EQ T V662) (QUOTE T1957)) (T V662))) 
+(DEFUN shen.ch-T (V662) (COND ((EQ T V662) (QUOTE T1957)) (T V662)))
 
 (DEFUN shen.apply (V175303 V175304)
   (LET ((FSym (shen.maplispsym V175303)))
@@ -52,7 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
                           (CDR V175306)))
         (T (shen.f_error 'shen.apply-help))))
 
-(DEFUN shen.analyse-application 
+(DEFUN shen.analyse-application
      (V175307 V175308 V175309 V175310)
   (LET ((Lambda
          (IF (shen.wrapper 
@@ -70,7 +73,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (DEFUN shen.lazyboolop? (F)
   (COND ((EQ F 'and) 'true)
         ((EQ F 'or) 'false)
-        (T 'false))) 
+        (T 'false)))
 
 (DEFUN shen.curried-apply (V529 V530)
  (COND ((AND (CONSP V530) (NULL (CDR V530))) (FUNCALL V529 (CAR V530)))
@@ -80,7 +83,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
       (shen.app V529 "
 "
                 'shen.a))))))
-  
+
 (DEFUN shen.partial-application? (V669 V670) (LET ((Arity (trap-error (arity V669) (FUNCTION (LAMBDA (E) -1))))) (IF (shen.ABSEQUAL Arity -1) (QUOTE false) (IF (shen.ABSEQUAL Arity (length V670)) (QUOTE false) (IF (shen.wrapper (shen.greater? (length V670) Arity)) (QUOTE false) (QUOTE true)))))) 
 
 (DEFUN shen.partially-apply (V671 V672) (LET ((Arity (arity V671))) (LET ((Lambda (shen.mk-lambda (CONS (shen.maplispsym V671) ()) Arity))) (shen.build-partial-application Lambda V672)))) 
@@ -89,11 +92,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
 (DEFUN shen.mk-lambda (V674 V675) (COND ((shen.ABSEQUAL 0 V675) V674) (T (LET ((X (gensym (QUOTE V)))) (CONS (QUOTE lambda) (CONS X (CONS (shen.mk-lambda (shen.endcons V674 X) (1- V675)) ()))))))) 
 
-(DEFUN shen.endcons (V676 V677) (COND ((CONSP V676) (APPEND V676 (CONS V677 ()))) (T (CONS V676 (CONS V677 ()))))) 
+(DEFUN shen.endcons (F X)
+  (IF (CONSP F)
+    (APPEND F (LIST X))
+    (LIST F X)))
 
 (DEFUN shen.build-partial-application (V678 V679) (COND ((NULL V679) V678) ((CONSP V679) (shen.build-partial-application (CONS (QUOTE FUNCALL) (CONS V678 (CONS (CAR V679) ()))) (CDR V679))) (T (shen.f_error (QUOTE shen.build-partial-application))))) 
 
-(DEFUN shen.cond_code (V680 V681) (COND ((AND (CONSP V681) (AND (CONSP (CDR V681)) (NULL (CDR (CDR V681))))) (CONS (shen.lisp_test V680 (CAR V681)) (CONS (shen.kl-to-lisp V680 (CAR (CDR V681))) ()))) (T (shen.f_error (QUOTE shen.cond_code))))) 
+(DEFUN shen.cond_code (Params Clause)
+  (IF (AND (CONSP Clause) (EQ (LIST-LENGTH Clause) 2))
+    (LET ((Test   (CAR Clause))
+          (Result (CAR (CDR Clause))))
+      (LIST (shen.lisp_test Params Test) (shen.kl-to-lisp Params Result)))
+    (shen.f_error 'shen.cond_code)))
 
 (DEFUN shen.lisp_test (V684 V685) (COND ((EQ (QUOTE true) V685) (QUOTE T)) ((AND (CONSP V685) (EQ (QUOTE and) (CAR V685))) (CONS (QUOTE AND) (MAPCAR (FUNCTION (LAMBDA (X) (shen.wrap (shen.kl-to-lisp V684 X)))) (CDR V685)))) (T (shen.wrap (shen.kl-to-lisp V684 V685))))) 
 
@@ -271,4 +282,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (DEFUN shen.wrapper (V687) (COND ((EQ (QUOTE true) V687) (QUOTE T)) ((EQ (QUOTE false) V687) ()) (T (simple-error (cn "boolean expected: not " (shen.app V687 "
 " (QUOTE shen.s))))))) 
 
-(DEFUN shen.maplispsym (V688) (COND ((EQ (QUOTE =) V688) (QUOTE shen.equal?)) ((EQ (QUOTE >) V688) (QUOTE shen.greater?)) ((EQ (QUOTE <) V688) (QUOTE shen.less?)) ((EQ (QUOTE >=) V688) (QUOTE shen.greater-than-or-equal-to?)) ((EQ (QUOTE <=) V688) (QUOTE shen.less-than-or-equal-to?)) ((EQ (QUOTE +) V688) (QUOTE shen.add)) ((EQ (QUOTE -) V688) (QUOTE shen.subtract)) ((EQ (QUOTE /) V688) (QUOTE shen.divide)) ((EQ (QUOTE *) V688) (QUOTE shen.multiply)) (T V688))) 
+(DEFUN shen.maplispsym (Symbol)
+  (COND
+    ((EQ Symbol '=)  'shen.equal?)
+    ((EQ Symbol '>)  'shen.greater?)
+    ((EQ Symbol '<)  'shen.less?)
+    ((EQ Symbol '>=) 'shen.greater-than-or-equal-to?)
+    ((EQ Symbol '<=) 'shen.less-than-or-equal-to?)
+    ((EQ Symbol '+)  'shen.add)
+    ((EQ Symbol '-)  'shen.subtract)
+    ((EQ Symbol '/)  'shen.divide)
+    ((EQ Symbol '*)  'shen.multiply)
+    (T Symbol)))
