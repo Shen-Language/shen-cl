@@ -63,28 +63,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     ((FIND :OSX *FEATURES*) "Mac OSX")
     ((FIND :UNIX *FEATURES*) "Unix")))
 
-(DEFUN translate-kl (InputFile OutputFile)
-  (LET* ((KlCode (openfile InputFile))
-         (LispCode (MAPCAR (FUNCTION (LAMBDA (X) (shen.kl-to-lisp NIL X))) KlCode)))
-    (writefile OutputFile LispCode)))
-
-(DEFUN writefile (File Out)
-  (WITH-OPEN-FILE
-    (OUTSTREAM File
-      :DIRECTION         :OUTPUT
-      :IF-EXISTS         :SUPERSEDE
-      :IF-DOES-NOT-EXIST :CREATE)
-    (FORMAT OUTSTREAM "~%")
-    (MAPC (FUNCTION (LAMBDA (X) (FORMAT OUTSTREAM "~S~%~%" X))) Out)
-    File))
-
-(DEFUN openfile (File)
-  (WITH-OPEN-FILE (In File :DIRECTION :INPUT)
-    (DO ((R T) (Rs NIL))
-        ((NULL R) (NREVERSE (CDR Rs)))
-        (SETQ R (READ In NIL NIL))
-        (PUSH R Rs))))
-
 (DEFUN import-kl (File)
   (LET ((KlFile       (FORMAT NIL "./kernel/klambda/~A.kl" File))
         (IntermedFile (FORMAT NIL "~A~A.intermed" NATIVE-PATH File))
@@ -126,6 +104,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
       :IF-EXISTS         :SUPERSEDE
       :IF-DOES-NOT-EXIST :CREATE)
     (FORMAT Out "~{~C~}" Chars)))
+
+(DEFUN translate-kl (InputFile OutputFile)
+  (LET* ((KlCode (openfile InputFile))
+         (LispCode (MAPCAR (FUNCTION (LAMBDA (X) (shen.kl-to-lisp NIL X))) KlCode)))
+    (writefile OutputFile LispCode)))
+
+(DEFUN openfile (File)
+  (WITH-OPEN-FILE (In File :DIRECTION :INPUT)
+    (DO ((R T) (Rs NIL))
+        ((NULL R) (NREVERSE (CDR Rs)))
+        (SETQ R (READ In NIL NIL))
+        (PUSH R Rs))))
+
+(DEFUN writefile (File Out)
+  (WITH-OPEN-FILE
+    (OUTSTREAM File
+      :DIRECTION         :OUTPUT
+      :IF-EXISTS         :SUPERSEDE
+      :IF-DOES-NOT-EXIST :CREATE)
+    (FORMAT OUTSTREAM "~%")
+    (MAPC (FUNCTION (LAMBDA (X) (FORMAT OUTSTREAM "~S~%~%" X))) Out)
+    File))
 
 (DEFUN import-lsp (File)
   (LET ((LspFile (FORMAT NIL "~A.lsp" File))
