@@ -58,11 +58,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (SETQ *port* 2.0)
 (SETQ *porters* "Mark Tarver")
 (SETQ *os*
-  #+WIN32   "Windows"
-  #+WINDOWS "Windows"
-  #+LINUX   "Linux"
-  #+OSX     "Mac OSX"
-  #+UNIX    "Unix")
+  #+(OR WIN32 WINDOWS) "Windows"
+  #+LINUX              "Linux"
+  #+(OR OSX DARWIN)    "Mac OSX"
+  #+UNIX               "Unix")
 
 (DEFUN import-kl (File)
   (LET ((KlFile       (FORMAT NIL "./kernel/klambda/~A.kl" File))
