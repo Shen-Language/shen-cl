@@ -1,0 +1,12 @@
+notifications:
+  email: false
+language: generic
+addons:
+  apt:
+    packages:
+      - clisp
+      - sbcl
+script:
+  - make fetch
+  - make
+  - make test-all
