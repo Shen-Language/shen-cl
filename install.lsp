@@ -28,11 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
 (DEFCONSTANT NATIVE-PATH
   #+CLISP "./native/clisp/"
+  #+CCL   "./native/ccl/"
   #+SBCL  "./native/sbcl/")
 
 (DEFCONSTANT BINARY-SUFFIX
-  #+CLISP ".fas"
-  #+SBCL  ".fasl")
+  #+CLISP         ".fas"
+  #+(OR CCL SBCL) ".fasl")
 
 #+CLISP (DEFCONSTANT MEM-NAME "shen.mem")
 
@@ -53,15 +54,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (SETQ *release*
   #+CLISP (LET ((V (LISP-IMPLEMENTATION-VERSION)))
     (SUBSEQ V 0 (POSITION #\SPACE V :START 0)))
-  #+SBCL (LISP-IMPLEMENTATION-VERSION))
+  #+(OR CCL SBCL) (LISP-IMPLEMENTATION-VERSION))
 (SETQ *port* 2.0)
 (SETQ *porters* "Mark Tarver")
 (SETQ *os*
-  (COND
-    ((FIND :WIN32 *FEATURES*) "Windows")
-    ((FIND :LINUX *FEATURES*) "Linux")
-    ((FIND :OSX *FEATURES*) "Mac OSX")
-    ((FIND :UNIX *FEATURES*) "Unix")))
+  #+WIN32   "Windows"
+  #+WINDOWS "Windows"
+  #+LINUX   "Linux"
+  #+OSX     "Mac OSX"
+  #+UNIX    "Unix")
 
 (DEFUN import-kl (File)
   (LET ((KlFile       (FORMAT NIL "./kernel/klambda/~A.kl" File))
@@ -168,7 +169,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   (FORMAT NIL "~A~A" NATIVE-PATH MEM-NAME)
   :INIT-FUNCTION 'shen.byteloop)
 
-#+CLISP (QUIT)
+#+(OR CLISP CCL) (QUIT)
 
 #+SBCL (SAVE-LISP-AND-DIE
   (FORMAT NIL "~A~A" NATIVE-PATH EXECUTABLE-NAME)
