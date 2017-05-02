@@ -30,12 +30,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (package lisp []
 
   (defmacro platform-macro
-     F -> (if (symbol? F)
-              (let Str (str F)
-                   (if (lisp-call? Str)
-                       [protect (intern (call-lisp Str))]
-                       F))
-              F))
+    F ->
+      (if (symbol? F)
+        (let Str (str F)
+          (if (lisp-call? Str)
+            [protect (intern (call-lisp Str))]
+            F))
+        F))
 
   (define lisp-call?
     (@s ($ lisp.) _) -> true
@@ -50,7 +51,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     (@s S Ss) -> (@s (uppercase-letter S) (uppercase Ss)))
 
   (define uppercase-letter
-     S -> (let ASCII (string->n S)
-               (if (and (>= ASCII 97) (<= ASCII 122))
-                   (n->string (- ASCII 32))
-                   S))))
+    S ->
+      (let ASCII (string->n S)
+        (if (and (>= ASCII 97) (<= ASCII 122))
+          (n->string (- ASCII 32))
+          S))))
