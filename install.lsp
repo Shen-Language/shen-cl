@@ -26,11 +26,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 ; Assumes *.kl files are in the ./kernel/klambda directory
 ; Creates intermediate code and binaries in a platform-specific sub-directory under ./native/
 
-(SETQ *NATIVE-PATH*
+(DEFCONSTANT NATIVE-PATH
   #+CLISP "./native/clisp/"
   #+SBCL  "./native/sbcl/")
 
-(ENSURE-DIRECTORIES-EXIST *NATIVE-PATH*)
+(DEFCONSTANT BINARY-SUFFIX
+  #+CLISP ".fas"
+  #+SBCL  ".fasl")
+
+#+CLISP (DEFCONSTANT MEM-NAME "shen.mem")
+
+#+SBCL (DEFCONSTANT EXECUTABLE-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
+
+(ENSURE-DIRECTORIES-EXIST NATIVE-PATH)
 
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
 #+CLISP (SETQ CUSTOM:*COMPILE-WARNINGS* NIL)
@@ -77,11 +85,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
         (SETQ R (READ In NIL NIL))
         (PUSH R Rs))))
 
-(DEFUN install-kl (File)
+(DEFUN importkl (File)
   (LET ((KlFile       (FORMAT NIL "./kernel/klambda/~A.kl" File))
-        (IntermedFile (FORMAT NIL "~A~A.intermed" *NATIVE-PATH* File))
-        (LspFile      (FORMAT NIL "~A~A.lsp" *NATIVE-PATH* File))
-        (ObjFile      (FORMAT NIL "~A~A.~A" *NATIVE-PATH* File #+CLISP "fas" #+SBCL "fasl")))
+        (IntermedFile (FORMAT NIL "~A~A.intermed" NATIVE-PATH File))
+        (LspFile      (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
+        (ObjFile      (FORMAT NIL "~A~A~A" NATIVE-PATH File BINARY-SUFFIX)))
     (write-out-kl IntermedFile (read-in-kl KlFile))
     (boot IntermedFile LspFile)
     (COMPILE-FILE LspFile)
@@ -114,9 +122,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
       :IF-DOES-NOT-EXIST :CREATE)
     (FORMAT Out "~{~C~}" Chars)))
 
-(DEFUN importfile (File)
+(DEFUN importlsp (File)
   (LET ((LspFile (FORMAT NIL "~A.lsp" File))
-        (ObjFile (FORMAT NIL "~A~A.~A" *NATIVE-PATH* File #+CLISP "fas" #+SBCL "fasl")))
+        (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BINARY-SUFFIX)))
     (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile)
     (LOAD ObjFile)))
 
@@ -125,39 +133,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (COMPILE 'flip)
 (COMPILE 'write-out-kl)
 
-(importfile "primitives")
-(importfile "backend")
-
-(MAPC
-  'install-kl
-  '("toplevel"
-    "core"
-    "sys"
-    "sequent"
-    "yacc"
-    "reader"
-    "prolog"
-    "track"
-    "load"
-    "writer"
-    "macros"
-    "declarations"
-    "types"
-    "t-star"))
-
-(importfile "overwrite")
+(importlsp "primitives")
+(importlsp "backend")
+(importkl "toplevel")
+(importkl "core")
+(importkl "sys")
+(importkl "sequent")
+(importkl "yacc")
+(importkl "reader")
+(importkl "prolog")
+(importkl "track")
+(importkl "load")
+(importkl "writer")
+(importkl "macros")
+(importkl "declarations")
+(importkl "types")
+(importkl "t-star")
+(importlsp "overwrite")
 (load "platform.shen")
 
-(MAPC 'FMAKUNBOUND '(boot writefile openfile importfile))
+(MAPC 'FMAKUNBOUND '(boot writefile openfile importlsp))
 
 #+CLISP (EXT:SAVEINITMEM
-  (FORMAT NIL "~A~A" *NATIVE-PATH* "shen.mem")
+  (FORMAT NIL "~A~A" NATIVE-PATH MEM-NAME)
   :INIT-FUNCTION 'shen.byteloop)
 
 #+CLISP (QUIT)
 
 #+SBCL (SAVE-LISP-AND-DIE
-  (FORMAT NIL "~A~A" *NATIVE-PATH* #+WIN32 "shen.exe" #-WIN32 "shen")
+  (FORMAT NIL "~A~A" NATIVE-PATH EXECUTABLE-NAME)
   :EXECUTABLE T
   :SAVE-RUNTIME-OPTIONS T
   :TOPLEVEL 'SHEN-TOPLEVEL)
