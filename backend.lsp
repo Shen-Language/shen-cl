@@ -27,18 +27,63 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   (COND
     ((CONSP (MEMBER Expr Locals))
      Expr)
-    ((AND (CONSP Expr) (EQ 'type (CAR Expr)) (CONSP (CDR Expr)) (CONSP (CDDR Expr)) (NULL (CDDDR Expr)))
-     (shen.kl-to-lisp Locals (CAR (CDR Expr))))
-    ((AND (CONSP Expr) (EQ 'lambda (CAR Expr)) (CONSP (CDR Expr)) (CONSP (CDDR Expr)) (NULL (CDDDR Expr)))
-     (LET ((ChX (shen.ch-T (CAR (CDR Expr)))))
+
+    ; Locals [type X _] -> (kl-to-lisp Locals X)
+    ((AND
+      (CONSP Expr)
+      (EQ 'type (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (shen.kl-to-lisp Locals (CADR Expr)))
+
+    ; Locals [lambda X Y] -> (let ChX (ch-T X) (protect [FUNCTION [LAMBDA [ChX] (kl-to-lisp [ChX | Locals] (SUBST ChX X Y))]]))
+    ((AND
+      (CONSP Expr)
+      (EQ 'lambda (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (LET ((ChX (shen.ch-T (CADR Expr))))
       (LIST 'FUNCTION (CONS 'LAMBDA (CONS (LIST ChX) (CONS (shen.kl-to-lisp (CONS ChX Locals) (SUBST ChX (CADR Expr) (CADDR Expr))) ()))))))
-    ((AND (CONSP Expr) (EQ 'let (CAR Expr)) (CONSP (CDR Expr)) (CONSP (CDDR Expr)) (CONSP (CDDDR Expr)) (NULL (CDDDDR Expr)))
+
+    ; Locals [let X Y Z] -> (let ChX (ch-T X) (protect [LET [[ChX (kl-to-lisp Locals Y)]] (kl-to-lisp [ChX | Locals] (SUBST ChX X Z))]))
+    ((AND
+      (CONSP Expr)
+      (EQ 'let (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (CONSP (CDDDR Expr))
+      (NULL (CDDDDR Expr)))
      (LET ((ChX (shen.ch-T (CADR Expr))))
       (LIST 'LET (LIST (LIST ChX (shen.kl-to-lisp Locals (CADDR Expr)))) (shen.kl-to-lisp (CONS ChX Locals) (SUBST ChX (CADR Expr) (CADDDR Expr))))))
-    ((AND (CONSP Expr) (EQ 'defun (CAR Expr)) (CONSP (CDR Expr)) (CONSP (CDDR Expr)) (CONSP (CDDDR Expr)) (NULL (CDDDDR Expr)))
+
+    ; _ [defun F Locals Code] -> (protect [DEFUN F Locals (kl-to-lisp Locals Code)])
+    ((AND
+      (CONSP Expr)
+      (EQ 'defun (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (CONSP (CDDDR Expr))
+      (NULL (CDDDDR Expr)))
      (LIST 'DEFUN (CADR Expr) (CADDR Expr) (shen.kl-to-lisp (CADDR Expr) (CADDDR Expr))))
+
+    ; Locals [cond | Cond] -> (protect [COND | (MAPCAR (/. C (cond_code Locals C)) Cond)])
     ((AND (CONSP Expr) (EQ 'cond (CAR Expr)))
      (CONS 'COND (MAPCAR (FUNCTION (LAMBDA (C) (shen.cond_code Locals C))) (CDR Expr))))
+
+    ; Params [F | X] ->
+    ;   (let Arguments (protect (MAPCAR (/. Y (kl-to-lisp Params Y)) X))
+    ;     (optimise-application
+    ;       (cases
+    ;         (protect (cons? (MEMBER F Params)))
+    ;           [apply F [(protect LIST) | Arguments]]
+    ;         (cons? F)
+    ;           [apply (kl-to-lisp Params F) [(protect LIST) | Arguments]]
+    ;         (partial-application? F Arguments)
+    ;           (partially-apply F Arguments)
+    ;         true
+    ;           [(maplispsym F) | Arguments])))
     ((CONSP Expr)
      (LET ((Args (MAPCAR (FUNCTION (LAMBDA (Y) (shen.kl-to-lisp Locals Y))) (CDR Expr))))
       (shen.optimise-application
@@ -49,10 +94,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
             (IF (shen.wrapper (shen.partial-application? (CAR Expr) Args))
               (shen.partially-apply (CAR Expr) Args)
               (CONS (shen.maplispsym (CAR Expr)) Args)))))))
+
+    ; _ [] -> []
     ((NULL Expr)
      ())
-    ((EQ (SYMBOLP Expr) (QUOTE T))
-     (LIST (QUOTE QUOTE) Expr))
+
+    ; _ S -> (protect [QUOTE S])  where (protect (= (SYMBOLP S) T))
+    ((EQ (SYMBOLP Expr) 'T)
+     (LIST 'QUOTE Expr))
+
+    ; _ X -> X
     (T
      Expr)))
 
@@ -116,20 +167,110 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
          (Lambda (shen.mk-lambda (LIST (shen.maplispsym F)) Arity)))
       (shen.build-partial-application Lambda Args)))
 
-(DEFUN shen.optimise-application (V673)
+(DEFUN shen.optimise-application (Expr)
   (COND
-    ((AND (CONSP V673) (AND (EQ (QUOTE hd) (CAR V673)) (AND (CONSP (CDR V673)) (NULL (CDR (CDR V673)))))) (CONS (QUOTE CAR) (CONS (shen.optimise-application (CAR (CDR V673))) ())))
-    ((AND (CONSP V673) (AND (EQ (QUOTE tl) (CAR V673)) (AND (CONSP (CDR V673)) (NULL (CDR (CDR V673)))))) (CONS (QUOTE CDR) (CONS (shen.optimise-application (CAR (CDR V673))) ())))
-    ((AND (CONSP V673) (AND (EQ (QUOTE cons) (CAR V673)) (AND (CONSP (CDR V673)) (AND (CONSP (CDR (CDR V673))) (NULL (CDR (CDR (CDR V673)))))))) (CONS (QUOTE CONS) (CONS (shen.optimise-application (CAR (CDR V673))) (CONS (shen.optimise-application (CAR (CDR (CDR V673)))) ()))))
-    ((AND (CONSP V673) (AND (EQ (QUOTE append) (CAR V673)) (AND (CONSP (CDR V673)) (AND (CONSP (CDR (CDR V673))) (NULL (CDR (CDR (CDR V673)))))))) (CONS (QUOTE APPEND) (CONS (shen.optimise-application (CAR (CDR V673))) (CONS (shen.optimise-application (CAR (CDR (CDR V673)))) ()))))
-    ((AND (CONSP V673) (AND (EQ (QUOTE reverse) (CAR V673)) (AND (CONSP (CDR V673)) (NULL (CDR (CDR V673)))))) (CONS (QUOTE REVERSE) (CONS (shen.optimise-application (CAR (CDR V673))) ())))
-    ((AND (CONSP V673) (AND (EQ (QUOTE if) (CAR V673)) (AND (CONSP (CDR V673)) (AND (CONSP (CDR (CDR V673))) (AND (CONSP (CDR (CDR (CDR V673)))) (NULL (CDR (CDR (CDR (CDR V673)))))))))) (CONS (QUOTE IF) (CONS (shen.wrap (CAR (CDR V673))) (CONS (shen.optimise-application (CAR (CDR (CDR V673)))) (CONS (shen.optimise-application (CAR (CDR (CDR (CDR V673))))) ())))))
-    ((AND (CONSP V673) (AND (EQ (QUOTE value) (CAR V673)) (AND (CONSP (CDR V673)) (AND (CONSP (CAR (CDR V673))) (AND (CONSP (CDR (CAR (CDR V673)))) (AND (NULL (CDR (CDR (CAR (CDR V673))))) (AND (NULL (CDR (CDR V673))) (EQ (CAR (CAR (CDR V673))) (QUOTE QUOTE))))))))) (CAR (CDR (CAR (CDR V673)))))
-    ((AND (CONSP V673) (AND (EQ (QUOTE +) (CAR V673)) (AND (CONSP (CDR V673)) (AND (shen.ABSEQUAL 1 (CAR (CDR V673))) (AND (CONSP (CDR (CDR V673))) (NULL (CDR (CDR (CDR V673))))))))) (CONS (intern "1+") (CONS (shen.optimise-application (CAR (CDR (CDR V673)))) ())))
-    ((AND (CONSP V673) (AND (EQ (QUOTE +) (CAR V673)) (AND (CONSP (CDR V673)) (AND (CONSP (CDR (CDR V673))) (AND (shen.ABSEQUAL 1 (CAR (CDR (CDR V673)))) (NULL (CDR (CDR (CDR V673))))))))) (CONS (intern "1+") (CONS (shen.optimise-application (CAR (CDR V673))) ())))
-    ((AND (CONSP V673) (AND (EQ (QUOTE -) (CAR V673)) (AND (CONSP (CDR V673)) (AND (CONSP (CDR (CDR V673))) (AND (shen.ABSEQUAL 1 (CAR (CDR (CDR V673)))) (NULL (CDR (CDR (CDR V673))))))))) (CONS (intern "1-") (CONS (shen.optimise-application (CAR (CDR V673))) ())))
-    ((CONSP V673) (MAPCAR (QUOTE shen.optimise-application) V673))
-    (T V673)))
+
+    ; [hd X] -> (protect [CAR (optimise-application X)])
+    ((AND
+      (CONSP Expr)
+      (EQ 'hd (CAR Expr))
+      (CONSP (CDR Expr))
+      (NULL (CDDR Expr)))
+     (LIST 'CAR (shen.optimise-application (CADR Expr))))
+
+    ; [tl X] -> (protect [CDR (optimise-application X)])
+    ((AND
+      (CONSP Expr)
+      (EQ 'tl (CAR Expr))
+      (CONSP (CDR Expr))
+      (NULL (CDDR Expr)))
+     (LIST 'CDR (shen.optimise-application (CADR Expr))))
+
+    ; [cons X Y] -> (protect [CONS (optimise-application X) (optimise-application Y)])
+    ((AND
+      (CONSP Expr)
+      (EQ 'cons (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (LIST 'CONS (shen.optimise-application (CADR Expr)) (shen.optimise-application (CADDR Expr))))
+
+    ; [append X Y] -> (protect [APPEND (optimise-application X) (optimise-application Y)])
+    ((AND
+      (CONSP Expr)
+      (EQ 'append (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (LIST 'APPEND (shen.optimise-application (CADR Expr)) (shen.optimise-application (CADDR Expr))))
+
+    ; [reverse X] -> (protect [REVERSE (optimise-application X)])
+    ((AND
+      (CONSP Expr)
+      (EQ 'reverse (CAR Expr))
+      (CONSP (CDR Expr))
+      (NULL (CDDR Expr)))
+     (LIST 'REVERSE (shen.optimise-application (CADR Expr))))
+
+    ; [if P Q R] -> (protect [IF (wrap P) (optimise-application Q) (optimise-application R)])
+    ((AND
+      (CONSP Expr)
+      (EQ 'if (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (CONSP (CDDDR Expr))
+      (NULL (CDDDDR Expr)))
+     (LIST 'IF (shen.wrap (CADR Expr)) (shen.optimise-application (CADDR Expr)) (shen.optimise-application (CADDDR Expr))))
+
+    ; [value [Quote X]] -> X where (= Quote (protect QUOTE))
+    ((AND
+      (CONSP Expr)
+      (EQ 'value (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CADR Expr))
+      (CONSP (CDADR Expr))
+      (NULL (CDDADR Expr))
+      (NULL (CDDR Expr))
+      (EQ (CAADR Expr) 'QUOTE))
+     (CADADR Expr))
+
+    ; [+ 1 X] -> [(intern "1+") (optimise-application X)]
+    ((AND
+      (CONSP Expr)
+      (EQ '+ (CAR Expr))
+      (CONSP (CDR Expr))
+      (shen.ABSEQUAL 1 (CADR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (LIST (intern "1+") (shen.optimise-application (CADDR Expr))))
+
+    ; [+ X 1] -> [(intern "1+") (optimise-application X)]
+    ((AND
+      (CONSP Expr)
+      (EQ '+ (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (shen.ABSEQUAL 1 (CADDR Expr))
+      (NULL (CDDDR Expr)))
+     (LIST (intern "1+") (shen.optimise-application (CADR Expr))))
+
+    ; [- X 1] -> [(intern "1-") (optimise-application X)]
+    ((AND
+      (CONSP Expr)
+      (EQ '- (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (shen.ABSEQUAL 1 (CADDR Expr))
+      (NULL (CDDDR Expr)))
+     (LIST (intern "1-") (shen.optimise-application (CADR Expr))))
+
+    ; [X | Y] -> ((protect MAPCAR) (function optimise-application) [X | Y])
+    ((CONSP Expr)
+     (MAPCAR 'shen.optimise-application Expr))
+
+    ; X -> X
+    (T
+     Expr)))
 
 (DEFUN shen.mk-lambda (F Arity)
   (IF (shen.ABSEQUAL 0 Arity)
@@ -166,174 +307,219 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
 (DEFUN shen.wrap (Expr)
   (COND
-   ((AND (CONSP Expr)
-         (AND (EQ 'cons? (CAR Expr))
-              (AND (CONSP (CDR Expr)) (NULL (CDR (CDR Expr))))))
-    (CONS 'CONSP (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'string? (CAR Expr))
-              (AND (CONSP (CDR Expr)) (NULL (CDR (CDR Expr))))))
-    (CONS 'STRINGP (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'number? (CAR Expr))
-              (AND (CONSP (CDR Expr)) (NULL (CDR (CDR Expr))))))
-    (CONS 'NUMBERP (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'empty? (CAR Expr))
-              (AND (CONSP (CDR Expr)) (NULL (CDR (CDR Expr))))))
-    (CONS 'NULL (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'and (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (NULL (CDR (CDR (CDR Expr))))))))
-    (CONS 'AND
-          (CONS (shen.wrap (CAR (CDR Expr)))
-                (CONS (shen.wrap (CAR (CDR (CDR Expr)))) NIL))))
-   ((AND (CONSP Expr)
-         (AND (EQ 'or (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (NULL (CDR (CDR (CDR Expr))))))))
-    (CONS 'OR
-          (CONS (shen.wrap (CAR (CDR Expr)))
-                (CONS (shen.wrap (CAR (CDR (CDR Expr)))) NIL))))
-   ((AND (CONSP Expr)
-         (AND (EQ 'not (CAR Expr))
-              (AND (CONSP (CDR Expr)) (NULL (CDR (CDR Expr))))))
-    (CONS 'NOT (CONS (shen.wrap (CAR (CDR Expr))) NIL)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (AND (NULL (CAR (CDR (CDR Expr))))
-                             (NULL (CDR (CDR (CDR Expr)))))))))
-    (CONS 'NULL (CONS (CAR (CDR Expr)) NIL)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (NULL (CAR (CDR Expr)))
-                        (AND (CONSP (CDR (CDR Expr)))
-                             (NULL (CDR (CDR (CDR Expr)))))))))
-    (CONS 'NULL (CDR (CDR Expr))))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (AND (CONSP (CAR (CDR (CDR Expr))))
-                             (AND (CONSP (CDR (CAR (CDR (CDR Expr)))))
-                                  (AND
-                                   (NULL (CDR (CDR (CAR (CDR (CDR Expr))))))
-                                   (AND (NULL (CDR (CDR (CDR Expr))))
-                                        (AND
-                                         (EQ
-                                          (SYMBOLP
-                                           (CAR (CDR (CAR (CDR (CDR Expr))))))
-                                          'T)
-                                         (EQ (CAR (CAR (CDR (CDR Expr))))
-                                             'QUOTE))))))))))
-    (CONS 'EQ (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CAR (CDR Expr)))
-                        (AND (CONSP (CDR (CAR (CDR Expr))))
-                             (AND (NULL (CDR (CDR (CAR (CDR Expr)))))
-                                  (AND (CONSP (CDR (CDR Expr)))
-                                       (AND (NULL (CDR (CDR (CDR Expr))))
-                                            (AND
-                                             (EQ
-                                              (SYMBOLP
-                                               (CAR (CDR (CAR (CDR Expr)))))
-                                              'T)
-                                             (EQ (CAR (CAR (CDR Expr)))
-                                                 'QUOTE))))))))))
-    (CONS 'EQ (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CAR (CDR Expr)))
-                        (AND (EQ 'fail (CAR (CAR (CDR Expr))))
-                             (AND (NULL (CDR (CAR (CDR Expr))))
-                                  (AND (CONSP (CDR (CDR Expr)))
-                                       (NULL (CDR (CDR (CDR Expr)))))))))))
-    (CONS 'EQ (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (AND (CONSP (CAR (CDR (CDR Expr))))
-                             (AND (EQ 'fail (CAR (CAR (CDR (CDR Expr)))))
-                                  (AND (NULL (CDR (CAR (CDR (CDR Expr)))))
-                                       (NULL (CDR (CDR (CDR Expr)))))))))))
-    (CONS 'EQ (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (AND (NULL (CDR (CDR (CDR Expr))))
-                             (STRINGP (CAR (CDR Expr))))))))
-    (CONS 'EQUAL (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (AND (NULL (CDR (CDR (CDR Expr))))
-                             (STRINGP (CAR (CDR (CDR Expr)))))))))
-    (CONS 'EQUAL (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (AND (NULL (CDR (CDR (CDR Expr))))
-                             (NUMBERP (CAR (CDR (CDR Expr)))))))))
-    (CONS 'IF
-          (CONS (CONS 'NUMBERP (CONS (CAR (CDR Expr)) NIL))
-                (CONS (CONS '= (CDR Expr)) NIL))))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (AND (NULL (CDR (CDR (CDR Expr))))
-                             (NUMBERP (CAR (CDR Expr))))))))
-    (CONS 'IF
-          (CONS (CONS 'NUMBERP (CDR (CDR Expr)))
-                (CONS
-                 (CONS '=
-                       (CONS (CAR (CDR (CDR Expr)))
-                             (CONS (CAR (CDR Expr)) NIL)))
-                 NIL))))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.equal? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (NULL (CDR (CDR (CDR Expr))))))))
-    (CONS 'shen.ABSEQUAL (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.greater? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (NULL (CDR (CDR (CDR Expr))))))))
-    (CONS '> (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.greater-than-or-equal-to? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (NULL (CDR (CDR (CDR Expr))))))))
-    (CONS '>= (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.less? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (NULL (CDR (CDR (CDR Expr))))))))
-    (CONS '< (CDR Expr)))
-   ((AND (CONSP Expr)
-         (AND (EQ 'shen.less-than-or-equal-to? (CAR Expr))
-              (AND (CONSP (CDR Expr))
-                   (AND (CONSP (CDR (CDR Expr)))
-                        (NULL (CDR (CDR (CDR Expr))))))))
-    (CONS '<= (CDR Expr)))
-   (T (CONS 'shen.wrapper (CONS Expr NIL)))))
+
+    ; [cons? X] -> [(protect CONSP) X]
+    ((AND
+      (CONSP Expr)
+      (EQ 'cons? (CAR Expr))
+      (CONSP (CDR Expr))
+      (NULL (CDDR Expr)))
+     (CONS 'CONSP (CDR Expr)))
+
+    ; [string? X] -> [(protect STRINGP) X]
+    ((AND
+      (CONSP Expr)
+      (EQ 'string? (CAR Expr))
+      (CONSP (CDR Expr))
+      (NULL (CDDR Expr)))
+     (CONS 'STRINGP (CDR Expr)))
+
+    ; [number? X] -> [(protect NUMBERP) X]
+    ((AND
+      (CONSP Expr)
+      (EQ 'number? (CAR Expr))
+      (CONSP (CDR Expr))
+      (NULL (CDDR Expr)))
+     (CONS 'NUMBERP (CDR Expr)))
+
+    ; [empty? X] -> [(protect NULL) X]
+    ((AND
+      (CONSP Expr)
+      (EQ 'empty? (CAR Expr))
+      (CONSP (CDR Expr))
+      (NULL (CDDR Expr)))
+     (CONS 'NULL (CDR Expr)))
+
+    ; [and P Q] -> [(protect AND) (wrap P) (wrap Q)]
+    ((AND
+      (CONSP Expr)
+      (EQ 'and (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (LIST* 'AND (shen.wrap (CADR Expr)) (shen.wrap (CADDR Expr)) NIL))
+
+    ; [or P Q] -> [(protect OR) (wrap P) (wrap Q)]
+    ((AND
+      (CONSP Expr)
+      (EQ 'or (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (LIST* 'OR (shen.wrap (CADR Expr)) (shen.wrap (CADDR Expr)) NIL))
+
+    ; [not P] -> [(protect NOT) (wrap P)]
+    ((AND
+      (CONSP Expr)
+      (EQ 'not (CAR Expr))
+      (CONSP (CDR Expr))
+      (NULL (CDDR Expr)))
+     (LIST* 'NOT (shen.wrap (CADR Expr)) NIL))
+
+    ; [equal? X []] -> [(protect NULL) X]
+    ((AND
+      (CONSP Expr)
+      (EQ 'shen.equal? (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CADDR Expr))
+      (NULL (CDDDR Expr)))
+     (LIST* 'NULL (CADR Expr) NIL))
+
+    ; [equal? [] X] -> [(protect NULL) X]
+    ((AND
+      (CONSP Expr)
+      (EQ 'shen.equal? (CAR Expr))
+      (CONSP (CDR Expr))
+      (NULL (CADR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (CONS 'NULL (CDDR Expr)))
+
+    ; [equal? X [Quote Y]] -> [(protect EQ) X [Quote Y]] where (and (= ((protect SYMBOLP) Y) (protect T)) (= Quote (protect QUOTE)))
+    ; [equal? [Quote Y] X] -> [(protect EQ) [Quote Y] X] where (and (= ((protect SYMBOLP) Y) (protect T)) (= Quote (protect QUOTE)))
+    ; [equal? [fail] X] -> [(protect EQ) [fail] X]
+    ; [equal? X [fail]] -> [(protect EQ) X [fail]]
+    ((OR
+      (AND
+        (CONSP Expr)
+        (EQ 'shen.equal? (CAR Expr))
+        (CONSP (CDR Expr))
+        (CONSP (CDDR Expr))
+        (CONSP (CADDR Expr))
+        (CONSP (CDADDR Expr))
+        (NULL (CDR (CDADDR Expr)))
+        (NULL (CDDDR Expr))
+        (EQ (SYMBOLP (CAR (CDADDR Expr))) 'T)
+        (EQ (CAADDR Expr) 'QUOTE))
+      (AND
+        (CONSP Expr)
+        (EQ 'shen.equal? (CAR Expr))
+        (CONSP (CDR Expr))
+        (CONSP (CADR Expr))
+        (CONSP (CDADR Expr))
+        (NULL (CDDADR Expr))
+        (CONSP (CDDR Expr))
+        (NULL (CDDDR Expr))
+        (EQ (SYMBOLP (CADADR Expr)) 'T)
+        (EQ (CAADR Expr) 'QUOTE))
+      (AND
+        (CONSP Expr)
+        (EQ 'shen.equal? (CAR Expr))
+        (CONSP (CDR Expr))
+        (CONSP (CADR Expr))
+        (EQ 'fail (CAADR Expr))
+        (NULL (CDADR Expr))
+        (CONSP (CDDR Expr))
+        (NULL (CDDDR Expr)))
+      (AND
+        (CONSP Expr)
+        (EQ 'shen.equal? (CAR Expr))
+        (CONSP (CDR Expr))
+        (CONSP (CDDR Expr))
+        (CONSP (CADDR Expr))
+        (EQ 'fail (CAADDR Expr))
+        (NULL (CDADDR Expr))
+        (NULL (CDDDR Expr))))
+     (CONS 'EQ (CDR Expr)))
+
+    ; [equal? S X] -> [(protect EQUAL) S X] where (string? S)
+    ; [equal? X S] -> [(protect EQUAL) X S] where (string? S)
+    ((OR
+      (AND
+        (CONSP Expr)
+        (EQ 'shen.equal? (CAR Expr))
+        (CONSP (CDR Expr))
+        (CONSP (CDDR Expr))
+        (NULL (CDDDR Expr))
+        (STRINGP (CADR Expr)))
+      (AND
+        (CONSP Expr)
+        (EQ 'shen.equal? (CAR Expr))
+        (CONSP (CDR Expr))
+        (CONSP (CDDR Expr))
+        (NULL (CDDDR Expr))
+        (STRINGP (CADDR Expr))))
+     (CONS 'EQUAL (CDR Expr)))
+
+    ; [equal? X N] -> [(protect EQL) X N] where (number? N)
+    ((AND
+      (CONSP Expr)
+      (EQ 'shen.equal? (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr))
+      (NUMBERP (CADDR Expr)))
+     (LIST 'IF (LIST 'NUMBERP (CADR Expr)) (CONS '= (CDR Expr))))
+
+    ; [equal? N X] -> [(protect EQL) X N] where (number? N)
+    ((AND
+      (CONSP Expr)
+      (EQ 'shen.equal? (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr))
+      (NUMBERP (CADR Expr)))
+     (LIST 'IF (CONS 'NUMBERP (CDDR Expr)) (LIST '= (CADDR Expr) (CADR Expr))))
+
+    ; [equal? X Y] -> [(protect shen.ABSEQUAL) X Y]
+    ((AND
+      (CONSP Expr)
+      (EQ 'shen.equal? (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (CONS 'shen.ABSEQUAL (CDR Expr)))
+
+    ; [greater? X Y] -> [> X Y]
+    ((AND
+      (CONSP Expr)
+      (EQ 'shen.greater? (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (CONS '> (CDR Expr)))
+
+    ; [greater-than-or-equal-to? X Y] -> [>= X Y]
+    ((AND
+      (CONSP Expr)
+      (EQ 'shen.greater-than-or-equal-to? (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (CONS '>= (CDR Expr)))
+
+    ; [less? X Y] -> [< X Y]    
+    ((AND
+      (CONSP Expr)
+      (EQ 'shen.less? (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (CONS '< (CDR Expr)))
+
+    ; [less-than-or-equal-to? X Y] -> [<= X Y]
+    ((AND
+      (CONSP Expr)
+      (EQ 'shen.less-than-or-equal-to? (CAR Expr))
+      (CONSP (CDR Expr))
+      (CONSP (CDDR Expr))
+      (NULL (CDDDR Expr)))
+     (CONS '<= (CDR Expr)))
+
+    ; X -> [wrapper X]
+    (T
+     (CONS 'shen.wrapper (CONS Expr NIL)))))
 
 (DEFUN shen.wrapper (X)
   (COND
@@ -352,4 +538,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     ((EQ Symbol '-)  'shen.subtract)
     ((EQ Symbol '/)  'shen.divide)
     ((EQ Symbol '*)  'shen.multiply)
-    (T Symbol)))
+    (T               Symbol)))
