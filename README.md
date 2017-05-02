@@ -1,10 +1,11 @@
 [![Shen Version](https://img.shields.io/badge/shen-20.0-blue.svg)](https://github.com/Shen-Language)
+[![Build Status](https://travis-ci.org/Shen-Language/shen-cl.svg?branch=master)](https://travis-ci.org/Shen-Language/shen-cl)
 
 # Shen for Common Lisp
 
 [Shen](http://www.shenlanguage.org) for Common Lisp by [Mark Tarver](http://marktarver.com/), with contributions by the [Shen Language Open Source Community](https://github.com/Shen-Language).
 
-This codebase current supports the following implementations of Common Lisp:
+This codebase currently supports the following implementations of Common Lisp:
 
   * [GNU CLisp](http://www.clisp.org/)
   * [Steel Bank Common Lisp](http://www.sbcl.org/)
@@ -13,9 +14,11 @@ This Common Lisp port is often considered the de-facto standard implementation o
 
 ### Building
 
-You will need `clisp` and/or `sbcl` installed. This can be acquired will `apt` on linux or downloaded from the official websites linked above.
+You will need to have the Common Lisp implementations you want to work with installed. These can be acquired with `apt` on linux or downloaded from the official websites linked above.
 
 If you are running Windows, [GOW](https://github.com/bmatzelle/gow) is recommended as it comes with `make` as well as commands used in the `Makefile`.
+
+`Makefile` operations:
 
   * Fetch kernel sources by running `make fetch`.
   * Build all ports by running `make`.
