@@ -41,3 +41,6 @@ fetch:
 	rm -f $(FileName)
 	rm -rf kernel
 	mv $(NestedFolderName) kernel
+
+clean:
+	rm -rf native
