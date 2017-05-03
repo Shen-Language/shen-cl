@@ -8,7 +8,7 @@
 This codebase currently supports the following implementations of Common Lisp:
 
   * [GNU CLisp](http://www.clisp.org/)
-  * [Clozure Common Lisp](http://ccl.clozure.com/)
+  * [Clozure Common Lisp](http://ccl.clozure.com/) (Work in Progress)
   * [Steel Bank Common Lisp](http://www.sbcl.org/)
 
 This Common Lisp port is often considered the de-facto standard implementation of the Shen language. It is also the fastest known port, running the standard test suite in 4-8 seconds on SBCL, depending on hardware.
