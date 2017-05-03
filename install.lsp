@@ -58,10 +58,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (SETQ *port* 2.0)
 (SETQ *porters* "Mark Tarver")
 (SETQ *os*
-  #+(OR WIN32 WINDOWS) "Windows"
-  #+LINUX              "Linux"
-  #+(OR OSX DARWIN)    "Mac OSX"
-  #+UNIX               "Unix")
+  (OR
+    #+(OR WIN32 WINDOWS) "Windows"
+    #+LINUX              "Linux"
+    #+(OR OSX DARWIN)    "Mac OSX"
+    #+UNIX               "Unix"
+                         "Unknown"))
 
 (DEFUN import-kl (File)
   (LET ((KlFile       (FORMAT NIL "./kernel/klambda/~A.kl" File))
@@ -107,7 +109,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
 (DEFUN translate-kl (InputFile OutputFile)
   (LET* ((KlCode (openfile InputFile))
-         (LispCode (MAPCAR (FUNCTION (LAMBDA (X) (shen.kl-to-lisp NIL X))) KlCode)))
+         (LispCode (MAPCAR #'(LAMBDA (X) (shen.kl-to-lisp NIL X)) KlCode)))
     (writefile OutputFile LispCode)))
 
 (DEFUN openfile (File)
@@ -124,7 +126,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
       :IF-EXISTS         :SUPERSEDE
       :IF-DOES-NOT-EXIST :CREATE)
     (FORMAT OUTSTREAM "~%")
-    (MAPC (FUNCTION (LAMBDA (X) (FORMAT OUTSTREAM "~S~%~%" X))) Out)
+    (MAPC #'(LAMBDA (X) (FORMAT OUTSTREAM "~S~%~%" X)) Out)
     File))
 
 (DEFUN import-lsp (File)

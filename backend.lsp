@@ -70,7 +70,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
     ; Locals [cond | Cond] -> (protect [COND | (MAPCAR (/. C (cond_code Locals C)) Cond)])
     ((AND (CONSP Expr) (EQ 'cond (CAR Expr)))
-     (CONS 'COND (MAPCAR (FUNCTION (LAMBDA (C) (shen.cond_code Locals C))) (CDR Expr))))
+     (CONS 'COND (MAPCAR #'(LAMBDA (C) (shen.cond_code Locals C)) (CDR Expr))))
 
     ; Params [F | X] ->
     ;   (let Arguments (protect (MAPCAR (/. Y (kl-to-lisp Params Y)) X))
@@ -85,7 +85,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     ;         true
     ;           [(maplispsym F) | Arguments])))
     ((CONSP Expr)
-     (LET ((Args (MAPCAR (FUNCTION (LAMBDA (Y) (shen.kl-to-lisp Locals Y))) (CDR Expr))))
+     (LET ((Args (MAPCAR #'(LAMBDA (Y) (shen.kl-to-lisp Locals Y)) (CDR Expr))))
       (shen.optimise-application
         (IF (CONSP (MEMBER (CAR Expr) Locals))
           (LIST 'shen.apply (CAR Expr) (CONS 'LIST Args))
@@ -155,7 +155,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     (simple-error (cn "cannot apply " (shen.app F (FORMAT NIL "~%") 'shen.a)))))
 
 (DEFUN shen.partial-application? (F Args)
-  (LET ((Arity (trap-error (arity F) (FUNCTION (LAMBDA (E) -1)))))
+  (LET ((Arity (trap-error (arity F) #'(LAMBDA (E) -1))))
     (IF (OR (shen.ABSEQUAL Arity -1)
             (shen.ABSEQUAL Arity (length Args))
             (shen.wrapper (shen.greater? (length Args) Arity)))
@@ -301,7 +301,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     ((EQ 'true Expr)
      'T)
     ((AND (CONSP Expr) (EQ 'and (CAR Expr)))
-     (CONS 'AND (MAPCAR (FUNCTION (LAMBDA (X) (shen.wrap (shen.kl-to-lisp Locals X)))) (CDR Expr))))
+     (CONS 'AND (MAPCAR #'(LAMBDA (X) (shen.wrap (shen.kl-to-lisp Locals X))) (CDR Expr))))
     (T
      (shen.wrap (shen.kl-to-lisp Locals Expr)))))
 
