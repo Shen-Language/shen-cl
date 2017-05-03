@@ -6,15 +6,14 @@ FileName=ShenOSKernel-$(KernelVersion).tar.gz
 NestedFolderName=ShenOSKernel-$(KernelVersion)
 
 ifeq ($(OS),Windows_NT)
+	RunCCL=./native/ccl/shen.exe
 	RunSBCL=./native/sbcl/shen.exe
-	CCL=wx86cl64
 else
+	RunCCL=./native/ccl/shen
 	RunSBCL=./native/sbcl/shen
-	CCL=ccl
 endif
 
 RunCLisp=clisp -M ./native/clisp/shen.mem -q -m 10MB
-RunCCL=$(CCL) -I ./native/ccl/shen.mem
 
 build-all: build-clisp build-sbcl
 # build-all: build-clisp build-ccl build-sbcl
@@ -23,7 +22,7 @@ build-clisp:
 	clisp -i install.lsp
 
 build-ccl:
-	$(CCL) -l install.lsp
+	ccl -l install.lsp
 
 build-sbcl:
 	sbcl --load install.lsp
