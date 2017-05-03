@@ -18,18 +18,19 @@ You will need to have the Common Lisp implementations you want to work with inst
 
 If you are running Windows, [GOW](https://github.com/bmatzelle/gow) is recommended as it comes with `make` as well as commands used in the `Makefile`.
 
-A Debian package for Clozure CL can be downloaded from [here](http://mr.gy/blog/clozure-cl_1.11_amd64.deb). Install with `dpkg -i clozure-cl_1.11_amd64.deb`.
-
 `Makefile` operations:
 
   * Fetch kernel sources by running `make fetch`.
   * Build all ports by running `make`.
     * Build only the CLisp port with `make build-clisp`.
+    * Build only the Clozure port with `make build-ccl`.
     * Build only the SBCL port with `make build-sbcl`.
   * Test all ports with `make test-all`.
     * Test only the CLisp port with `make test-clisp`.
+    * Test only the Clozure port with `make test-ccl`.
     * Test only the SBCL port with `make test-sbcl`.
   * Run Shen REPL for CLisp port with `make run-clisp`.
+  * Run Shen REPL for Clozure port with `make run-ccl`.
   * Run Shen REPL for SBCL port with `make run-sbcl`.
 
 ### Contributing

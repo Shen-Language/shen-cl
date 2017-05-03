@@ -6,6 +6,9 @@ addons:
     packages:
       - clisp
       - sbcl
+install:
+  - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
+  - dpkg -i clozure-cl_1.11_amd64.deb
 script:
   - make fetch
   - make
