@@ -296,3 +296,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
         (SB-SYS:INTERACTIVE-INTERRUPT ()
           (FORMAT T "~%Quit.~%")
           (exit 0))))))
+
+#+CCL (DEFUN SHEN-TOPLEVEL ()
+  (LET ((Args *UNPROCESSED-COMMAND-LINE-ARGUMENTS*))
+    (IF (CONSP Args)
+      (PROGN
+        (MAPC 'load Args)
+        (exit 0))
+      (shen.shen))))
