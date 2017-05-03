@@ -159,14 +159,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
          (OPEN Path
           :DIRECTION :INPUT
           :ELEMENT-TYPE
-            #+CLISP 'UNSIGNED-BYTE
-            #+SBCL  :DEFAULT))
+            #+CLISP         'UNSIGNED-BYTE
+            #+(OR CCL SBCL) :DEFAULT))
         ((EQ Direction 'out)
          (OPEN Path
           :DIRECTION :OUTPUT
           :ELEMENT-TYPE
-            #+CLISP 'UNSIGNED-BYTE
-            #+SBCL  :DEFAULT
+            #+CLISP         'UNSIGNED-BYTE
+            #+(OR CCL SBCL) :DEFAULT
           :IF-EXISTS :SUPERSEDE))
         (T
          (ERROR "invalid direction"))))
