@@ -18,6 +18,8 @@ You will need to have the Common Lisp implementations you want to work with inst
 
 If you are running Windows, [GOW](https://github.com/bmatzelle/gow) is recommended as it comes with `make` as well as commands used in the `Makefile`.
 
+A Debian package for Clozure CL can be downloaded from [here](http://mr.gy/blog/clozure-cl_1.11_amd64.deb). Install with `dpkg -i clozure-cl_1.11_amd64.deb`.
+
 `Makefile` operations:
 
   * Fetch kernel sources by running `make fetch`.

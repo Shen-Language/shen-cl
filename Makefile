@@ -10,7 +10,7 @@ ifeq ($(OS),Windows_NT)
 	CCL=wx86cl64
 else
 	RunSBCL=./native/sbcl/shen
-	CCL=ccl64
+	CCL=ccl
 endif
 
 RunCLisp=clisp -M ./native/clisp/shen.mem -q -m 10MB
