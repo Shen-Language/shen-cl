@@ -15,8 +15,7 @@ endif
 
 RunCLisp=clisp -M ./native/clisp/shen.mem -q -m 10MB
 
-build-all: build-clisp build-sbcl
-# build-all: build-clisp build-ccl build-sbcl
+build-all: build-clisp build-ccl build-sbcl
 
 build-clisp:
 	clisp -i install.lsp
@@ -37,7 +36,7 @@ run-sbcl:
 	$(RunSBCL)
 
 test-all: test-clisp test-sbcl
-# test-all: test-clisp test-ccl test-sbcl
+# TODO: test-all: test-clisp test-ccl test-sbcl
 
 test-clisp:
 	$(RunCLisp) testsuite.shen
