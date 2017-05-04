@@ -157,24 +157,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
       :DIRECTION :INPUT
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
-        #+CCL   '(UNSIGNED-BYTE 8)
+        #+CCL   :DEFAULT
         #+SBCL  :DEFAULT))
     ((EQ Direction 'out)
      (OPEN Path
       :DIRECTION :OUTPUT
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
-        #+CCL   '(UNSIGNED-BYTE 8)
+        #+CCL   :DEFAULT
         #+SBCL  :DEFAULT
       :IF-EXISTS :SUPERSEDE))
     (T
      (ERROR "invalid direction"))))
 
 (DEFUN type (X MyType)
-  (DECLARE (IGNORE MyType)) X)
+  (DECLARE (IGNORE MyType))
+  X)
 
 (DEFUN close (Stream)
-  (CLOSE Stream) NIL)
+  (CLOSE Stream)
+  NIL)
 
 (DEFUN pos (X N)
   (COERCE (LIST (CHAR X N)) 'STRING))
