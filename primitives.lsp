@@ -214,20 +214,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     (T
      (cn (pos S 0) (shen.process-number (tlstr S))))))
 
+(DEFUN shen-cl.prefix? (Str Prefix)
+  (LET ((Prefix-Length (LENGTH Prefix)))
+    (AND
+      (>= (LENGTH Str) Prefix-Length)
+      (STRING-EQUAL Str Prefix :END1 Prefix-Length))))
+
 (DEFUN shen.process-string (X)
   (COND
-    ((STRING-EQUAL X "")
-     X)
-    ((AND (> (LENGTH X) 8) (STRING-EQUAL X "_hash1957" :END1 9))
-     (cn "#" (shen.process-string (SUBSEQ X 9))))
-    ((AND (> (LENGTH X) 9) (STRING-EQUAL X "_quote1957" :END1 10))
-     (cn "'" (shen.process-string (SUBSEQ X 10))))
-    ((AND (> (LENGTH X) 13) (STRING-EQUAL X "_backquote1957" :END1 14))
-     (cn "`" (shen.process-string (SUBSEQ X 14))))
-    ((AND (> (LENGTH X) 7) (STRING-EQUAL X "bar!1957" :END1 8))
-     (cn "|" (shen.process-string (SUBSEQ X 8))))
-    (T
-     (cn (pos X 0) (shen.process-string (tlstr X))))))
+    ((STRING-EQUAL X "")                  X)
+    ((shen-cl.prefix? X "_hash1957")      (cn "#" (shen.process-string (SUBSEQ X 9))))
+    ((shen-cl.prefix? X "_quote1957")     (cn "'" (shen.process-string (SUBSEQ X 10))))
+    ((shen-cl.prefix? X "_backquote1957") (cn "`" (shen.process-string (SUBSEQ X 14))))
+    ((shen-cl.prefix? X "bar!1957")       (cn "|" (shen.process-string (SUBSEQ X 8))))
+    (T                                    (cn (pos X 0) (shen.process-string (tlstr X))))))
 
 (DEFUN get-time (Time)
   (COND
