@@ -35,9 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   #+CLISP ".fas"
   #+CCL
     (OR
-      #+(OR WIN32 WINDOWS) ".wx64fsl"
-      #+LINUX              ".lx64fsl"
-                           ".unknown") ; TODO: need a better way to do this
+      #+WINDOWS ".wx64fsl"
+      #+LINUX   ".lx64fsl"
+                ".unknown") ; TODO: need a better way to do this
   #+SBCL ".fasl")
 
 #+CLISP (DEFCONSTANT MEM-NAME "shen.mem")
