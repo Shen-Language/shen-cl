@@ -5,6 +5,11 @@ ReleaseName=shen-$(KernelVersion)
 FileName=ShenOSKernel-$(KernelVersion).tar.gz
 NestedFolderName=ShenOSKernel-$(KernelVersion)
 
+RunCLisp=clisp -M ./native/clisp/shen.mem -q -m 10MB
+BuildAll=build-clisp build-ccl build-sbcl
+TestAll=test-clisp test-sbcl
+# TODO: TestAll=test-clisp test-ccl test-sbcl
+
 ifeq ($(OS),Windows_NT)
 	RunCCL=./native/ccl/shen.exe
 	RunSBCL=./native/sbcl/shen.exe
@@ -13,9 +18,9 @@ else
 	RunSBCL=./native/sbcl/shen
 endif
 
-RunCLisp=clisp -M ./native/clisp/shen.mem -q -m 10MB
+build-all: $(BuildAll)
 
-build-all: build-clisp build-ccl build-sbcl
+test-all: $(TestAll)
 
 build-clisp:
 	clisp -i install.lsp
@@ -34,9 +39,6 @@ run-ccl:
 
 run-sbcl:
 	$(RunSBCL)
-
-test-all: test-clisp test-sbcl
-# TODO: test-all: test-clisp test-ccl test-sbcl
 
 test-clisp:
 	$(RunCLisp) testsuite.shen
