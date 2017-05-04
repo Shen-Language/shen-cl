@@ -91,7 +91,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
           (LIST 'shen.apply (CAR Expr) (CONS 'LIST Args))
           (IF (CONSP (CAR Expr))
             (LIST 'shen.apply (shen.kl-to-lisp Locals (CAR Expr)) (CONS 'LIST Args))
-            (IF (shen.wrapper (shen.partial-application? (CAR Expr) Args))
+            (IF (shen-cl.true? (shen.partial-application? (CAR Expr) Args))
               (shen.partially-apply (CAR Expr) Args)
               (CONS (shen.maplispsym (CAR Expr)) Args)))))))
 
@@ -129,9 +129,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
 (DEFUN shen.analyse-application (F FSym Args Message)
   (LET ((Lambda
-         (IF (shen.wrapper (shen.partial-application? F Args))
+         (IF (shen-cl.true? (shen.partial-application? F Args))
           (shen.build-up-lambda-expression FSym F)
-          (IF (shen.wrapper (shen.lazyboolop? F))
+          (IF (shen-cl.true? (shen.lazyboolop? F))
             (shen.build-up-lambda-expression FSym F)
             (simple-error Message)))))
     (shen.curried-apply Lambda Args)))
@@ -158,7 +158,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   (LET ((Arity (trap-error (arity F) #'(LAMBDA (E) -1))))
     (IF (OR (shen.ABSEQUAL Arity -1)
             (shen.ABSEQUAL Arity (length Args))
-            (shen.wrapper (shen.greater? (length Args) Arity)))
+            (shen-cl.true? (shen.greater? (length Args) Arity)))
       'false
       'true)))
 
@@ -517,15 +517,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
       (NULL (CDDDR Expr)))
      (CONS '<= (CDR Expr)))
 
-    ; X -> [wrapper X]
+    ; X -> [shen-cl.true? X]
     (T
-     (CONS 'shen.wrapper (CONS Expr NIL)))))
+     (LIST* 'shen-cl.true? Expr NIL))))
 
-(DEFUN shen.wrapper (X)
+(DEFUN shen-cl.true? (X)
   (COND
     ((EQ 'true X)  'T)
     ((EQ 'false X) ())
-    (T (simple-error (cn "boolean expected: not " (shen.app X (FORMAT NIL "~%") 'shen.s))))))
+    (T (simple-error (cn "boolean expected: not ~A~%" X)))))
 
 (DEFUN shen.maplispsym (Symbol)
   (COND
