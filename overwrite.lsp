@@ -105,7 +105,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   #+CCL   (CCL:QUIT Code)
   #+SBCL  (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
 
-#+SBCL (DEFUN read-char-code (S)
+#+(OR CCL SBCL) (DEFUN read-char-code (S)
   (LET ((C (READ-CHAR S NIL -1)))
     (IF (EQ C -1)
       -1
