@@ -111,7 +111,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
       -1
       (CHAR-INT C))))
 
-#+SBCL (DEFUN pr (X S)
+#+(OR CCL SBCL) (DEFUN pr (X S)
   (WRITE-STRING X S)
   (WHEN (OR (EQ S *stoutput*) (EQ S *stinput*))
     (FORCE-OUTPUT S))
