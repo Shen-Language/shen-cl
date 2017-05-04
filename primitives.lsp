@@ -286,6 +286,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (SETQ *stoutput* *STANDARD-OUTPUT*)
 (SETQ *sterror* *ERROR-OUTPUT*)
 
+#+CLISP (DEFUN SHEN-TOPLEVEL ()
+  (HANDLER-BIND
+    ((WARNING #'MUFFLE-WARNING))
+    (WITH-OPEN-STREAM (*STANDARD-INPUT* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
+      (WITH-OPEN-STREAM (*STANDARD-OUTPUT* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
+        (SETQ *stoutput* *STANDARD-OUTPUT*)
+        (SETQ *stinput* *STANDARD-INPUT*)
+        (SETQ *sterror* *ERROR-OUTPUT*)
+        (IF (CONSP EXT:*ARGS*)
+          (PROGN
+            (MAPC 'load EXT:*ARGS*)
+            (EXT:EXIT 0))
+          (shen.shen))))))
+
+#+CCL (DEFUN SHEN-TOPLEVEL ()
+  (LET ((Args *UNPROCESSED-COMMAND-LINE-ARGUMENTS*))
+    (IF (CONSP Args)
+      (PROGN
+        (MAPC 'load Args)
+        (exit 0))
+      (shen.shen))))
+
 #+SBCL (DEFUN SHEN-TOPLEVEL ()
   (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
     (IF (CONSP Args)
@@ -296,11 +318,3 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
         (SB-SYS:INTERACTIVE-INTERRUPT ()
           (FORMAT T "~%Quit.~%")
           (exit 0))))))
-
-#+CCL (DEFUN SHEN-TOPLEVEL ()
-  (LET ((Args *UNPROCESSED-COMMAND-LINE-ARGUMENTS*))
-    (IF (CONSP Args)
-      (PROGN
-        (MAPC 'load Args)
-        (exit 0))
-      (shen.shen))))

@@ -116,17 +116,3 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   (WHEN (OR (EQ S *stoutput*) (EQ S *stinput*))
     (FORCE-OUTPUT S))
   X)
-
-#+CLISP (DEFUN shen.byteloop ()
-  (HANDLER-BIND
-    ((WARNING #'MUFFLE-WARNING))
-    (WITH-OPEN-STREAM (*STANDARD-INPUT* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
-      (WITH-OPEN-STREAM (*STANDARD-OUTPUT* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
-        (SETQ *stoutput* *STANDARD-OUTPUT*)
-        (SETQ *stinput* *STANDARD-INPUT*)
-        (SETQ *sterror* *ERROR-OUTPUT*)
-        (IF (CONSP EXT:*ARGS*)
-          (PROGN
-            (MAPC 'load EXT:*ARGS*)
-            (EXT:EXIT 0))
-          (shen.shen))))))
