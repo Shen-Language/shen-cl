@@ -277,7 +277,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (SETQ *stoutput* *STANDARD-OUTPUT*)
 (SETQ *sterror* *ERROR-OUTPUT*)
 
-#+CLISP (DEFUN SHEN-TOPLEVEL ()
+(DEFUN SHEN-TOPLEVEL ()
+
+  #+CLISP
   (HANDLER-BIND
     ((WARNING #'MUFFLE-WARNING))
     (WITH-OPEN-STREAM (*STANDARD-INPUT* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
@@ -289,17 +291,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
           (PROGN
             (MAPC 'load EXT:*ARGS*)
             (EXT:EXIT 0))
-          (shen.shen))))))
+          (shen.shen)))))
 
-#+CCL (DEFUN SHEN-TOPLEVEL ()
-  (LET ((Args *UNPROCESSED-COMMAND-LINE-ARGUMENTS*))
-    (IF (CONSP Args)
-      (PROGN
-        (MAPC 'load Args)
-        (exit 0))
-      (shen.shen))))
+  #+CCL
+  (HANDLER-BIND
+    ((WARNING #'MUFFLE-WARNING))
+    (LET ((Args *UNPROCESSED-COMMAND-LINE-ARGUMENTS*))
+      (IF (CONSP Args)
+        (PROGN
+          (MAPC 'load Args)
+          (exit 0))
+        (shen.shen))))
 
-#+SBCL (DEFUN SHEN-TOPLEVEL ()
+  #+SBCL
   (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
     (IF (CONSP Args)
       (PROGN
