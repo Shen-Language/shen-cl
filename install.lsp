@@ -26,57 +26,49 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 ; Assumes *.kl files are in the ./kernel/klambda directory
 ; Creates intermediate code and binaries in a platform-specific sub-directory under ./native/
 
-(DEFCONSTANT NATIVE-PATH
-  #+CLISP "./native/clisp/"
-  #+CCL   "./native/ccl/"
-  #+SBCL  "./native/sbcl/")
-
-(DEFCONSTANT BINARY-SUFFIX
-  #+CLISP ".fas"
-  #+CCL
-    (OR
-      #+WINDOWS ".wx64fsl"
-      #+LINUX   ".lx64fsl"
-                ".unknown") ; TODO: need a better way to do this
-  #+SBCL ".fasl")
-
-#+CLISP (DEFCONSTANT MEM-NAME "shen.mem")
-
-#+CCL (DEFCONSTANT EXECUTABLE-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen")
-
-#+SBCL (DEFCONSTANT EXECUTABLE-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
-
-(ENSURE-DIRECTORIES-EXIST NATIVE-PATH)
-
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
-#+CLISP (SETQ CUSTOM:*COMPILE-WARNINGS* NIL)
-#+CLISP (SETQ *COMPILE-VERBOSE* NIL)
-#+SBCL  (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
-#+SBCL  (SETF SB-EXT:*MUFFLED-WARNINGS* T)
 (IN-PACKAGE :CL-USER)
-
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
 (SETQ *language* "Common Lisp")
-(SETQ *implementation* (LISP-IMPLEMENTATION-TYPE))
-(SETQ *release*
-  #+CLISP (LET ((V (LISP-IMPLEMENTATION-VERSION)))
-    (SUBSEQ V 0 (POSITION #\SPACE V :START 0)))
-  #+(OR CCL SBCL) (LISP-IMPLEMENTATION-VERSION))
 (SETQ *port* 2.0)
 (SETQ *porters* "Mark Tarver")
-(SETQ *os*
-  (OR
-    #+(OR WIN32 WINDOWS) "Windows"
-    #+LINUX              "Linux"
-    #+(OR OSX DARWIN)    "Mac OSX"
-    #+UNIX               "Unix"
-                         "Unknown"))
+
+#+CLISP
+(PROGN
+  (SETQ *implementation* "GNU CLisp")
+  (SETQ *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0))))
+  (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
+  (DEFCONSTANT NATIVE-PATH "./native/clisp/")
+  (DEFCONSTANT COMPILED-SUFFIX ".fas")
+  (DEFCONSTANT BINARY-NAME "shen.mem")
+  (SETQ CUSTOM:*COMPILE-WARNINGS* NIL)
+  (SETQ *COMPILE-VERBOSE* NIL))
+
+#+CCL
+(PROGN
+  (SETQ *implementation* "Clozure CL")
+  (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
+  (SETQ *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
+  (DEFCONSTANT NATIVE-PATH "./native/ccl/")
+  (DEFCONSTANT COMPILED-SUFFIX (OR #+WINDOWS ".wx64fsl" #+LINUX ".lx64fsl" ".unknown")) ; TODO: need a better way to do this
+  (DEFCONSTANT BINARY-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen"))
+
+#+SBCL
+(PROGN
+  (SETQ *implementation* "SBCL")
+  (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
+  (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
+  (DEFCONSTANT NATIVE-PATH "./native/sbcl/")
+  (DEFCONSTANT COMPILED-SUFFIX ".fasl")
+  (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
+  (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
+  (SETF SB-EXT:*MUFFLED-WARNINGS* T))
 
 (DEFUN import-kl (File)
   (LET ((KlFile       (FORMAT NIL "./kernel/klambda/~A.kl" File))
         (IntermedFile (FORMAT NIL "~A~A.intermed" NATIVE-PATH File))
         (LspFile      (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
-        (ObjFile      (FORMAT NIL "~A~A~A" NATIVE-PATH File BINARY-SUFFIX)))
+        (ObjFile      (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
     (prepare-kl KlFile IntermedFile)
     (translate-kl IntermedFile LspFile)
     (COMPILE-FILE LspFile)
@@ -138,7 +130,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
 (DEFUN import-lsp (File)
   (LET ((LspFile (FORMAT NIL "~A.lsp" File))
-        (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BINARY-SUFFIX)))
+        (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
     (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile)
     (LOAD ObjFile)))
 
@@ -146,6 +138,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (COMPILE 'kl-cycle)
 (COMPILE 'flip)
 (COMPILE 'write-out-kl)
+
+(ENSURE-DIRECTORIES-EXIST NATIVE-PATH)
 
 (import-lsp "primitives")
 (import-lsp "backend")
@@ -173,21 +167,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (FMAKUNBOUND 'import-lsp)
 (FMAKUNBOUND 'import-kl)
 
-#+CLISP (EXT:SAVEINITMEM
-  (FORMAT NIL "~A~A" NATIVE-PATH MEM-NAME)
-  :INIT-FUNCTION 'SHEN-TOPLEVEL)
+#+CLISP
+(PROGN
+  (EXT:SAVEINITMEM
+    (FORMAT NIL "~A~A" NATIVE-PATH BINARY-NAME)
+    :INIT-FUNCTION 'SHEN-TOPLEVEL)
+  (QUIT))
 
-#+CLISP (QUIT)
+#+CCL
+(PROGN
+  (CCL:SAVE-APPLICATION
+    (FORMAT NIL "~A~A" NATIVE-PATH BINARY-NAME)
+    :PREPEND-KERNEL T
+    :TOPLEVEL-FUNCTION 'SHEN-TOPLEVEL)
+  (CCL:QUIT))
 
-#+CCL (CCL:SAVE-APPLICATION
-  (FORMAT NIL "~A~A" NATIVE-PATH EXECUTABLE-NAME)
-  :PREPEND-KERNEL T
-  :TOPLEVEL-FUNCTION 'SHEN-TOPLEVEL)
-
-#+CCL (QUIT)
-
-#+SBCL (SAVE-LISP-AND-DIE
-  (FORMAT NIL "~A~A" NATIVE-PATH EXECUTABLE-NAME)
+#+SBCL
+(SAVE-LISP-AND-DIE
+  (FORMAT NIL "~A~A" NATIVE-PATH BINARY-NAME)
   :EXECUTABLE T
   :SAVE-RUNTIME-OPTIONS T
   :TOPLEVEL 'SHEN-TOPLEVEL)
