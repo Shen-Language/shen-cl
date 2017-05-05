@@ -53,8 +53,8 @@ The `Makefile` uses commands typically not found on Windows, so [GOW](https://gi
 
 ### `Makefile` Operations
 
-  * Fetch kernel sources with `make fetch`. **Not working on Windows at the moment, see Makfile and emulate what it does**
-  * Build and test for all ports with `make all`.
+  * Fetch kernel sources, build and test all ports with `make all`.
+  * Fetch kernel sources with `make fetch`.
   * Build and test the CLisp port with `make clisp`.
   * Build and test the Clozure port with `make ccl`.
   * Build and test the SBCL port with `make sbcl`.
