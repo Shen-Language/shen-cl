@@ -109,7 +109,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   (CCL:QUIT Code))
 
 #+(AND CCL WINDOWS)
-(CCL::LOAD "overwrite_ccl_windows.lsp")
+(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN exit (Code) (#__exit Code))"))
 
 #+SBCL
 (DEFUN exit (Code)
