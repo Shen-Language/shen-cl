@@ -102,7 +102,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
 (DEFUN exit (Code)
   #+CLISP (EXT:EXIT Code)
-  #+CCL   (CCL:QUIT Code)
+  #+CCL   (#__exit Code)
   #+SBCL  (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
 
 #+(OR CCL SBCL) (DEFUN read-char-code (S)
