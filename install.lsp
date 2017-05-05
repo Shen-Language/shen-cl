@@ -48,7 +48,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (PROGN
   (SETQ *implementation* "Clozure CL")
   (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
-  (SETQ *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
+  (SETQ *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT NATIVE-PATH "./native/ccl/")
   (DEFCONSTANT COMPILED-SUFFIX (OR #+WINDOWS ".wx64fsl" #+LINUX ".lx64fsl" ".unknown")) ; TODO: need a better way to do this
   (DEFCONSTANT BINARY-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen"))
