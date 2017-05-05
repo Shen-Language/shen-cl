@@ -44,7 +44,7 @@ Clozure will need to be installed manually:
 
 ```batch
 @echo off
-"C:\Program Files\ccl\wx86cl.exe" %*
+"C:\Program Files\ccl\wx86cl64.exe" %*
 ```
 
 SBCL has an msi package on its [download page](http://www.sbcl.org/platform-table.html).
