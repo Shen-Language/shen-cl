@@ -38,9 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   (SETQ *implementation* "GNU CLisp")
   (SETQ *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0))))
   (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
-  (DEFCONSTANT NATIVE-PATH "./native/clisp/")
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
-  (DEFCONSTANT BINARY-NAME "shen.mem")
+  (DEFCONSTANT NATIVE-PATH "./native/clisp/")
+  (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH "shen.mem"))
   (SETQ CUSTOM:*COMPILE-WARNINGS* NIL)
   (SETQ *COMPILE-VERBOSE* NIL))
 
@@ -49,18 +49,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   (SETQ *implementation* "Clozure CL")
   (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
   (SETQ *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
+  ; TODO: need a better way to get compiled suffix, as there are several
+  ;       https://ccl.clozure.com/manual/chapter3.1.html#building-definitions
+  (DEFCONSTANT COMPILED-SUFFIX (OR #+WINDOWS ".wx64fsl" #+LINUX ".lx64fsl" ".unknown"))
   (DEFCONSTANT NATIVE-PATH "./native/ccl/")
-  (DEFCONSTANT COMPILED-SUFFIX (OR #+WINDOWS ".wx64fsl" #+LINUX ".lx64fsl" ".unknown")) ; TODO: need a better way to do this
-  (DEFCONSTANT BINARY-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen"))
+  (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+WINDOWS "shen.exe" #-WINDOWS "shen")))
 
 #+SBCL
 (PROGN
   (SETQ *implementation* "SBCL")
   (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
   (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
-  (DEFCONSTANT NATIVE-PATH "./native/sbcl/")
   (DEFCONSTANT COMPILED-SUFFIX ".fasl")
-  (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
+  (DEFCONSTANT NATIVE-PATH "./native/sbcl/")
+  (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+WIN32 "shen.exe" #-WIN32 "shen"))
   (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
   (SETF SB-EXT:*MUFFLED-WARNINGS* T))
 
@@ -170,21 +172,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 #+CLISP
 (PROGN
   (EXT:SAVEINITMEM
-    (FORMAT NIL "~A~A" NATIVE-PATH BINARY-NAME)
-    :INIT-FUNCTION 'SHEN-TOPLEVEL)
+    BINARY-PATH
+    :INIT-FUNCTION 'shen-cl.toplevel)
   (QUIT))
 
 #+CCL
 (PROGN
   (CCL:SAVE-APPLICATION
-    (FORMAT NIL "~A~A" NATIVE-PATH BINARY-NAME)
+    BINARY-PATH
     :PREPEND-KERNEL T
-    :TOPLEVEL-FUNCTION 'SHEN-TOPLEVEL)
+    :TOPLEVEL-FUNCTION 'shen-cl.toplevel)
   (CCL:QUIT))
 
 #+SBCL
-(SAVE-LISP-AND-DIE
-  (FORMAT NIL "~A~A" NATIVE-PATH BINARY-NAME)
+(SB-EXT:SAVE-LISP-AND-DIE
+  BINARY-PATH
   :EXECUTABLE T
   :SAVE-RUNTIME-OPTIONS T
-  :TOPLEVEL 'SHEN-TOPLEVEL)
+  :TOPLEVEL 'shen-cl.toplevel)
