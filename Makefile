@@ -5,20 +5,20 @@ ReleaseName=shen-$(KernelVersion)
 FileName=ShenOSKernel-$(KernelVersion).tar.gz
 NestedFolderName=ShenOSKernel-$(KernelVersion)
 
+ifeq ($(OS),Windows_NT)
+	BinaryName=shen.exe
+else
+	BinaryName=shen
+endif
+
 RunCLisp=clisp -M ./native/clisp/shen.mem -q -m 10MB
+RunCCL=./native/ccl/$(BinaryName)
+RunSBCL=./native/sbcl/$(BinaryName)
 BuildAll=build-clisp build-ccl build-sbcl
 TestAll=test-clisp test-sbcl
 # TODO: TestAll=test-clisp test-ccl test-sbcl
 
-ifeq ($(OS),Windows_NT)
-	RunCCL=./native/ccl/shen.exe
-	RunSBCL=./native/sbcl/shen.exe
-else
-	RunCCL=./native/ccl/shen
-	RunSBCL=./native/sbcl/shen
-endif
-
-build-all: $(BuildAll)
+build-all: $(BuildAll) # Default target
 
 test-all: $(TestAll)
 
