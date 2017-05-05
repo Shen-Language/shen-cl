@@ -49,9 +49,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   (SETQ *implementation* "Clozure CL")
   (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
   (SETQ *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
-  ; TODO: need a better way to get compiled suffix, as there are several
-  ;       https://ccl.clozure.com/manual/chapter3.1.html#building-definitions
-  (DEFCONSTANT COMPILED-SUFFIX (OR #+WINDOWS ".wx64fsl" #+LINUX ".lx64fsl" ".unknown"))
+  (DEFCONSTANT COMPILED-SUFFIX (FORMAT NIL "~A" *.FASL-PATHNAME*))
   (DEFCONSTANT NATIVE-PATH "./native/ccl/")
   (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+WINDOWS "shen.exe" #-WINDOWS "shen")))
 
