@@ -2,12 +2,13 @@ KernelVersion=20.0
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
 ReleaseName=shen-$(KernelVersion)
-FileName=ShenOSKernel-$(KernelVersion).tar.gz
 NestedFolderName=ShenOSKernel-$(KernelVersion)
 
 ifeq ($(OS),Windows_NT)
+	FileName=ShenOSKernel-$(KernelVersion).zip
 	BinaryName=shen.exe
 else
+	FileName=ShenOSKernel-$(KernelVersion).tar.gz
 	BinaryName=shen
 endif
 
@@ -19,14 +20,22 @@ TestAll=test-clisp test-ccl test-sbcl
 
 default: build-all
 
-all: build-all test-all # TODO: add fetch here after it works on windows
+all: fetch build-all test-all
 
 fetch:
+ifeq ($(OS),Windows_NT)
+	powershell.exe -Command "Invoke-WebRequest -Uri $(UrlRoot)/$(ReleaseName)/$(FileName) -OutFile $(FileName)"
+	powershell.exe -Command "Expand-Archive $(FileName) -DestinationPath ."
+	rm -f $(FileName)
+	rm -rf kernel
+	mv $(NestedFolderName) kernel
+else
 	wget $(UrlRoot)/$(ReleaseName)/$(FileName)
 	tar xf $(FileName)
 	rm -f $(FileName)
 	rm -rf kernel
 	mv $(NestedFolderName) kernel
+endif
 
 build-all: $(BuildAll)
 
@@ -66,4 +75,4 @@ ccl: build-ccl test-ccl
 sbcl: build-sbcl test-sbcl
 
 clean:
-	rm -rf native
+	rm -rf kernel native
