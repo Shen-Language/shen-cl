@@ -8,20 +8,28 @@
 This codebase currently supports the following implementations of Common Lisp:
 
   * [GNU CLisp](http://www.clisp.org/)
-  * [Clozure Common Lisp](http://ccl.clozure.com/) (Work in Progress)
+  * [Clozure Common Lisp](http://ccl.clozure.com/)
   * [Steel Bank Common Lisp](http://www.sbcl.org/)
 
 This Common Lisp port is often considered the de-facto standard implementation of the Shen language. It is also the fastest known port, running the standard test suite in 4-8 seconds on SBCL, depending on hardware.
 
 ### Building
 
-You will need to have the Common Lisp implementations you want to work with installed. These can be acquired with `apt` on linux or downloaded from the official websites linked above.
+You will need to have the Common Lisp implementations you want to work with installed. These can be acquired with `apt` on linux or downloaded from the official websites linked above. 
+
+Clozure CL can be installed on macOS with `brew install clozure-cl`.
+
+CLisp and SBCL have installers for Windows that should be sufficient. Clozure CL can be extracted to a directory and a script used to pass command line arguments to the ccl binary **(NEEDS EXAMPLE)**.
 
 If you are running Windows, [GOW](https://github.com/bmatzelle/gow) is recommended as it comes with `make` as well as commands used in the `Makefile`.
 
 `Makefile` operations:
 
-  * Fetch kernel sources by running `make fetch`.
+  * Fetch kernel sources with `make fetch`. **Not working on Windows at the moment, see Makfile and emulate what it does**
+  * Build and test for all ports with `make all`.
+  * Build and test the CLisp port with `make clisp`.
+  * Build and test the Clozure port with `make ccl`.
+  * Build and test the SBCL port with `make sbcl`.
   * Build all ports by running `make`.
     * Build only the CLisp port with `make build-clisp`.
     * Build only the Clozure port with `make build-ccl`.

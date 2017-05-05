@@ -100,18 +100,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (DEFUN thaw (F)
   (FUNCALL F))
 
+#+CLISP
 (DEFUN exit (Code)
-  #+CLISP (EXT:EXIT Code)
-  #+CCL   (#__exit Code)
-  #+SBCL  (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
+  (EXT:EXIT Code))
 
-#+(OR CCL SBCL) (DEFUN read-char-code (S)
+#+(AND CCL (NOT WINDOWS))
+(DEFUN exit (Code)
+  (CCL:QUIT Code))
+
+#+(AND CCL WINDOWS)
+(CCL::LOAD "overwrite_ccl_windows.lsp")
+
+#+SBCL
+(DEFUN exit (Code)
+  (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
+
+#+(OR CCL SBCL)
+(DEFUN read-char-code (S)
   (LET ((C (READ-CHAR S NIL -1)))
     (IF (EQ C -1)
       -1
       (CHAR-INT C))))
 
-#+(OR CCL SBCL) (DEFUN pr (X S)
+#+(OR CCL SBCL)
+(DEFUN pr (X S)
   (WRITE-STRING X S)
   (WHEN (OR (EQ S *stoutput*) (EQ S *stinput*))
     (FORCE-OUTPUT S))

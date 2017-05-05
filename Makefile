@@ -15,12 +15,20 @@ RunCLisp=clisp -M ./native/clisp/shen.mem -q -m 10MB
 RunCCL=./native/ccl/$(BinaryName)
 RunSBCL=./native/sbcl/$(BinaryName)
 BuildAll=build-clisp build-ccl build-sbcl
-TestAll=test-clisp test-sbcl
-# TODO: TestAll=test-clisp test-ccl test-sbcl
+TestAll=test-clisp test-ccl test-sbcl
 
-build-all: $(BuildAll) # Default target
+default: build-all
 
-test-all: $(TestAll)
+all: build-all test-all # TODO: add fetch here after it works on windows
+
+fetch:
+	wget $(UrlRoot)/$(ReleaseName)/$(FileName)
+	tar xf $(FileName)
+	rm -f $(FileName)
+	rm -rf kernel
+	mv $(NestedFolderName) kernel
+
+build-all: $(BuildAll)
 
 build-clisp:
 	clisp -i install.lsp
@@ -31,14 +39,7 @@ build-ccl:
 build-sbcl:
 	sbcl --load install.lsp
 
-run-clisp:
-	$(RunCLisp)
-
-run-ccl:
-	$(RunCCL)
-
-run-sbcl:
-	$(RunSBCL)
+test-all: $(TestAll)
 
 test-clisp:
 	$(RunCLisp) testsuite.shen
@@ -49,12 +50,20 @@ test-ccl:
 test-sbcl:
 	$(RunSBCL) testsuite.shen
 
-fetch:
-	wget $(UrlRoot)/$(ReleaseName)/$(FileName)
-	tar xf $(FileName)
-	rm -f $(FileName)
-	rm -rf kernel
-	mv $(NestedFolderName) kernel
+run-clisp:
+	$(RunCLisp)
+
+run-ccl:
+	$(RunCCL)
+
+run-sbcl:
+	$(RunSBCL)
+
+clisp: build-clisp test-clisp
+
+ccl: build-ccl test-ccl
+
+sbcl: build-sbcl test-sbcl
 
 clean:
 	rm -rf native
