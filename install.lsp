@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (PROGN
   (SETQ *implementation* "GNU CLisp")
   (SETQ *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0))))
-  (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
+  (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown")) ; TODO: need to identify macOS
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
   (DEFCONSTANT NATIVE-PATH "./native/clisp/")
   (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH "shen.mem"))
@@ -59,7 +59,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (PROGN
   (SETQ *implementation* "SBCL")
   (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
-  (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
+  (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+UNIX "Unix" "Unknown")) ; TODO: need to identify macOS
   (DEFCONSTANT COMPILED-SUFFIX ".fasl")
   (DEFCONSTANT NATIVE-PATH "./native/sbcl/")
   (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+WIN32 "shen.exe" #-WIN32 "shen"))
