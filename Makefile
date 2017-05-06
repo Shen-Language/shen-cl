@@ -1,4 +1,4 @@
-KernelVersion=20.0
+KernelVersion=20.1
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
 ReleaseName=shen-$(KernelVersion)
