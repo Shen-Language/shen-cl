@@ -36,7 +36,7 @@ CLisp, Clozure and SBCL can be acquired through Homebrew with `brew install clis
 
 ### Windows
 
-CLisp has an exe installer on [SoureForge](https://sourceforge.net/projects/clisp/files/clisp/2.49/).
+CLisp has an exe installer and a zip package on [SoureForge](https://sourceforge.net/projects/clisp/files/clisp/2.49/). You'll have to include `clisp.exe` as well as `libintl-8.dll` and `libreadline6.dll` in on your PATH to ensure the clisp build of shen-cl will run.
 
 Clozure will need to be installed manually:
   * Download the zip from [here](https://ccl.clozure.com/download.html) and extract it under `Program Files`.

@@ -12,7 +12,7 @@ else
 	BinaryName=shen
 endif
 
-RunCLisp=clisp -M ./native/clisp/shen.mem -q -m 10MB
+RunCLisp=./native/clisp/$(BinaryName) --clisp-m 10MB
 RunCCL=./native/ccl/$(BinaryName)
 RunSBCL=./native/sbcl/$(BinaryName)
 BuildAll=build-clisp build-ccl build-sbcl
