@@ -26,16 +26,13 @@ fetch:
 ifeq ($(OS),Windows_NT)
 	powershell.exe -Command "Invoke-WebRequest -Uri $(UrlRoot)/$(ReleaseName)/$(FileName) -OutFile $(FileName)"
 	powershell.exe -Command "Expand-Archive $(FileName) -DestinationPath ."
-	rm -f $(FileName)
-	rm -rf kernel
-	mv $(NestedFolderName) kernel
 else
 	wget $(UrlRoot)/$(ReleaseName)/$(FileName)
 	tar xf $(FileName)
+endif
 	rm -f $(FileName)
 	rm -rf kernel
 	mv $(NestedFolderName) kernel
-endif
 
 build-all: $(BuildAll)
 
