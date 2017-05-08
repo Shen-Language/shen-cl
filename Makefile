@@ -48,13 +48,13 @@ build-sbcl:
 test-all: $(TestAll)
 
 test-clisp:
-	$(RunCLisp) testsuite.shen
+	$(RunCLisp) -l testsuite.shen
 
 test-ccl:
-	$(RunCCL) testsuite.shen
+	$(RunCCL) -l testsuite.shen
 
 test-sbcl:
-	$(RunSBCL) testsuite.shen
+	$(RunSBCL) -l testsuite.shen
 
 run-clisp:
 	$(RunCLisp)

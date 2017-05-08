@@ -11,4 +11,5 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 - Updated to ShenOS 20.1.
+- Script arguments are now preceded by `-l`, all args go in `*argv*`.
 - Made CLisp build output an executable like CCL and SBCL do.

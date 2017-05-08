@@ -277,6 +277,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (SETQ *stoutput* *STANDARD-OUTPUT*)
 (SETQ *sterror* *ERROR-OUTPUT*)
 
+(DEFUN shen-cl.scripts-from-args (Args)
+  (IF (CONSP Args)
+    (IF (STRING-EQUAL "-l" (CAR Args))
+      (CONS (CADR Args) (shen-cl.scripts-from-args (CDDR Args)))
+      (shen-cl.scripts-from-args (CDR Args)))
+    Args))
+
 (DEFUN shen-cl.toplevel ()
 
   #+CLISP
@@ -287,27 +294,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
         (SETQ *stoutput* *STANDARD-OUTPUT*)
         (SETQ *stinput* *STANDARD-INPUT*)
         (SETQ *sterror* *ERROR-OUTPUT*)
-        (IF (CONSP EXT:*ARGS*)
-          (PROGN
-            (MAPC 'load EXT:*ARGS*)
-            (EXT:EXIT 0))
-          (shen.shen)))))
+        (LET* ((Args    EXT:*ARGS*)
+               (Scripts (shen-cl.scripts-from-args Args)))
+          (SETQ *argv* Args)
+          (IF (CONSP Scripts)
+            (PROGN
+              (MAPC 'load Scripts)
+              (EXT:EXIT 0))
+            (shen.shen))))))
 
   #+CCL
   (HANDLER-BIND
     ((WARNING #'MUFFLE-WARNING))
-    (LET ((Args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
-      (IF (CONSP Args)
+    (LET* ((Args    (CDR *COMMAND-LINE-ARGUMENT-LIST*))
+           (Scripts (shen-cl.scripts-from-args Args)))
+      (SETQ *argv* Args)
+      (IF (CONSP Scripts)
         (PROGN
-          (MAPC 'load Args)
+          (MAPC 'load Scripts)
           (exit 0))
         (shen.shen))))
 
   #+SBCL
-  (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
-    (IF (CONSP Args)
+  (LET* ((Args    (CDR SB-EXT:*POSIX-ARGV*))
+         (Scripts (shen-cl.scripts-from-args Args)))
+    (SETQ *argv* Args)
+    (IF (CONSP Scripts)
       (PROGN
-        (MAPC 'load Args)
+        (MAPC 'load Scripts)
         (exit 0))
       (HANDLER-CASE (shen.shen)
         (SB-SYS:INTERACTIVE-INTERRUPT ()
