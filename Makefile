@@ -72,4 +72,4 @@ ccl: build-ccl test-ccl
 sbcl: build-sbcl test-sbcl
 
 clean:
-	rm -rf kernel native
+	rm -rf native
