@@ -57,13 +57,13 @@ test-sbcl:
 	$(RunSBCL) -l testsuite.shen
 
 run-clisp:
-	$(RunCLisp)
+	$(RunCLisp) $(Args)
 
 run-ccl:
-	$(RunCCL)
+	$(RunCCL) $(Args)
 
 run-sbcl:
-	$(RunSBCL)
+	$(RunSBCL) $(Args)
 
 clisp: build-clisp test-clisp
 
