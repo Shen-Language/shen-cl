@@ -81,13 +81,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (DEFUN read-kl-file (File)
   (WITH-OPEN-FILE
     (In File :DIRECTION :INPUT)
-    (LET* ((CleanedCode (kl-cycle (READ-CHAR In NIL NIL) In NIL NIL)))
+    (LET* ((CleanedCode (clean-kl (READ-CHAR In NIL NIL) In NIL NIL)))
       (READ-FROM-STRING (FORMAT NIL "(~A)" (COERCE CleanedCode 'STRING))))))
 
-(DEFUN kl-cycle (Char In Chars InsideQuote)
+(DEFUN clean-kl (Char In Chars InsideQuote)
   (IF (NULL Char)
     (REVERSE Chars)
-    (kl-cycle
+    (clean-kl
       (READ-CHAR In NIL NIL)
       In
       (IF (AND (NOT InsideQuote) (MEMBER Char '(#\: #\; #\,) :TEST 'CHAR-EQUAL))
@@ -110,8 +110,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     (MAPC #'(LAMBDA (X) (FORMAT Out "~S~%~%" X)) Code)
     File))
 
+(COMPILE 'import-lsp)
+(COMPILE 'import-kl)
 (COMPILE 'read-kl-file)
-(COMPILE 'kl-cycle)
+(COMPILE 'clean-kl)
+(COMPILE 'translate-kl)
 (COMPILE 'write-lsp-file)
 
 (ENSURE-DIRECTORIES-EXIST NATIVE-PATH)
@@ -135,11 +138,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (import-lsp "overwrite")
 (load "platform.shen")
 
-(FMAKUNBOUND 'read-kl-file)
-(FMAKUNBOUND 'translate-kl)
-(FMAKUNBOUND 'write-lsp-file)
 (FMAKUNBOUND 'import-lsp)
 (FMAKUNBOUND 'import-kl)
+(FMAKUNBOUND 'read-kl-file)
+(FMAKUNBOUND 'clean-kl)
+(FMAKUNBOUND 'translate-kl)
+(FMAKUNBOUND 'write-lsp-file)
 
 #+CLISP
 (PROGN
