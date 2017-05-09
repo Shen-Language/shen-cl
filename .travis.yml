@@ -1,6 +1,7 @@
 notifications:
   email: false
 language: generic
+sudo: required
 addons:
   apt:
     packages:
@@ -8,6 +9,6 @@ addons:
       - sbcl
 install:
   - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
-  - dpkg -i clozure-cl_1.11_amd64.deb
+  - sudo dpkg -i clozure-cl_1.11_amd64.deb
 script:
   - make all
