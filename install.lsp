@@ -64,59 +64,41 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
   (SETF SB-EXT:*MUFFLED-WARNINGS* T))
 
+(DEFUN import-lsp (File)
+  (LET ((LspFile (FORMAT NIL "~A.lsp" File))
+        (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
+    (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile)
+    (LOAD ObjFile)))
+
 (DEFUN import-kl (File)
   (LET ((KlFile       (FORMAT NIL "./kernel/klambda/~A.kl" File))
-        (IntermedFile (FORMAT NIL "~A~A.intermed" NATIVE-PATH File))
         (LspFile      (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
         (ObjFile      (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
-    (prepare-kl KlFile IntermedFile)
-    (translate-kl IntermedFile LspFile)
+    (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
     (COMPILE-FILE LspFile)
     (LOAD ObjFile)))
 
-(DEFUN prepare-kl (KlFile IntermedFile)
-  (write-out-kl IntermedFile (read-in-kl KlFile)))
-
-(DEFUN read-in-kl (File)
+(DEFUN read-kl-file (File)
   (WITH-OPEN-FILE
     (In File :DIRECTION :INPUT)
-    (kl-cycle (READ-CHAR In NIL NIL) In NIL 0)))
+    (LET* ((CleanedCode (kl-cycle (READ-CHAR In NIL NIL) In NIL NIL)))
+      (READ-FROM-STRING (FORMAT NIL "(~A)" (COERCE CleanedCode 'STRING))))))
 
-(DEFUN kl-cycle (Char In Chars State)
+(DEFUN kl-cycle (Char In Chars InsideQuote)
   (IF (NULL Char)
     (REVERSE Chars)
     (kl-cycle
       (READ-CHAR In NIL NIL)
       In
-      (IF (AND (MEMBER Char '(#\: #\; #\,) :TEST 'CHAR-EQUAL) (= State 0))
-        (APPEND (LIST #\| Char #\|) Chars)
+      (IF (AND (NOT InsideQuote) (MEMBER Char '(#\: #\; #\,) :TEST 'CHAR-EQUAL))
+        (LIST* #\| Char #\| Chars)
         (CONS Char Chars))
       (IF (CHAR-EQUAL Char #\")
-        (flip State)
-        State))))
+        (NOT InsideQuote)
+        InsideQuote))))
 
-(DEFUN flip (State)
-  (IF (ZEROP State) 1 0))
-
-(DEFUN write-out-kl (File Chars)
-  (WITH-OPEN-FILE
-    (Out File
-      :DIRECTION         :OUTPUT
-      :IF-EXISTS         :SUPERSEDE
-      :IF-DOES-NOT-EXIST :CREATE)
-    (FORMAT Out "~{~C~}" Chars)))
-
-(DEFUN translate-kl (InputFile OutputFile)
-  (LET* ((KlCode (open-kl-file InputFile))
-         (LispCode (MAPCAR #'(LAMBDA (X) (shen.kl-to-lisp NIL X)) KlCode)))
-    (write-lsp-file OutputFile LispCode)))
-
-(DEFUN open-kl-file (File)
-  (WITH-OPEN-FILE (In File :DIRECTION :INPUT)
-    (DO ((R T) (Rs NIL))
-        ((NULL R) (NREVERSE (CDR Rs)))
-        (SETQ R (READ In NIL NIL))
-        (PUSH R Rs))))
+(DEFUN translate-kl (KlCode)
+  (MAPCAR #'(LAMBDA (X) (shen.kl-to-lisp NIL X)) KlCode))
 
 (DEFUN write-lsp-file (File Code)
   (WITH-OPEN-FILE
@@ -128,16 +110,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
     (MAPC #'(LAMBDA (X) (FORMAT Out "~S~%~%" X)) Code)
     File))
 
-(DEFUN import-lsp (File)
-  (LET ((LspFile (FORMAT NIL "~A.lsp" File))
-        (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
-    (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile)
-    (LOAD ObjFile)))
-
-(COMPILE 'read-in-kl)
+(COMPILE 'read-kl-file)
 (COMPILE 'kl-cycle)
-(COMPILE 'flip)
-(COMPILE 'write-out-kl)
+(COMPILE 'write-lsp-file)
 
 (ENSURE-DIRECTORIES-EXIST NATIVE-PATH)
 
@@ -160,9 +135,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (import-lsp "overwrite")
 (load "platform.shen")
 
-(FMAKUNBOUND 'prepare-kl)
+(FMAKUNBOUND 'read-kl-file)
 (FMAKUNBOUND 'translate-kl)
-(FMAKUNBOUND 'open-kl-file)
 (FMAKUNBOUND 'write-lsp-file)
 (FMAKUNBOUND 'import-lsp)
 (FMAKUNBOUND 'import-kl)
