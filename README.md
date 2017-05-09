@@ -58,7 +58,8 @@ The `Makefile` uses commands typically not found on Windows, so [GOW](https://gi
   * Build and test the CLisp port with `make clisp`.
   * Build and test the Clozure port with `make ccl`.
   * Build and test the SBCL port with `make sbcl`.
-  * Build all ports with `make build-all` or just `make`.
+  * Build and test all ports with `make build-test-all` or just `make`.
+  * Build all ports with `make build-all`.
     * Build only the CLisp port with `make build-clisp`.
     * Build only the Clozure port with `make build-ccl`.
     * Build only the SBCL port with `make build-sbcl`.

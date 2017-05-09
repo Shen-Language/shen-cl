@@ -18,7 +18,7 @@ RunSBCL=./native/sbcl/$(BinaryName)
 BuildAll=build-clisp build-ccl build-sbcl
 TestAll=test-clisp test-ccl test-sbcl
 
-default: build-all
+default: build-test-all
 
 all: fetch build-all test-all
 
@@ -33,6 +33,8 @@ endif
 	rm -f $(FileName)
 	rm -rf kernel
 	mv $(NestedFolderName) kernel
+
+build-test-all: build-all test-all
 
 build-all: $(BuildAll)
 
