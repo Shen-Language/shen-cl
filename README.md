@@ -19,8 +19,6 @@ Bug reports, fixes and enhancements are welcome. If you intend to port Shen to a
 
 You will need to have the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Installation is different depending on operating system.
 
-Minimum required versions:
-
 | Implementation | Minimum Version |
 |:---------------|:----------------|
 | `clisp`        | `2.49`          |
