@@ -33,7 +33,7 @@ There is a [separately available package](http://mr.gy/blog/clozure-cl-deb.html)
 
 ```
 wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
-dpkg -i clozure-cl_1.11_amd64.deb
+sudo dpkg -i clozure-cl_1.11_amd64.deb
 ```
 
 If the version of SBCL available throught `apt` is too old, a sufficiently new version can be downloaded and installed like this:
