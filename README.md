@@ -17,7 +17,15 @@ Bug reports, fixes and enhancements are welcome. If you intend to port Shen to a
 
 ## Building
 
-You will need to have the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Setup is different depending on operating system.
+You will need to have the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Installation is different depending on operating system.
+
+Minimum required versions:
+
+| Implementation | Minimum Version |
+|:---------------|:----------------|
+| `clisp`        | `2.49`          |
+| `ccl`          | `1.10`          |
+| `sbcl`         | `1.3.1`         |
 
 ### Linux
 
@@ -25,9 +33,16 @@ CLisp and SBCL are available through `apt`. Just run `sudo apt install clisp sbc
 
 There is a [separately available package](http://mr.gy/blog/clozure-cl-deb.html) for Clozure. Run the following to download and install it:
 
-```bash
+```
 wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
 dpkg -i clozure-cl_1.11_amd64.deb
+```
+
+If the version of SBCL available throught `apt` is too old, a sufficiently new version can be downloaded and installed like this:
+
+```
+wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
+sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
 ```
 
 ### macOS
