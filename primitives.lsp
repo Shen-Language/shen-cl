@@ -277,12 +277,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (SETQ *stoutput* *STANDARD-OUTPUT*)
 (SETQ *sterror* *ERROR-OUTPUT*)
 
-(DEFUN shen-cl.scripts-from-args (Args)
-  (IF (CONSP Args)
-    (IF (STRING-EQUAL "-l" (CAR Args))
-      (CONS (CADR Args) (shen-cl.scripts-from-args (CDDR Args)))
-      (shen-cl.scripts-from-args (CDR Args)))
-    Args))
+(DEFUN shen-cl.eval-print (X)
+  (print (eval X)))
+
+; Returns T if repl should be started
+(DEFUN shen-cl.interpret-args (Args)
+  (COND
+    ((AND (CONSP Args) (STRING-EQUAL "-l" (CAR Args)))
+     (PROGN
+       (load (CADR Args))
+       (shen-cl.interpret-args (CDDR Args))
+       NIL))
+    ((AND (CONSP Args) (STRING-EQUAL "-e" (CAR Args)))
+     (PROGN
+       (LET ((Exprs (read-from-string (CADR Args))))
+         (MAPC #'shen-cl.eval-print Exprs))
+       (shen-cl.interpret-args (CDDR Args))
+       NIL))
+    ((CONSP Args)
+     (shen-cl.interpret-args (CDR Args)))
+    (T
+     T)))
 
 (DEFUN shen-cl.toplevel ()
 
@@ -294,36 +309,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
         (SETQ *stoutput* *STANDARD-OUTPUT*)
         (SETQ *stinput* *STANDARD-INPUT*)
         (SETQ *sterror* *ERROR-OUTPUT*)
-        (LET* ((Args    EXT:*ARGS*)
-               (Scripts (shen-cl.scripts-from-args Args)))
+        (LET* ((Args    EXT:*ARGS*))
           (SETQ *argv* Args)
-          (IF (CONSP Scripts)
-            (PROGN
-              (MAPC 'load Scripts)
-              (EXT:EXIT 0))
-            (shen.shen))))))
+          (IF (shen-cl.interpret-args Args)
+            (shen.shen)
+            (EXT:EXIT 0))))))
 
   #+CCL
   (HANDLER-BIND
     ((WARNING #'MUFFLE-WARNING))
-    (LET* ((Args    (CDR *COMMAND-LINE-ARGUMENT-LIST*))
-           (Scripts (shen-cl.scripts-from-args Args)))
+    (LET* ((Args    (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
       (SETQ *argv* Args)
-      (IF (CONSP Scripts)
-        (PROGN
-          (MAPC 'load Scripts)
-          (exit 0))
-        (shen.shen))))
+      (IF (shen-cl.interpret-args Args)
+        (shen.shen)
+        (exit 0))))
 
   #+SBCL
-  (LET* ((Args    (CDR SB-EXT:*POSIX-ARGV*))
-         (Scripts (shen-cl.scripts-from-args Args)))
+  (LET* ((Args    (CDR SB-EXT:*POSIX-ARGV*)))
     (SETQ *argv* Args)
-    (IF (CONSP Scripts)
-      (PROGN
-        (MAPC 'load Scripts)
-        (exit 0))
+    (IF (shen-cl.interpret-args Args)
       (HANDLER-CASE (shen.shen)
         (SB-SYS:INTERACTIVE-INTERRUPT ()
           (FORMAT T "~%Quit.~%")
-          (exit 0))))))
+          (exit 0)))
+      (exit 0))))
