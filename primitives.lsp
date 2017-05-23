@@ -280,18 +280,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (DEFUN shen-cl.eval-print (X)
   (print (eval X)))
 
+(DEFUN shen-cl.print-version ()
+  (FORMAT T "~A~%" *version*)
+  (FORMAT T "Shen CL ~A~%" *port*))
+
+(DEFUN shen-cl.option-prefix? (Args Options)
+  (AND (CONSP Args) (MEMBER (CAR Args) Options :TEST #'STRING-EQUAL)))
+
 ; Returns T if repl should be started
 (DEFUN shen-cl.interpret-args (Args)
   (COND
-    ((AND (CONSP Args) (STRING-EQUAL "-l" (CAR Args)))
+    ((shen-cl.option-prefix? Args (LIST "-v" "--version"))
      (PROGN
-       (load (CADR Args))
-       (shen-cl.interpret-args (CDDR Args))
+       (shen-cl.print-version)
        NIL))
-    ((AND (CONSP Args) (STRING-EQUAL "-e" (CAR Args)))
+    ((shen-cl.option-prefix? Args (LIST "-h" "--help"))
+     (PROGN
+       (shen-cl.print-version)
+       (FORMAT T "~%")
+       (FORMAT T "Usage: shen [OPTIONS...]~%")
+       (FORMAT T "  -v, --version       : Prints Shen, shen-cl version numbers and exits~%")
+       (FORMAT T "  -h, --help          : Shows this help and exits~%")
+       (FORMAT T "  -e, --eval <expr>   : Evaluates expr and prints result~%")
+       (FORMAT T "  -l, --load <file>   : Reads and evaluates file~%")
+       (FORMAT T "~%")
+       (FORMAT T "Evaluates options in order~%")
+       (FORMAT T "Starts the REPL if no eval/load options specified~%")
+       NIL))
+    ((shen-cl.option-prefix? Args (LIST "-e" "--eval"))
      (PROGN
        (LET ((Exprs (read-from-string (CADR Args))))
          (MAPC #'shen-cl.eval-print Exprs))
+       (shen-cl.interpret-args (CDDR Args))
+       NIL))
+    ((shen-cl.option-prefix? Args (LIST "-l" "--load"))
+     (PROGN
+       (load (CADR Args))
        (shen-cl.interpret-args (CDDR Args))
        NIL))
     ((CONSP Args)
