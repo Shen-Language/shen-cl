@@ -14,9 +14,8 @@ endif
 
 RunCLisp=./native/clisp/$(BinaryName) --clisp-m 10MB
 RunCCL=./native/ccl/$(BinaryName)
+RunECL=./native/ecl/$(BinaryName)
 RunSBCL=./native/sbcl/$(BinaryName)
-BuildAll=build-clisp build-ccl build-sbcl
-TestAll=test-clisp test-ccl test-sbcl
 
 default: build-test-all
 
@@ -36,7 +35,7 @@ endif
 
 build-test-all: build-all test-all
 
-build-all: $(BuildAll)
+build-all: build-clisp build-ccl build-ecl build-sbcl
 
 build-clisp:
 	clisp -i install.lsp
@@ -44,16 +43,22 @@ build-clisp:
 build-ccl:
 	ccl -l install.lsp
 
+build-ecl:
+	ecl -load install.lsp
+
 build-sbcl:
 	sbcl --load install.lsp
 
-test-all: $(TestAll)
+test-all: test-clisp test-ccl test-ecl test-sbcl
 
 test-clisp:
 	$(RunCLisp) -l testsuite.shen
 
 test-ccl:
 	$(RunCCL) -l testsuite.shen
+
+test-ecl:
+	$(RunECL) -l testsuite.shen
 
 test-sbcl:
 	$(RunSBCL) -l testsuite.shen
@@ -64,12 +69,17 @@ run-clisp:
 run-ccl:
 	$(RunCCL) $(Args)
 
+run-ecl:
+	$(RunECL) $(Args)
+
 run-sbcl:
 	$(RunSBCL) $(Args)
 
 clisp: build-clisp test-clisp
 
 ccl: build-ccl test-ccl
+
+ecl: build-ecl test-ecl
 
 sbcl: build-sbcl test-sbcl
 
