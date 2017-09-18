@@ -59,6 +59,7 @@
   (SETQ *implementation* "ECL")
   (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
   (SETQ *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown"))
+  (SETQ BUILT-FILES '())
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
   (DEFCONSTANT BUILT-SUFFIX ".o")
   (DEFCONSTANT NATIVE-PATH "./native/ecl/")
@@ -84,7 +85,8 @@
     #+ECL
     (LET ((BuiltFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX)))
       (COMPILE-FILE LspFile :SYSTEM-P T)
-      (C:BUILD-FASL ObjFile :LISP-FILES (LIST BuiltFile)))
+      (C:BUILD-FASL ObjFile :LISP-FILES (LIST BuiltFile))
+      (SETQ BUILT-FILES (CONS BuiltFile BUILT-FILES)))
     (LOAD ObjFile)))
 
 (DEFUN import-kl (File)
@@ -97,7 +99,8 @@
     #+ECL
     (LET ((BuiltFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX)))
       (COMPILE-FILE LspFile :SYSTEM-P T)
-      (C:BUILD-FASL ObjFile :LISP-FILES (LIST BuiltFile)))
+      (C:BUILD-FASL ObjFile :LISP-FILES (LIST BuiltFile))
+      (SETQ BUILT-FILES (CONS BuiltFile BUILT-FILES)))
     (LOAD ObjFile)))
 
 (DEFUN read-kl-file (File)
@@ -185,30 +188,13 @@
   (CCL:QUIT))
 
 #+ECL
-(C:BUILD-PROGRAM
-  BINARY-PATH
-  :LISP-FILES
-    (MAPCAR
-      #'(LAMBDA (File) (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX))
-      '("primitives"
-        "backend"
-        "toplevel"
-        "core"
-        "sys"
-        "sequent"
-        "yacc"
-        "reader"
-        "prolog"
-        "track"
-        "load"
-        "writer"
-        "macros"
-        "declarations"
-        "types"
-        "t-star"
-        "overwrite"))
-  :PROLOGUE-CODE NIL
-  :EPILOGUE-CODE 'shen-cl.toplevel)
+(PROGN
+  (C:BUILD-PROGRAM
+    BINARY-PATH
+    :LISP-FILES (REVERSE BUILT-FILES)
+    :PROLOGUE-CODE NIL
+    :EPILOGUE-CODE 'shen-cl.toplevel)
+  (SI:QUIT))
 
 #+SBCL
 (SB-EXT:SAVE-LISP-AND-DIE

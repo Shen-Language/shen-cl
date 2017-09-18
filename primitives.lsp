@@ -351,7 +351,7 @@
         (exit 0))))
 
   #+ECL
-  (LET* ((ARGS (CDR (SI:COMMAND-ARGS))))
+  (LET* ((Args (CDR (SI:COMMAND-ARGS))))
     (SETQ *argv* Args)
     (IF (shen-cl.interpret-args Args)
       (shen.shen)
