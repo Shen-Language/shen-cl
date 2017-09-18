@@ -111,6 +111,10 @@
 #+(AND CCL WINDOWS)
 (CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN exit (Code) (#__exit Code))"))
 
+#+ECL
+(DEFUN exit (Code)
+  (SI:QUIT Code))
+
 #+SBCL
 (DEFUN exit (Code)
   (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
