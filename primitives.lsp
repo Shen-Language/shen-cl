@@ -335,7 +335,7 @@
         (SETQ *stoutput* *STANDARD-OUTPUT*)
         (SETQ *stinput* *STANDARD-INPUT*)
         (SETQ *sterror* *ERROR-OUTPUT*)
-        (LET* ((Args    EXT:*ARGS*))
+        (LET* ((Args EXT:*ARGS*))
           (SETQ *argv* Args)
           (IF (shen-cl.interpret-args Args)
             (shen.shen)
@@ -344,14 +344,21 @@
   #+CCL
   (HANDLER-BIND
     ((WARNING #'MUFFLE-WARNING))
-    (LET* ((Args    (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
+    (LET* ((Args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
       (SETQ *argv* Args)
       (IF (shen-cl.interpret-args Args)
         (shen.shen)
         (exit 0))))
 
+  #+ECL
+  (LET* ((ARGS (CDR (SI:COMMAND-ARGS))))
+    (SETQ *argv* Args)
+    (IF (shen-cl.interpret-args Args)
+      (shen.shen)
+      (exit 0)))
+
   #+SBCL
-  (LET* ((Args    (CDR SB-EXT:*POSIX-ARGV*)))
+  (LET* ((Args (CDR SB-EXT:*POSIX-ARGV*)))
     (SETQ *argv* Args)
     (IF (shen-cl.interpret-args Args)
       (HANDLER-CASE (shen.shen)
