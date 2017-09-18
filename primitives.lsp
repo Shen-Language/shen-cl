@@ -158,6 +158,7 @@
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
         #+CCL   :DEFAULT
+        #+ECL   :DEFAULT
         #+SBCL  :DEFAULT))
     ((EQ Direction 'out)
      (OPEN Path
@@ -165,6 +166,7 @@
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
         #+CCL   :DEFAULT
+        #+ECL   :DEFAULT
         #+SBCL  :DEFAULT
       :IF-EXISTS :SUPERSEDE))
     (T
