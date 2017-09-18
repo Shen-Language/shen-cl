@@ -27,6 +27,7 @@
 ; Creates intermediate code and binaries in a platform-specific sub-directory under ./native/
 
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
+; (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 0) (SAFETY 3))) ; TODO: for ECL?
 (IN-PACKAGE :CL-USER)
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
 (SETQ *language* "Common Lisp")
@@ -53,6 +54,17 @@
   (DEFCONSTANT NATIVE-PATH "./native/ccl/")
   (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+WINDOWS "shen.exe" #-WINDOWS "shen")))
 
+#+ECL
+(PROGN
+  (SETQ *implementation* "ECL")
+  (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
+  (SETQ *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown"))
+  (DEFCONSTANT COMPILED-SUFFIX ".fas")
+  (DEFCONSTANT BUILT-SUFFIX ".o")
+  (DEFCONSTANT NATIVE-PATH "./native/ecl/")
+  (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+(OR :WIN32 :MINGW32) "shen.exe" #-(OR :WIN32 :MINGW32) "shen"))
+  (EXT:INSTALL-C-COMPILER))
+
 #+SBCL
 (PROGN
   (SETQ *implementation* "SBCL")
@@ -67,15 +79,25 @@
 (DEFUN import-lsp (File)
   (LET ((LspFile (FORMAT NIL "~A.lsp" File))
         (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
+    #-ECL
     (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile)
+    #+ECL
+    (LET ((BuiltFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX)))
+      (COMPILE-FILE LspFile :SYSTEM-P T)
+      (C:BUILD-FASL ObjFile :LISP-FILES (LIST BuiltFile)))
     (LOAD ObjFile)))
 
 (DEFUN import-kl (File)
-  (LET ((KlFile       (FORMAT NIL "./kernel/klambda/~A.kl" File))
-        (LspFile      (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
-        (ObjFile      (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
+  (LET ((KlFile  (FORMAT NIL "./kernel/klambda/~A.kl" File))
+        (LspFile (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
+        (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
     (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
+    #-ECL
     (COMPILE-FILE LspFile)
+    #+ECL
+    (LET ((BuiltFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX)))
+      (COMPILE-FILE LspFile :SYSTEM-P T)
+      (C:BUILD-FASL ObjFile :LISP-FILES (LIST BuiltFile)))
     (LOAD ObjFile)))
 
 (DEFUN read-kl-file (File)
@@ -161,6 +183,32 @@
     :PREPEND-KERNEL T
     :TOPLEVEL-FUNCTION 'shen-cl.toplevel)
   (CCL:QUIT))
+
+#+ECL
+(C:BUILD-PROGRAM
+  BINARY-PATH
+  :LISP-FILES
+    (MAPCAR
+      #'(LAMBDA (File) (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX))
+      '("primitives"
+        "backend"
+        "toplevel"
+        "core"
+        "sys"
+        "sequent"
+        "yacc"
+        "reader"
+        "prolog"
+        "track"
+        "load"
+        "writer"
+        "macros"
+        "declarations"
+        "types"
+        "t-star"
+        "overwrite"))
+  :PROLOGUE-CODE NIL
+  :EPILOGUE-CODE 'shen-cl.toplevel)
 
 #+SBCL
 (SB-EXT:SAVE-LISP-AND-DIE
