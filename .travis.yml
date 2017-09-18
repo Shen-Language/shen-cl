@@ -6,6 +6,7 @@ addons:
   apt:
     packages:
       - clisp
+      - ecl
 install:
   - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
   - sudo dpkg -i clozure-cl_1.11_amd64.deb
