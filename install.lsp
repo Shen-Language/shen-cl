@@ -193,7 +193,7 @@
     BINARY-PATH
     :LISP-FILES (REVERSE BUILT-FILES)
     :PROLOGUE-CODE NIL
-    :EPILOGUE-CODE 'shen-cl.toplevel)
+    :EPILOGUE-CODE '(shen-cl.toplevel))
   (SI:QUIT))
 
 #+SBCL
