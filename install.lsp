@@ -85,7 +85,7 @@
     #+ECL
     (LET ((BuiltFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX)))
       (COMPILE-FILE LspFile :SYSTEM-P T)
-      (C:BUILD-FASL ObjFile :LISP-FILES (LIST BuiltFile))
+      (C:BUILD-FASL ObjFile)
       (SETQ BUILT-FILES (CONS BuiltFile BUILT-FILES)))
     (LOAD ObjFile)))
 
@@ -99,7 +99,7 @@
     #+ECL
     (LET ((BuiltFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX)))
       (COMPILE-FILE LspFile :SYSTEM-P T)
-      (C:BUILD-FASL ObjFile :LISP-FILES (LIST BuiltFile))
+      (C:BUILD-FASL ObjFile)
       (SETQ BUILT-FILES (CONS BuiltFile BUILT-FILES)))
     (LOAD ObjFile)))
 
