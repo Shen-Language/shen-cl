@@ -44,7 +44,7 @@ build-ccl:
 	ccl -l install.lsp
 
 build-ecl:
-	ecl -load install.lsp
+	ecl -norc -load install.lsp
 
 build-sbcl:
 	sbcl --load install.lsp
