@@ -7,9 +7,13 @@ NestedFolderName=ShenOSKernel-$(KernelVersion)
 ifeq ($(OS),Windows_NT)
 	FileName=ShenOSKernel-$(KernelVersion).zip
 	BinaryName=shen.exe
+	BuildAll=build-clisp build-ccl build-sbcl
+	TestAll=test-clisp test-ccl test-sbcl
 else
 	FileName=ShenOSKernel-$(KernelVersion).tar.gz
 	BinaryName=shen
+	BuildAll=build-clisp build-ccl build-ecl build-sbcl
+	TestAll=test-clisp test-ccl test-ecl test-sbcl
 endif
 
 RunCLisp=./native/clisp/$(BinaryName) --clisp-m 10MB
@@ -35,7 +39,7 @@ endif
 
 build-test-all: build-all test-all
 
-build-all: build-clisp build-ccl build-ecl build-sbcl
+build-all: $(BuildAll)
 
 build-clisp:
 	clisp -i install.lsp
@@ -49,7 +53,7 @@ build-ecl:
 build-sbcl:
 	sbcl --load install.lsp
 
-test-all: test-clisp test-ccl test-ecl test-sbcl
+test-all: $(TestAll)
 
 test-clisp:
 	$(RunCLisp) -l testsuite.shen
