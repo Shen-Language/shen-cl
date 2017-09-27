@@ -27,7 +27,6 @@
 ; Creates intermediate code and binaries in a platform-specific sub-directory under ./native/
 
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
-; (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 0) (SAFETY 3))) ; TODO: for ECL?
 (IN-PACKAGE :CL-USER)
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
 (SETQ *language* "Common Lisp")
@@ -41,7 +40,7 @@
   (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+MACOS "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
   (DEFCONSTANT NATIVE-PATH "./native/clisp/")
-  (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+WIN32 "shen.exe" #-WIN32 "shen"))
+  (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
   (SETQ CUSTOM:*COMPILE-WARNINGS* NIL)
   (SETQ *COMPILE-VERBOSE* NIL))
 
@@ -52,18 +51,16 @@
   (SETQ *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT COMPILED-SUFFIX (FORMAT NIL "~A" *.FASL-PATHNAME*))
   (DEFCONSTANT NATIVE-PATH "./native/ccl/")
-  (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+WINDOWS "shen.exe" #-WINDOWS "shen")))
+  (DEFCONSTANT BINARY-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen"))
 
 #+ECL
 (PROGN
   (SETQ *implementation* "ECL")
   (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
   (SETQ *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown"))
-  (SETQ BUILT-FILES '())
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
-  (DEFCONSTANT BUILT-SUFFIX ".o")
   (DEFCONSTANT NATIVE-PATH "./native/ecl/")
-  (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+(OR :WIN32 :MINGW32) "shen.exe" #-(OR :WIN32 :MINGW32) "shen"))
+  (DEFCONSTANT BINARY-NAME #+(OR :WIN32 :MINGW32) "shen.exe" #-(OR :WIN32 :MINGW32) "shen")
   (EXT:INSTALL-C-COMPILER))
 
 #+SBCL
@@ -73,20 +70,14 @@
   (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT COMPILED-SUFFIX ".fasl")
   (DEFCONSTANT NATIVE-PATH "./native/sbcl/")
-  (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH #+WIN32 "shen.exe" #-WIN32 "shen"))
+  (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
   (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
   (SETF SB-EXT:*MUFFLED-WARNINGS* T))
 
 (DEFUN import-lsp (File)
   (LET ((LspFile (FORMAT NIL "~A.lsp" File))
         (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
-    #-ECL
     (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile)
-    #+ECL
-    (LET ((BuiltFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX)))
-      (COMPILE-FILE LspFile :SYSTEM-P T)
-      (C:BUILD-FASL ObjFile)
-      (SETQ BUILT-FILES (CONS BuiltFile BUILT-FILES)))
     (LOAD ObjFile)))
 
 (DEFUN import-kl (File)
@@ -94,19 +85,13 @@
         (LspFile (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
         (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
     (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
-    #-ECL
     (COMPILE-FILE LspFile)
-    #+ECL
-    (LET ((BuiltFile (FORMAT NIL "~A~A~A" NATIVE-PATH File BUILT-SUFFIX)))
-      (COMPILE-FILE LspFile :SYSTEM-P T)
-      (C:BUILD-FASL ObjFile)
-      (SETQ BUILT-FILES (CONS BuiltFile BUILT-FILES)))
     (LOAD ObjFile)))
 
 (DEFUN read-kl-file (File)
   (WITH-OPEN-FILE
     (In File :DIRECTION :INPUT)
-    (LET* ((CleanedCode (clean-kl (READ-CHAR In NIL NIL) In NIL NIL)))
+    (LET ((CleanedCode (clean-kl (READ-CHAR In NIL NIL) In NIL NIL)))
       (READ-FROM-STRING (FORMAT NIL "(~A)" (COERCE CleanedCode 'STRING))))))
 
 (DEFUN clean-kl (Char In Chars InsideQuote)
@@ -170,6 +155,8 @@
 (FMAKUNBOUND 'translate-kl)
 (FMAKUNBOUND 'write-lsp-file)
 
+(DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH BINARY-NAME))
+
 #+CLISP
 (PROGN
   (EXT:SAVEINITMEM
@@ -189,11 +176,18 @@
 
 #+ECL
 (PROGN
-  (C:BUILD-PROGRAM
+  #+NEVER (C:BUILD-PROGRAM
     BINARY-PATH
-    :LISP-FILES (REVERSE BUILT-FILES)
+    :LISP-FILES '(
+    ; NEED .o files
+    "./native/ecl/primitives.fas"
+    "./native/ecl/backend.fas"
+    "./native/ecl/toplevel.fas"
+    )
     :PROLOGUE-CODE NIL
     :EPILOGUE-CODE '(shen-cl.toplevel))
+  #-NEVER (FORMAT T "~%Got to the build-program part, quitting~%~%")
+  #-NEVER (FINISH-OUTPUT)
   (SI:QUIT))
 
 #+SBCL

@@ -13,7 +13,9 @@ else
 	FileName=ShenOSKernel-$(KernelVersion).tar.gz
 	BinaryName=shen
 	BuildAll=build-clisp build-ccl build-ecl build-sbcl
-	TestAll=test-clisp test-ccl test-ecl test-sbcl
+	#TestAll=test-clisp test-ccl test-ecl test-sbcl
+	# TODO: fix and restore testing of ecl
+	TestAll=test-clisp test-ccl test-sbcl
 endif
 
 RunCLisp=./native/clisp/$(BinaryName) --clisp-m 10MB
