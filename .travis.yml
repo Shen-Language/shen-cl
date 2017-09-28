@@ -13,4 +13,5 @@ install:
   - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
   - sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
 script:
+  - make fetch
   - make all

@@ -7,15 +7,16 @@ NestedFolderName=ShenOSKernel-$(KernelVersion)
 ifeq ($(OS),Windows_NT)
 	FileName=ShenOSKernel-$(KernelVersion).zip
 	BinaryName=shen.exe
-	BuildAll=build-clisp build-ccl build-sbcl
-	TestAll=test-clisp test-ccl test-sbcl
+	# TODO: get ecl working on windows
+	#All=clisp ccl ecl sbcl
+	All=clisp ccl sbcl
 else
 	FileName=ShenOSKernel-$(KernelVersion).tar.gz
 	BinaryName=shen
 	BuildAll=build-clisp build-ccl build-ecl build-sbcl
-	#TestAll=test-clisp test-ccl test-ecl test-sbcl
-	# TODO: fix building of ecl and restore testing of it
-	TestAll=test-clisp test-ccl test-sbcl
+	# TODO: get ecl working on linux
+	#All=clisp ccl ecl sbcl
+	All=clisp ccl sbcl
 endif
 
 RunCLisp=./native/clisp/$(BinaryName) --clisp-m 10MB
@@ -23,9 +24,25 @@ RunCCL=./native/ccl/$(BinaryName)
 RunECL=./native/ecl/$(BinaryName)
 RunSBCL=./native/sbcl/$(BinaryName)
 
-default: build-test-all
+default: all
 
-all: fetch build-all test-all
+#
+# Aggregates
+#
+
+all: $(All)
+
+clisp: build-clisp test-clisp
+
+ccl: build-ccl test-ccl
+
+ecl: build-ecl test-ecl
+
+sbcl: build-sbcl test-sbcl
+
+#
+# Dependency retrieval
+#
 
 fetch:
 ifeq ($(OS),Windows_NT)
@@ -56,12 +73,6 @@ check-tests:
 	echo ""; \
 	exit 1; \
 	}
-
-build-test-all: build-all test-all
-
-build-all: $(BuildAll)
-
-test-all: $(TestAll)
 
 #
 # Build an implementation
@@ -112,16 +123,8 @@ run-sbcl:
 	$(RunSBCL) $(Args)
 
 #
-# Build and test an implementation
+# Cleanup
 #
-
-clisp: build-clisp test-clisp
-
-ccl: build-ccl test-ccl
-
-ecl: build-ecl test-ecl
-
-sbcl: build-sbcl test-sbcl
 
 clean:
 	rm -rf native

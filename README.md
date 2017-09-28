@@ -70,27 +70,26 @@ The `Makefile` uses commands typically not found on Windows, so [GOW](https://gi
 
 ### `Makefile` Operations
 
-  * Fetch kernel sources, build and test all ports with `make all`.
-  * Fetch kernel sources with `make fetch`.
-  * Build and test all ports with `make build-test-all` or just `make`.
-    * Build and test the CLisp port with `make clisp`.
-    * Build and test the Clozure port with `make ccl`.
-    * Build and test the ECL port with `make ecl`.
-    * Build and test the SBCL port with `make sbcl`.
-  * Build all ports with `make build-all`.
-    * Build only the CLisp port with `make build-clisp`.
-    * Build only the Clozure port with `make build-ccl`.
-    * Build only the ECL port with `make build-ecl`.
-    * Build only the SBCL port with `make build-sbcl`.
-  * Test all ports with `make test-all`.
-    * Test only the CLisp port with `make test-clisp`.
-    * Test only the Clozure port with `make test-ccl`.
-    * Test only the ECL port with `make test-ecl`.
-    * Test only the SBCL port with `make test-sbcl`.
-  * Run Shen REPL for CLisp port with `make run-clisp`.
-  * Run Shen REPL for Clozure port with `make run-ccl`.
-  * Run Shen REPL for ECL port with `make run-ecl`.
-  * Run Shen REPL for SBCL port with `make run-sbcl`.
+  * Fetch kernel sources with `make fetch`. (Do this first)
+  * Build and test all with `make all` or just `make`.
+    * Build and test CLisp with `make clisp`.
+    * Build and test Clozure with `make ccl`.
+    * Build and test ECL with `make ecl`.
+    * Build and test SBCL with `make sbcl`.
+  * Build all with `make build-all`.
+    * Build only CLisp with `make build-clisp`.
+    * Build only Clozure with `make build-ccl`.
+    * Build only ECL with `make build-ecl`.
+    * Build only SBCL with `make build-sbcl`.
+  * Test all with `make test-all`.
+    * Test only CLisp with `make test-clisp`.
+    * Test only Clozure with `make test-ccl`.
+    * Test only ECL with `make test-ecl`.
+    * Test only SBCL with `make test-sbcl`.
+  * Run Shen REPL for CLisp with `make run-clisp`.
+  * Run Shen REPL for Clozure with `make run-ccl`.
+  * Run Shen REPL for ECL with `make run-ecl`.
+  * Run Shen REPL for SBCL with `make run-sbcl`.
 
 ## Running
 
@@ -98,4 +97,4 @@ An executable is generated for each platform in its platform-specific output dir
 
 Startup scripts can be specified on the command line by preceding them with a `-l` flag. If any startup scripts are specified this way, they will be loaded in order and then `(exit 0)` will be called. If none are, the Shen REPL will start as usual. Either way, all command line arguments will be accessible with `(command-line)`.
 
-When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l bootstrap.shen otherthing --option 123"`.
+When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l bootstrap.shen -flag`.
