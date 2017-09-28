@@ -14,7 +14,7 @@ else
 	BinaryName=shen
 	BuildAll=build-clisp build-ccl build-ecl build-sbcl
 	#TestAll=test-clisp test-ccl test-ecl test-sbcl
-	# TODO: fix and restore testing of ecl
+	# TODO: fix building of ecl and restore testing of it
 	TestAll=test-clisp test-ccl test-sbcl
 endif
 
@@ -39,35 +39,65 @@ endif
 	rm -rf kernel
 	mv $(NestedFolderName) kernel
 
+check-klambda:
+	@[ -d ./kernel/klambda ] || { \
+	echo ""; \
+	echo "Directory './kernel/klambda' not found."; \
+	echo "Run 'make fetch' to retrieve Shen Kernel sources."; \
+	echo ""; \
+	exit 1; \
+	}
+
+check-tests:
+	@[ -d ./kernel/tests ] || { \
+	echo ""; \
+	echo "Directory './kernel/tests' not found."; \
+	echo "Run 'make fetch' to retrieve Shen Kernel sources."; \
+	echo ""; \
+	exit 1; \
+	}
+
 build-test-all: build-all test-all
 
 build-all: $(BuildAll)
 
-build-clisp:
-	clisp -i install.lsp
-
-build-ccl:
-	ccl -l install.lsp
-
-build-ecl:
-	ecl -norc -load install.lsp
-
-build-sbcl:
-	sbcl --load install.lsp
-
 test-all: $(TestAll)
 
-test-clisp:
+#
+# Build an implementation
+#
+
+build-clisp: check-klambda
+	clisp -i install.lsp
+
+build-ccl: check-klambda
+	ccl -l install.lsp
+
+build-ecl: check-klambda
+	ecl -norc -load install.lsp
+
+build-sbcl: check-klambda
+	sbcl --load install.lsp
+
+#
+# Test an implementation
+#
+
+test-clisp: check-tests
 	$(RunCLisp) -l testsuite.shen
 
-test-ccl:
+test-ccl: check-tests
 	$(RunCCL) -l testsuite.shen
 
-test-ecl:
+test-ecl: check-tests
 	$(RunECL) -l testsuite.shen
 
-test-sbcl:
+test-sbcl: check-tests
 	$(RunSBCL) -l testsuite.shen
+
+#
+# Run an implementation
+#
 
 run-clisp:
 	$(RunCLisp) $(Args)
@@ -81,6 +111,10 @@ run-ecl:
 run-sbcl:
 	$(RunSBCL) $(Args)
 
+#
+# Build and test an implementation
+#
+
 clisp: build-clisp test-clisp
 
 ccl: build-ccl test-ccl
@@ -91,3 +125,6 @@ sbcl: build-sbcl test-sbcl
 
 clean:
 	rm -rf native
+
+pure: clean
+	rm -rf kernel

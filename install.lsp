@@ -23,15 +23,17 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-; Assumes *.kl files are in the ./kernel/klambda directory
-; Creates intermediate code and binaries in a platform-specific sub-directory under ./native/
-
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
 (IN-PACKAGE :CL-USER)
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
 (SETQ *language* "Common Lisp")
 (SETQ *port* 2.1)
 (SETQ *porters* "Mark Tarver")
+(DEFCONSTANT KLAMBDA-PATH "./kernel/klambda/")
+
+;
+; Implementation-Specific Declarations
+;
 
 #+CLISP
 (PROGN
@@ -74,6 +76,10 @@
   (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
   (SETF SB-EXT:*MUFFLED-WARNINGS* T))
 
+;
+; Shared KL-Loading Procedure
+;
+
 (DEFUN import-lsp (File)
   (LET ((LspFile (FORMAT NIL "~A.lsp" File))
         (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
@@ -81,7 +87,7 @@
     (LOAD ObjFile)))
 
 (DEFUN import-kl (File)
-  (LET ((KlFile  (FORMAT NIL "./kernel/klambda/~A.kl" File))
+  (LET ((KlFile  (FORMAT NIL "~A~A.kl" KLAMBDA-PATH File))
         (LspFile (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
         (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
     (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
@@ -155,6 +161,10 @@
 (FMAKUNBOUND 'translate-kl)
 (FMAKUNBOUND 'write-lsp-file)
 
+;
+; Implementation-Specific Executable Output
+;
+
 (DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH BINARY-NAME))
 
 #+CLISP
@@ -176,18 +186,8 @@
 
 #+ECL
 (PROGN
-  #+NEVER (C:BUILD-PROGRAM
-    BINARY-PATH
-    :LISP-FILES '(
-    ; NEED .o files
-    "./native/ecl/primitives.fas"
-    "./native/ecl/backend.fas"
-    "./native/ecl/toplevel.fas"
-    )
-    :PROLOGUE-CODE NIL
-    :EPILOGUE-CODE '(shen-cl.toplevel))
-  #-NEVER (FORMAT T "~%Got to the build-program part, quitting~%~%")
-  #-NEVER (FINISH-OUTPUT)
+  (FORMAT T "~%Got to the build-program part, quitting~%~%")
+  (FINISH-OUTPUT)
   (SI:QUIT))
 
 #+SBCL
