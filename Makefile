@@ -13,10 +13,7 @@ ifeq ($(OS),Windows_NT)
 else
 	FileName=ShenOSKernel-$(KernelVersion).tar.gz
 	BinaryName=shen
-	BuildAll=build-clisp build-ccl build-ecl build-sbcl
-	# TODO: get ecl working on linux
-	#All=clisp ccl ecl sbcl
-	All=clisp ccl sbcl
+	All=clisp ccl ecl sbcl
 endif
 
 RunCLisp=./native/clisp/$(BinaryName) --clisp-m 10MB

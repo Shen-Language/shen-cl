@@ -60,7 +60,9 @@
   (SETQ *implementation* "ECL")
   (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
   (SETQ *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown"))
+  (SETQ *OBJECT-FILES* NIL)
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
+  (DEFCONSTANT OBJECT-SUFFIX ".o")
   (DEFCONSTANT NATIVE-PATH "./native/ecl/")
   (DEFCONSTANT BINARY-NAME #+(OR :WIN32 :MINGW32) "shen.exe" #-(OR :WIN32 :MINGW32) "shen")
   (EXT:INSTALL-C-COMPILER))
@@ -82,17 +84,29 @@
 
 (DEFUN import-lsp (File)
   (LET ((LspFile (FORMAT NIL "~A.lsp" File))
-        (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
-    (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile)
-    (LOAD ObjFile)))
+        (FasFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
+    #-ECL
+    (COMPILE-FILE LspFile :OUTPUT-FILE FasFile)
+    #+ECL
+    (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
+      (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
+      (PUSH ObjFile *OBJECT-FILES*)
+      (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile)))
+    (LOAD FasFile)))
 
 (DEFUN import-kl (File)
   (LET ((KlFile  (FORMAT NIL "~A~A.kl" KLAMBDA-PATH File))
         (LspFile (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
-        (ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
+        (FasFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
     (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
+    #-ECL
     (COMPILE-FILE LspFile)
-    (LOAD ObjFile)))
+    #+ECL
+    (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
+      (COMPILE-FILE LspFile :SYSTEM-P T)
+      (PUSH ObjFile *OBJECT-FILES*)
+      (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile)))
+    (LOAD FasFile)))
 
 (DEFUN read-kl-file (File)
   (WITH-OPEN-FILE
@@ -186,8 +200,10 @@
 
 #+ECL
 (PROGN
-  (FORMAT T "~%Got to the build-program part, quitting~%~%")
-  (FINISH-OUTPUT)
+  (C:BUILD-PROGRAM
+    BINARY-PATH
+    :LISP-FILES (REVERSE *OBJECT-FILES*)
+    :EPILOGUE-CODE '(shen-cl.toplevel))
   (SI:QUIT))
 
 #+SBCL
