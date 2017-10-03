@@ -31,6 +31,8 @@ You will need to have the Common Lisp implementations you want to work with inst
 
 CLisp, ECL and SBCL are available through `apt`. Just run `sudo apt install clisp ecl sbcl`.
 
+ECL requires `libffi-dev` to build, which can also be retrieved through `apt`.
+
 There is a [separately available package](http://mr.gy/blog/clozure-cl-deb.html) for Clozure. Run the following to download and install it:
 
 ```shell
@@ -66,9 +68,9 @@ ECL has a prebuilt installer on its [download page](https://common-lisp.net/proj
 
 SBCL has an msi package on its [download page](http://www.sbcl.org/platform-table.html).
 
-The `Makefile` uses commands typically not found on Windows, so [GOW](https://github.com/bmatzelle/gow) is recommended.
+The `Makefile` uses commands typically not found on Windows, so a toolset like [GOW](https://github.com/bmatzelle/gow) is recommended.
 
-### `Makefile` Operations
+### Makefile Operations
 
   * Fetch kernel sources with `make fetch`. (Do this first)
   * Build and test all with `make all` or just `make`.
