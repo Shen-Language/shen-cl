@@ -68,9 +68,9 @@ ECL has a prebuilt installer on its [download page](https://common-lisp.net/proj
 
 SBCL has an msi package on its [download page](http://www.sbcl.org/platform-table.html).
 
-The `Makefile` uses commands typically not found on Windows, so [GOW](https://github.com/bmatzelle/gow) is recommended.
+The `Makefile` uses commands typically not found on Windows, so a toolset like [GOW](https://github.com/bmatzelle/gow) is recommended.
 
-### `Makefile` Operations
+### Makefile Operations
 
   * Fetch kernel sources with `make fetch`. (Do this first)
   * Build and test all with `make all` or just `make`.
