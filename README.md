@@ -31,6 +31,8 @@ You will need to have the Common Lisp implementations you want to work with inst
 
 CLisp, ECL and SBCL are available through `apt`. Just run `sudo apt install clisp ecl sbcl`.
 
+ECL requires `libffi-dev` to build, which can also be retrieved through `apt`.
+
 There is a [separately available package](http://mr.gy/blog/clozure-cl-deb.html) for Clozure. Run the following to download and install it:
 
 ```shell
