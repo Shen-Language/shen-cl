@@ -72,26 +72,15 @@ The `Makefile` uses commands typically not found on Windows, so a toolset like [
 
 ### Makefile Operations
 
-  * Fetch kernel sources with `make fetch`. (Do this first)
-  * Build and test all with `make all` or just `make`.
-    * Build and test CLisp with `make clisp`.
-    * Build and test Clozure with `make ccl`.
-    * Build and test ECL with `make ecl`.
-    * Build and test SBCL with `make sbcl`.
-  * Build all with `make build-all`.
-    * Build only CLisp with `make build-clisp`.
-    * Build only Clozure with `make build-ccl`.
-    * Build only ECL with `make build-ecl`.
-    * Build only SBCL with `make build-sbcl`.
-  * Test all with `make test-all`.
-    * Test only CLisp with `make test-clisp`.
-    * Test only Clozure with `make test-ccl`.
-    * Test only ECL with `make test-ecl`.
-    * Test only SBCL with `make test-sbcl`.
-  * Run Shen REPL for CLisp with `make run-clisp`.
-  * Run Shen REPL for Clozure with `make run-ccl`.
-  * Run Shen REPL for ECL with `make run-ecl`.
-  * Run Shen REPL for SBCL with `make run-sbcl`.
+| Target    | Operation                                            |
+|:----------|:-----------------------------------------------------|
+| `fetch`   | Download and extract Shen sources. **(Do this 1st)** |
+| `build-X` | Build executable                                     |
+| `test-X`  | Run test suite                                       |
+| `X`       | Build and run test suite                             |
+| `run-X`   | Start Shen REPL (`run-all` not defined)              |
+
+`X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
 
 ## Running
 
