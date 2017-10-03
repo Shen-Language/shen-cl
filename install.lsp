@@ -26,9 +26,9 @@
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
 (IN-PACKAGE :CL-USER)
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
-(SETQ *language* "Common Lisp")
-(SETQ *port* 2.1)
-(SETQ *porters* "Mark Tarver")
+(DEFVAR *language* "Common Lisp")
+(DEFVAR *port* 2.1)
+(DEFVAR *porters* "Mark Tarver")
 (DEFCONSTANT KLAMBDA-PATH "./kernel/klambda/")
 
 ;
@@ -37,9 +37,9 @@
 
 #+CLISP
 (PROGN
-  (SETQ *implementation* "GNU CLisp")
-  (SETQ *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0))))
-  (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+MACOS "macOS" #+UNIX "Unix" "Unknown"))
+  (DEFVAR *implementation* "GNU CLisp")
+  (DEFVAR *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0))))
+  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+MACOS "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
   (DEFCONSTANT NATIVE-PATH "./native/clisp/")
   (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
@@ -48,19 +48,16 @@
 
 #+CCL
 (PROGN
-  (SETQ *implementation* "Clozure CL")
-  (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
-  (SETQ *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
+  (DEFVAR *implementation* "Clozure CL")
+  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
+  (DEFVAR *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT COMPILED-SUFFIX (FORMAT NIL "~A" *.FASL-PATHNAME*))
   (DEFCONSTANT NATIVE-PATH "./native/ccl/")
   (DEFCONSTANT BINARY-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen"))
 
 #+ECL
 (PROGN
-  (SETQ *implementation* "ECL")
-  (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
-  (SETQ *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown"))
-  (SETQ *OBJECT-FILES* NIL)
+  (DEFVAR *object-files* NIL)
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
   (DEFCONSTANT OBJECT-SUFFIX ".o")
   (DEFCONSTANT NATIVE-PATH "./native/ecl/")
@@ -69,9 +66,9 @@
 
 #+SBCL
 (PROGN
-  (SETQ *implementation* "SBCL")
-  (SETQ *release* (LISP-IMPLEMENTATION-VERSION))
-  (SETQ *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
+  (DEFVAR *implementation* "SBCL")
+  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
+  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT COMPILED-SUFFIX ".fasl")
   (DEFCONSTANT NATIVE-PATH "./native/sbcl/")
   (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
@@ -90,7 +87,7 @@
     #+ECL
     (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
       (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
-      (PUSH ObjFile *OBJECT-FILES*)
+      (PUSH ObjFile *object-files*)
       (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile)))
     (LOAD FasFile)))
 
@@ -104,7 +101,7 @@
     #+ECL
     (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
       (COMPILE-FILE LspFile :SYSTEM-P T)
-      (PUSH ObjFile *OBJECT-FILES*)
+      (PUSH ObjFile *object-files*)
       (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile)))
     (LOAD FasFile)))
 
@@ -202,7 +199,7 @@
 (PROGN
   (C:BUILD-PROGRAM
     BINARY-PATH
-    :LISP-FILES (REVERSE *OBJECT-FILES*)
+    :LISP-FILES (REVERSE *object-files*)
     :EPILOGUE-CODE '(shen-cl.toplevel))
   (SI:QUIT))
 

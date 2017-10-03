@@ -25,6 +25,15 @@
 
 (SETQ *user-syntax-in* NIL)
 
+#+ECL
+(PROGN
+  (DEFVAR *language* "Common Lisp")
+  (DEFVAR *port* 2.1)
+  (DEFVAR *porters* "Mark Tarver")
+  (DEFVAR *implementation* "ECL")
+  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
+  (DEFVAR *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown")))
+
 #+SBCL (DECLAIM (INLINE write-byte))
 #+SBCL (DECLAIM (INLINE read-byte))
 #+SBCL (DECLAIM (INLINE shen.double-precision))
@@ -335,7 +344,7 @@
         (SETQ *stoutput* *STANDARD-OUTPUT*)
         (SETQ *stinput* *STANDARD-INPUT*)
         (SETQ *sterror* *ERROR-OUTPUT*)
-        (LET* ((Args EXT:*ARGS*))
+        (LET ((Args EXT:*ARGS*))
           (SETQ *argv* Args)
           (IF (shen-cl.interpret-args Args)
             (shen.shen)
@@ -344,21 +353,21 @@
   #+CCL
   (HANDLER-BIND
     ((WARNING #'MUFFLE-WARNING))
-    (LET* ((Args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
+    (LET ((Args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
       (SETQ *argv* Args)
       (IF (shen-cl.interpret-args Args)
         (shen.shen)
         (exit 0))))
 
   #+ECL
-  (LET* ((Args (CDR (SI:COMMAND-ARGS))))
+  (LET ((Args (CDR (SI:COMMAND-ARGS))))
     (SETQ *argv* Args)
     (IF (shen-cl.interpret-args Args)
       (shen.shen)
       (exit 0)))
 
   #+SBCL
-  (LET* ((Args (CDR SB-EXT:*POSIX-ARGV*)))
+  (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
     (SETQ *argv* Args)
     (IF (shen-cl.interpret-args Args)
       (HANDLER-CASE (shen.shen)
