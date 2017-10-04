@@ -72,13 +72,13 @@ The `Makefile` uses commands typically not found on Windows, so a toolset like [
 
 ### Makefile Operations
 
-| Target    | Operation                                            |
-|:----------|:-----------------------------------------------------|
-| `fetch`   | Download and extract Shen sources. **(Do this 1st)** |
-| `build-X` | Build executable                                     |
-| `test-X`  | Run test suite                                       |
-| `X`       | Build and run test suite                             |
-| `run-X`   | Start Shen REPL (`run-all` not defined)              |
+| Target    | Operation                                                |
+|:----------|:---------------------------------------------------------|
+| `fetch`   | Download and extract Shen sources.<br>**Do this first.** |
+| `build-X` | Build executable.                                        |
+| `test-X`  | Run test suite.                                          |
+| `X`       | Build and run test suite.                                |
+| `run-X`   | Start Shen REPL.<br>**`run-all` not defined.**           |
 
 `X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
 
