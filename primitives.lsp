@@ -32,7 +32,9 @@
   (DEFVAR *porters* "Mark Tarver")
   (DEFVAR *implementation* "ECL")
   (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
-  (DEFVAR *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown")))
+  (DEFVAR *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown"))
+  (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
+  (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL))
 
 #+SBCL (DECLAIM (INLINE write-byte))
 #+SBCL (DECLAIM (INLINE read-byte))
