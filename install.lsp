@@ -59,7 +59,7 @@
 (PROGN
   (DEFVAR *object-files* NIL)
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
-  (DEFCONSTANT OBJECT-SUFFIX ".o")
+  (DEFCONSTANT OBJECT-SUFFIX #+(OR :WIN32 :MINGW32) ".obj" #-(OR :WIN32 :MINGW32) ".o")
   (DEFCONSTANT NATIVE-PATH "./native/ecl/")
   (DEFCONSTANT BINARY-NAME #+(OR :WIN32 :MINGW32) "shen.exe" #-(OR :WIN32 :MINGW32) "shen")
   (EXT:INSTALL-C-COMPILER)
@@ -102,7 +102,7 @@
     (COMPILE-FILE LspFile)
     #+ECL
     (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
-      (COMPILE-FILE LspFile :SYSTEM-P T)
+      (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
       (PUSH ObjFile *object-files*)
       (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile)))
     (LOAD FasFile)))
