@@ -26,9 +26,6 @@
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
 (IN-PACKAGE :CL-USER)
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
-(DEFVAR *language* "Common Lisp")
-(DEFVAR *port* 2.1)
-(DEFVAR *porters* "Mark Tarver")
 (DEFCONSTANT KLAMBDA-PATH "./kernel/klambda/")
 
 ;
@@ -37,9 +34,6 @@
 
 #+CLISP
 (PROGN
-  (DEFVAR *implementation* "GNU CLisp")
-  (DEFVAR *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0))))
-  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+MACOS "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
   (DEFCONSTANT NATIVE-PATH "./native/clisp/")
   (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
@@ -48,9 +42,6 @@
 
 #+CCL
 (PROGN
-  (DEFVAR *implementation* "Clozure CL")
-  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
-  (DEFVAR *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT COMPILED-SUFFIX (FORMAT NIL "~A" *.FASL-PATHNAME*))
   (DEFCONSTANT NATIVE-PATH "./native/ccl/")
   (DEFCONSTANT BINARY-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen"))
@@ -68,9 +59,6 @@
 
 #+SBCL
 (PROGN
-  (DEFVAR *implementation* "SBCL")
-  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
-  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
   (DEFCONSTANT COMPILED-SUFFIX ".fasl")
   (DEFCONSTANT NATIVE-PATH "./native/sbcl/")
   (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
@@ -107,6 +95,10 @@
       (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile)))
     (LOAD FasFile)))
 
+(DEFUN import-shen (File)
+  (LET ((ShenFile (FORMAT NIL "~A.shen" File)))
+    (load ShenFile)))
+
 (DEFUN read-kl-file (File)
   (WITH-OPEN-FILE
     (In File :DIRECTION :INPUT)
@@ -141,6 +133,7 @@
 
 (COMPILE 'import-lsp)
 (COMPILE 'import-kl)
+(COMPILE 'import-shen)
 (COMPILE 'read-kl-file)
 (COMPILE 'clean-kl)
 (COMPILE 'translate-kl)
@@ -165,10 +158,11 @@
 (import-kl "types")
 (import-kl "t-star")
 (import-lsp "overwrite")
-(load "platform.shen")
+(import-shen "platform")
 
 (FMAKUNBOUND 'import-lsp)
 (FMAKUNBOUND 'import-kl)
+(FMAKUNBOUND 'import-shen)
 (FMAKUNBOUND 'read-kl-file)
 (FMAKUNBOUND 'clean-kl)
 (FMAKUNBOUND 'translate-kl)

@@ -23,22 +23,41 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(SETQ *user-syntax-in* NIL)
+(DEFVAR *stinput* *STANDARD-INPUT*)
+(DEFVAR *stoutput* *STANDARD-OUTPUT*)
+(DEFVAR *sterror* *ERROR-OUTPUT*)
+(DEFVAR *language* "Common Lisp")
+(DEFVAR *port* 2.1)
+(DEFVAR *porters* "Mark Tarver")
+
+#+CLISP
+(PROGN
+  (DEFVAR *implementation* "GNU CLisp")
+  (DEFVAR *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0))))
+  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+MACOS "macOS" #+UNIX "Unix" "Unknown")))
+
+#+CCL
+(PROGN
+  (DEFVAR *implementation* "Clozure CL")
+  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
+  (DEFVAR *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown")))
 
 #+ECL
 (PROGN
-  (DEFVAR *language* "Common Lisp")
-  (DEFVAR *port* 2.1)
-  (DEFVAR *porters* "Mark Tarver")
   (DEFVAR *implementation* "ECL")
   (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
   (DEFVAR *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown"))
   (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
   (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL))
 
-#+SBCL (DECLAIM (INLINE write-byte))
-#+SBCL (DECLAIM (INLINE read-byte))
-#+SBCL (DECLAIM (INLINE shen.double-precision))
+#+SBCL
+(PROGN
+  (DEFVAR *implementation* "SBCL")
+  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
+  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
+  (DECLAIM (INLINE write-byte))
+  (DECLAIM (INLINE read-byte))
+  (DECLAIM (INLINE shen.double-precision)))
 
 (DEFMACRO if (X Y Z)
   `(LET ((*C* ,X))
@@ -168,17 +187,13 @@
       :DIRECTION :INPUT
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
-        #+CCL   :DEFAULT
-        #+ECL   :DEFAULT
-        #+SBCL  :DEFAULT))
+        #-CLISP :DEFAULT))
     ((EQ Direction 'out)
      (OPEN Path
       :DIRECTION :OUTPUT
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
-        #+CCL   :DEFAULT
-        #+ECL   :DEFAULT
-        #+SBCL  :DEFAULT
+        #-CLISP :DEFAULT
       :IF-EXISTS :SUPERSEDE))
     (T
      (ERROR "invalid direction"))))
@@ -286,10 +301,6 @@
 (DEFUN number? (N)
   (IF (NUMBERP N) 'true 'false))
 
-(SETQ *stinput* *STANDARD-INPUT*)
-(SETQ *stoutput* *STANDARD-OUTPUT*)
-(SETQ *sterror* *ERROR-OUTPUT*)
-
 (DEFUN shen-cl.eval-print (X)
   (print (eval X)))
 
@@ -374,6 +385,5 @@
     (IF (shen-cl.interpret-args Args)
       (HANDLER-CASE (shen.shen)
         (SB-SYS:INTERACTIVE-INTERRUPT ()
-          (FORMAT T "~%Quit.~%")
           (exit 0)))
       (exit 0))))
