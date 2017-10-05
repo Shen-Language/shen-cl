@@ -21,6 +21,8 @@ RunCCL=./native/ccl/$(BinaryName)
 RunECL=./native/ecl/$(BinaryName)
 RunSBCL=./native/sbcl/$(BinaryName)
 
+Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\"))"
+
 #
 # Aggregates
 #
@@ -106,19 +108,19 @@ build-sbcl: check-klambda
 
 .PHONY: test-clisp
 test-clisp: check-tests
-	$(RunCLisp) -l testsuite.shen
+	$(RunCLisp) $(Tests)
 
 .PHONY: test-ccl
 test-ccl: check-tests
-	$(RunCCL) -l testsuite.shen
+	$(RunCCL) $(Tests)
 
 .PHONY: test-ecl
 test-ecl: check-tests
-	$(RunECL) -l testsuite.shen
+	$(RunECL) $(Tests)
 
 .PHONY: test-sbcl
 test-sbcl: check-tests
-	$(RunSBCL) -l testsuite.shen
+	$(RunSBCL) $(Tests)
 
 #
 # Run an implementation
