@@ -15,3 +15,4 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Script arguments are now preceded by `-l`, all args go in `*argv*`.
 - Made CLisp build output an executable like CCL and SBCL do.
 - Refactored Makefile. Now `make fetch` must always be run before anything else.
+- Moved most `*.lsp` and `*.shen` files under src/ directory.

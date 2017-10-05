@@ -27,6 +27,7 @@
 (IN-PACKAGE :CL-USER)
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
 (DEFCONSTANT KLAMBDA-PATH "./kernel/klambda/")
+(DEFCONSTANT SOURCE-PATH "./src/")
 
 ;
 ; Implementation-Specific Declarations
@@ -70,10 +71,12 @@
 ;
 
 (DEFUN import-lsp (File)
-  (LET ((LspFile (FORMAT NIL "~A.lsp" File))
+  (LET ((SrcFile (FORMAT NIL "~A~A.lsp" SOURCE-PATH File))
+        (LspFile (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
         (FasFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
+    (copy-file SrcFile LspFile)
     #-ECL
-    (COMPILE-FILE LspFile :OUTPUT-FILE FasFile)
+    (COMPILE-FILE LspFile)
     #+ECL
     (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
       (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
@@ -96,12 +99,13 @@
     (LOAD FasFile)))
 
 (DEFUN import-shen (File)
-  (LET ((ShenFile (FORMAT NIL "~A.shen" File)))
+  (LET ((ShenFile (FORMAT NIL "~A~A.shen" SOURCE-PATH File)))
     (load ShenFile)))
 
 (DEFUN read-kl-file (File)
   (WITH-OPEN-FILE
-    (In File :DIRECTION :INPUT)
+    (In File
+      :DIRECTION :INPUT)
     (LET ((CleanedCode (clean-kl (READ-CHAR In NIL NIL) In NIL NIL)))
       (READ-FROM-STRING (FORMAT NIL "(~A)" (COERCE CleanedCode 'STRING))))))
 
@@ -131,6 +135,22 @@
     (MAPC #'(LAMBDA (X) (FORMAT Out "~S~%~%" X)) Code)
     File))
 
+(DEFUN copy-file (SrcFile DestFile)
+  (WITH-OPEN-FILE
+    (In SrcFile
+      :DIRECTION    :INPUT
+      :ELEMENT-TYPE '(UNSIGNED-BYTE 8))
+    (WITH-OPEN-FILE
+      (Out DestFile
+        :DIRECTION         :OUTPUT
+        :IF-EXISTS         :SUPERSEDE
+        :IF-DOES-NOT-EXIST :CREATE
+        :ELEMENT-TYPE      '(UNSIGNED-BYTE 8))
+      (LET ((Buf (MAKE-ARRAY 4096 :ELEMENT-TYPE (STREAM-ELEMENT-TYPE In))))
+        (LOOP FOR Pos = (READ-SEQUENCE Buf In)
+          WHILE (PLUSP Pos)
+          DO (WRITE-SEQUENCE Buf Out :END Pos))))))
+
 (COMPILE 'import-lsp)
 (COMPILE 'import-kl)
 (COMPILE 'import-shen)
@@ -138,6 +158,7 @@
 (COMPILE 'clean-kl)
 (COMPILE 'translate-kl)
 (COMPILE 'write-lsp-file)
+(COMPILE 'copy-file)
 
 (ENSURE-DIRECTORIES-EXIST NATIVE-PATH)
 
@@ -167,6 +188,7 @@
 (FMAKUNBOUND 'clean-kl)
 (FMAKUNBOUND 'translate-kl)
 (FMAKUNBOUND 'write-lsp-file)
+(FMAKUNBOUND 'copy-file)
 
 ;
 ; Implementation-Specific Executable Output
