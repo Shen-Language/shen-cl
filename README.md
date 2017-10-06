@@ -57,7 +57,7 @@ CLisp has an installer and a zip package on [SoureForge](https://sourceforge.net
 
 Clozure will need to be installed manually:
   * Download the zip from [here](https://ccl.clozure.com/download.html) and extract it under `Program Files`.
-  * Put a script named `ccl.cmd` in your `%PATH%` containing something like:
+  * Add the Clozure directory to your `PATH` or add a script named `ccl.cmd` to somewhere in your `PATH` containing something like:
 
 ```batch
 @echo off
