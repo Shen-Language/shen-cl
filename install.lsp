@@ -76,7 +76,7 @@
 
 #+ECL
 (DEFUN compile-lsp (LspFile FasFile)
-  (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
+  (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH LspFile OBJECT-SUFFIX)))
     (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
     (PUSH ObjFile *object-files*)
     (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile))))
