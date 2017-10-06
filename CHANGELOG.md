@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Added
 - Added support for CCL (Clozure Common Lisp).
+- Added `-q`|`--quiet` flag that sets `*hush*` to true, disabling most output.
 
 ### Changed
 - Updated to ShenOS 20.1.
