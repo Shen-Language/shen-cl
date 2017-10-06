@@ -16,3 +16,4 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Made CLisp build output an executable like CCL and SBCL do.
 - Refactored Makefile. Now `make fetch` must always be run before anything else.
 - Moved most `*.lsp` and `*.shen` files under src/ directory.
+- Changed build output directory from `native` to `bin`.

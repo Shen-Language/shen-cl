@@ -16,10 +16,10 @@ else
 	All=clisp ccl ecl sbcl
 endif
 
-RunCLisp=./native/clisp/$(BinaryName) --clisp-m 10MB
-RunCCL=./native/ccl/$(BinaryName)
-RunECL=./native/ecl/$(BinaryName)
-RunSBCL=./native/sbcl/$(BinaryName)
+RunCLisp=./bin/clisp/$(BinaryName) --clisp-m 10MB
+RunCCL=./bin/ccl/$(BinaryName)
+RunECL=./bin/ecl/$(BinaryName)
+RunSBCL=./bin/sbcl/$(BinaryName)
 
 Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\"))"
 
@@ -148,7 +148,7 @@ run-sbcl:
 
 .PHONY: clean
 clean:
-	rm -rf native
+	rm -rf bin
 
 .PHONY: pure
 pure: clean

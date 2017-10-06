@@ -36,24 +36,24 @@
 #+CLISP
 (PROGN
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
-  (DEFCONSTANT NATIVE-PATH "./native/clisp/")
-  (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
+  (DEFCONSTANT BINARY-PATH "./bin/clisp/")
+  (DEFCONSTANT EXECUTABLE-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
   (SETQ CUSTOM:*COMPILE-WARNINGS* NIL)
   (SETQ *COMPILE-VERBOSE* NIL))
 
 #+CCL
 (PROGN
   (DEFCONSTANT COMPILED-SUFFIX (FORMAT NIL "~A" *.FASL-PATHNAME*))
-  (DEFCONSTANT NATIVE-PATH "./native/ccl/")
-  (DEFCONSTANT BINARY-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen"))
+  (DEFCONSTANT BINARY-PATH "./bin/ccl/")
+  (DEFCONSTANT EXECUTABLE-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen"))
 
 #+ECL
 (PROGN
   (DEFVAR *object-files* NIL)
   (DEFCONSTANT COMPILED-SUFFIX ".fas")
   (DEFCONSTANT OBJECT-SUFFIX #+(OR :WIN32 :MINGW32) ".obj" #-(OR :WIN32 :MINGW32) ".o")
-  (DEFCONSTANT NATIVE-PATH "./native/ecl/")
-  (DEFCONSTANT BINARY-NAME #+(OR :WIN32 :MINGW32) "shen.exe" #-(OR :WIN32 :MINGW32) "shen")
+  (DEFCONSTANT BINARY-PATH "./bin/ecl/")
+  (DEFCONSTANT EXECUTABLE-NAME #+(OR :WIN32 :MINGW32) "shen.exe" #-(OR :WIN32 :MINGW32) "shen")
   (EXT:INSTALL-C-COMPILER)
   (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
   (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL))
@@ -61,8 +61,8 @@
 #+SBCL
 (PROGN
   (DEFCONSTANT COMPILED-SUFFIX ".fasl")
-  (DEFCONSTANT NATIVE-PATH "./native/sbcl/")
-  (DEFCONSTANT BINARY-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
+  (DEFCONSTANT BINARY-PATH "./bin/sbcl/")
+  (DEFCONSTANT EXECUTABLE-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
   (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
   (SETF SB-EXT:*MUFFLED-WARNINGS* T))
 
@@ -76,7 +76,7 @@
 
 #+ECL
 (DEFUN compile-lsp (LspFile FasFile)
-  (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH LspFile OBJECT-SUFFIX)))
+  (LET ((ObjFile (FORMAT NIL "~A~A~A" BINARY-PATH LspFile OBJECT-SUFFIX)))
     (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
     (PUSH ObjFile *object-files*)
     (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile))))
@@ -87,16 +87,16 @@
 
 (DEFUN import-lsp (File)
   (LET ((SrcFile (FORMAT NIL "~A~A.lsp" SOURCE-PATH File))
-        (LspFile (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
-        (FasFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
+        (LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
+        (FasFile (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX)))
     (copy-file SrcFile LspFile)
     (compile-lsp LspFile FasFile)
     (LOAD FasFile)))
 
 (DEFUN import-kl (File)
   (LET ((KlFile  (FORMAT NIL "~A~A.kl" KLAMBDA-PATH File))
-        (LspFile (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
-        (FasFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
+        (LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
+        (FasFile (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX)))
     (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
     (compile-lsp LspFile FasFile)
     (LOAD FasFile)))
@@ -164,7 +164,7 @@
 (COMPILE 'write-lsp-file)
 (COMPILE 'copy-file)
 
-(ENSURE-DIRECTORIES-EXIST NATIVE-PATH)
+(ENSURE-DIRECTORIES-EXIST BINARY-PATH)
 
 (import-lsp "primitives")
 (import-lsp "backend")
@@ -199,12 +199,12 @@
 ; Implementation-Specific Executable Output
 ;
 
-(DEFCONSTANT BINARY-PATH (FORMAT NIL "~A~A" NATIVE-PATH BINARY-NAME))
+(DEFCONSTANT EXECUTABLE-PATH (FORMAT NIL "~A~A" BINARY-PATH EXECUTABLE-NAME))
 
 #+CLISP
 (PROGN
   (EXT:SAVEINITMEM
-    BINARY-PATH
+    EXECUTABLE-PATH
     :EXECUTABLE 0
     :QUIET T
     :INIT-FUNCTION 'shen-cl.toplevel)
@@ -213,7 +213,7 @@
 #+CCL
 (PROGN
   (CCL:SAVE-APPLICATION
-    BINARY-PATH
+    EXECUTABLE-PATH
     :PREPEND-KERNEL T
     :TOPLEVEL-FUNCTION 'shen-cl.toplevel)
   (CCL:QUIT))
@@ -221,14 +221,14 @@
 #+ECL
 (PROGN
   (C:BUILD-PROGRAM
-    BINARY-PATH
+    EXECUTABLE-PATH
     :LISP-FILES (REVERSE *object-files*)
     :EPILOGUE-CODE '(shen-cl.toplevel))
   (SI:QUIT))
 
 #+SBCL
 (SB-EXT:SAVE-LISP-AND-DIE
-  BINARY-PATH
+  EXECUTABLE-PATH
   :EXECUTABLE T
   :SAVE-RUNTIME-OPTIONS T
   :TOPLEVEL 'shen-cl.toplevel)

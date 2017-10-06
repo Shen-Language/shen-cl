@@ -84,7 +84,7 @@ The `Makefile` uses commands typically not found on Windows, so a toolset like [
 
 ## Running
 
-An executable is generated for each platform in its platform-specific output directory under `native/` (e.g. `native/sbcl/shen.exe`). Per typical naming conventions, it is named `shen.exe` on Windows systems and just `shen` on Unix-based systems.
+An executable is generated for each platform in its platform-specific output directory under `bin/` (e.g. `bin/sbcl/shen.exe`). Per typical naming conventions, it is named `shen.exe` on Windows systems and just `shen` on Unix-based systems.
 
 Startup scripts can be specified on the command line by preceding them with a `-l` flag. If any startup scripts are specified this way, they will be loaded in order and then `(exit 0)` will be called. If none are, the Shen REPL will start as usual. Either way, all command line arguments will be accessible with `(command-line)`.
 
