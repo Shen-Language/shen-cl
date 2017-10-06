@@ -321,9 +321,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
        NIL))
     ((shen-cl.option-prefix? Args (LIST "-q" "--quiet"))
      (PROGN
-      (SETQ *hush* 'true)
-      (shen-cl.interpret-args (CDR Args))
-      NIL))
+       (SETQ *hush* 'true)
+       (shen-cl.interpret-args (CDR Args))))
     ((CONSP Args)
      (shen-cl.interpret-args (CDR Args)))
     (T
