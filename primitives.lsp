@@ -303,6 +303,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
        (FORMAT T "  -h, --help          : Shows this help and exits~%")
        (FORMAT T "  -e, --eval <expr>   : Evaluates expr and prints result~%")
        (FORMAT T "  -l, --load <file>   : Reads and evaluates file~%")
+       (FORMAT T "  -q, --quiet         : Silences interactive output~%")
        (FORMAT T "~%")
        (FORMAT T "Evaluates options in order~%")
        (FORMAT T "Starts the REPL if no eval/load options specified~%")
@@ -318,6 +319,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
        (load (CADR Args))
        (shen-cl.interpret-args (CDDR Args))
        NIL))
+    ((shen-cl.option-prefix? Args (LIST "-q" "--quiet"))
+     (PROGN
+       (SETQ *hush* 'true)
+       (shen-cl.interpret-args (CDR Args))))
     ((CONSP Args)
      (shen-cl.interpret-args (CDR Args)))
     (T
