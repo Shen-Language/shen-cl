@@ -71,12 +71,15 @@
 ;
 
 #-ECL
-(DEFUN compile-lsp (LspFile FasFile)
-  (COMPILE-FILE LspFile))
+(DEFUN compile-lsp (File)
+  (LET ((LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File)))
+    (COMPILE-FILE LspFile)))
 
 #+ECL
-(DEFUN compile-lsp (LspFile FasFile)
-  (LET ((ObjFile (FORMAT NIL "~A~A~A" BINARY-PATH LspFile OBJECT-SUFFIX)))
+(DEFUN compile-lsp (File)
+  (LET ((LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
+        (FasFile (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX))
+        (ObjFile (FORMAT NIL "~A~A~A" BINARY-PATH File OBJECT-SUFFIX)))
     (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
     (PUSH ObjFile *object-files*)
     (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile))))
@@ -90,7 +93,7 @@
         (LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
         (FasFile (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX)))
     (copy-file SrcFile LspFile)
-    (compile-lsp LspFile FasFile)
+    (compile-lsp File)
     (LOAD FasFile)))
 
 (DEFUN import-kl (File)
@@ -98,7 +101,7 @@
         (LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
         (FasFile (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX)))
     (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
-    (compile-lsp LspFile FasFile)
+    (compile-lsp File)
     (LOAD FasFile)))
 
 (DEFUN import-shen (File)
