@@ -67,7 +67,22 @@
   (SETF SB-EXT:*MUFFLED-WARNINGS* T))
 
 ;
-; Shared KL-Loading Procedure
+; Implementation-Specific Loading Procedure
+;
+
+#-ECL
+(DEFUN compile-lsp (LspFile FasFile)
+  (COMPILE-FILE LspFile))
+
+#+ECL
+(DEFUN compile-lsp (LspFile FasFile)
+  (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
+    (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
+    (PUSH ObjFile *object-files*)
+    (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile))))
+
+;
+; Shared Loading Procedure
 ;
 
 (DEFUN import-lsp (File)
@@ -75,13 +90,7 @@
         (LspFile (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
         (FasFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
     (copy-file SrcFile LspFile)
-    #-ECL
-    (COMPILE-FILE LspFile)
-    #+ECL
-    (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
-      (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
-      (PUSH ObjFile *object-files*)
-      (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile)))
+    (compile-lsp LspFile FasFile)
     (LOAD FasFile)))
 
 (DEFUN import-kl (File)
@@ -89,13 +98,7 @@
         (LspFile (FORMAT NIL "~A~A.lsp" NATIVE-PATH File))
         (FasFile (FORMAT NIL "~A~A~A" NATIVE-PATH File COMPILED-SUFFIX)))
     (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
-    #-ECL
-    (COMPILE-FILE LspFile)
-    #+ECL
-    (LET ((ObjFile (FORMAT NIL "~A~A~A" NATIVE-PATH File OBJECT-SUFFIX)))
-      (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
-      (PUSH ObjFile *object-files*)
-      (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile)))
+    (compile-lsp LspFile FasFile)
     (LOAD FasFile)))
 
 (DEFUN import-shen (File)
@@ -151,6 +154,7 @@
           WHILE (PLUSP Pos)
           DO (WRITE-SEQUENCE Buf Out :END Pos))))))
 
+(COMPILE 'compile-lsp)
 (COMPILE 'import-lsp)
 (COMPILE 'import-kl)
 (COMPILE 'import-shen)
@@ -181,6 +185,7 @@
 (import-lsp "overwrite")
 (import-shen "platform")
 
+(FMAKUNBOUND 'compile-lsp)
 (FMAKUNBOUND 'import-lsp)
 (FMAKUNBOUND 'import-kl)
 (FMAKUNBOUND 'import-shen)
