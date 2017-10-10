@@ -105,8 +105,16 @@
     (LOAD FasFile)))
 
 (DEFUN import-shen (File)
-  (LET ((ShenFile (FORMAT NIL "~A~A.shen" SOURCE-PATH File)))
-    (load ShenFile)))
+  (LET ((ShenFile (FORMAT NIL "~A~A.shen" SOURCE-PATH File))
+        (LspFile  (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
+        (FasFile  (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX)))
+    (write-lsp-file
+      LspFile
+      (translate-kl
+        (shen.elim-def
+          (read-file ShenFile))))
+    (compile-lsp File)
+    (LOAD FasFile)))
 
 (DEFUN read-kl-file (File)
   (WITH-OPEN-FILE
