@@ -306,7 +306,19 @@
 
 (DEFUN shen-cl.print-version ()
   (FORMAT T "~A~%" *version*)
-  (FORMAT T "Shen CL ~A~%" *port*))
+  (FORMAT T "Shen-CL ~A~%" *port*)
+  (FORMAT T "~A ~A~%" *implementation* *release*))
+
+(DEFUN shen-cl.print-help ()
+  (FORMAT T "Usage: shen [OPTIONS...]~%")
+  (FORMAT T "  -v, --version       : Prints Shen, shen-cl version numbers and exits~%")
+  (FORMAT T "  -h, --help          : Shows this help and exits~%")
+  (FORMAT T "  -e, --eval <expr>   : Evaluates expr and prints result~%")
+  (FORMAT T "  -l, --load <file>   : Reads and evaluates file~%")
+  (FORMAT T "  -q, --quiet         : Silences interactive output~%")
+  (FORMAT T "~%")
+  (FORMAT T "Evaluates options in order~%")
+  (FORMAT T "Starts the REPL if no eval/load options specified~%"))
 
 (DEFUN shen-cl.option-prefix? (Args Options)
   (AND (CONSP Args) (MEMBER (CAR Args) Options :TEST #'STRING-EQUAL)))
@@ -322,15 +334,7 @@
      (PROGN
        (shen-cl.print-version)
        (FORMAT T "~%")
-       (FORMAT T "Usage: shen [OPTIONS...]~%")
-       (FORMAT T "  -v, --version       : Prints Shen, shen-cl version numbers and exits~%")
-       (FORMAT T "  -h, --help          : Shows this help and exits~%")
-       (FORMAT T "  -e, --eval <expr>   : Evaluates expr and prints result~%")
-       (FORMAT T "  -l, --load <file>   : Reads and evaluates file~%")
-       (FORMAT T "  -q, --quiet         : Silences interactive output~%")
-       (FORMAT T "~%")
-       (FORMAT T "Evaluates options in order~%")
-       (FORMAT T "Starts the REPL if no eval/load options specified~%")
+       (shen-cl.print-help)
        NIL))
     ((shen-cl.option-prefix? Args (LIST "-e" "--eval"))
      (PROGN
