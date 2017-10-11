@@ -1,20 +1,18 @@
 KernelVersion=20.1
 
+ifeq ($(OS),Windows_NT)
+	ArchiveSuffix=.zip
+	BinarySuffix=.exe
+else
+	ArchiveSuffix=.tar.gz
+	BinarySuffix=
+endif
+
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
 ReleaseName=shen-$(KernelVersion)
-NestedFolderName=ShenOSKernel-$(KernelVersion)
-
-ifeq ($(OS),Windows_NT)
-	FileName=ShenOSKernel-$(KernelVersion).zip
-	BinaryName=shen.exe
-	# TODO: get ecl working on windows
-	#All=clisp ccl ecl sbcl
-	All=clisp ccl sbcl
-else
-	FileName=ShenOSKernel-$(KernelVersion).tar.gz
-	BinaryName=shen
-	All=clisp ccl ecl sbcl
-endif
+ArchiveFolderName=ShenOSKernel-$(KernelVersion)
+ArchiveName=$(ArchiveFolderName)$(ArchiveSuffix)
+BinaryName=shen$(BinarySuffix)
 
 RunCLisp=./bin/clisp/$(BinaryName) --clisp-m 10MB
 RunCCL=./bin/ccl/$(BinaryName)
@@ -29,7 +27,7 @@ Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\")
 
 .DEFAULT: all
 .PHONY: all
-all: $(All)
+all: clisp ccl ecl sbcl
 
 .PHONY: clisp
 clisp: build-clisp test-clisp
@@ -50,15 +48,15 @@ sbcl: build-sbcl test-sbcl
 .PHONY: fetch
 fetch:
 ifeq ($(OS),Windows_NT)
-	powershell.exe -Command "Invoke-WebRequest -Uri $(UrlRoot)/$(ReleaseName)/$(FileName) -OutFile $(FileName)"
-	powershell.exe -Command "Expand-Archive $(FileName) -DestinationPath ."
+	powershell.exe -Command "Invoke-WebRequest -Uri $(UrlRoot)/$(ReleaseName)/$(ArchiveName) -OutFile $(ArchiveName)"
+	powershell.exe -Command "Expand-Archive $(ArchiveName) -DestinationPath ."
 else
-	wget $(UrlRoot)/$(ReleaseName)/$(FileName)
-	tar xf $(FileName)
+	wget $(UrlRoot)/$(ReleaseName)/$(ArchiveName)
+	tar xf $(ArchiveName)
 endif
-	rm -f $(FileName)
+	rm -f $(ArchiveName)
 	rm -rf kernel
-	mv $(NestedFolderName) kernel
+	mv $(ArchiveFolderName) kernel
 
 .PHONY: check-klambda
 .SILENT: check-klambda

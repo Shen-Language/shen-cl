@@ -104,6 +104,8 @@
     (compile-lsp File)
     (LOAD FasFile)))
 
+; TODO: clean-kl after elim-def, before translate-kl
+
 (DEFUN import-shen (File)
   (LET ((ShenFile (FORMAT NIL "~A~A.shen" SOURCE-PATH File))
         (LspFile  (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
