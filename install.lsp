@@ -33,7 +33,7 @@
 ; Confirm Pre-Requisites
 ;
 
-(WHEN (NOT (PROBE-FILE (STRING-TRIM "/" KLAMBDA-PATH)))
+(WHEN (NOT (PROBE-FILE (FORMAT NIL "~A~A" KLAMBDA-PATH "core.kl")))
   (FORMAT T "~%")
   (FORMAT T "Directory ~S not found.~%" KLAMBDA-PATH)
   (FORMAT T "Run 'make fetch' to retrieve Shen Kernel sources.~%")
