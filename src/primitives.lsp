@@ -27,7 +27,7 @@
 (DEFVAR *stoutput* *STANDARD-OUTPUT*)
 (DEFVAR *sterror* *ERROR-OUTPUT*)
 (DEFVAR *language* "Common Lisp")
-(DEFVAR *port* 2.1)
+(DEFVAR *port* 2.2)
 (DEFVAR *porters* "Mark Tarver")
 
 #+CLISP
