@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
-## Unreleased
+## [Unreleased]
+
+Nothing yet.
+
+## [2.2.0] - 2017-08-23
 
 ### Added
 - Added support for CCL (Clozure Common Lisp).
@@ -18,3 +22,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - Refactored Makefile. Now `make fetch` must always be run before anything else.
 - Moved most `*.lsp` and `*.shen` files under src/ directory.
 - Changed build output directory from `native` to `bin`.
+
+[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/Shen-Language/shen-cl/compare/v2.1.0...v2.2.0
