@@ -1,7 +1,2 @@
 kernel/
 bin/
-
-# TODO: these should not be necessary
-ecl.lib
-progshen.exe.exp
-progshen.exe.lib
