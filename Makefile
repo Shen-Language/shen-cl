@@ -60,46 +60,24 @@ endif
 	rm -rf kernel
 	mv $(ArchiveFolderName) kernel
 
-.PHONY: check-klambda
-.SILENT: check-klambda
-check-klambda:
-	[ -d ./kernel/klambda ] || { \
-	echo ""; \
-	echo "Directory './kernel/klambda' not found."; \
-	echo "Run 'make fetch' to retrieve Shen Kernel sources."; \
-	echo ""; \
-	exit 1; \
-	}
-
-.PHONY: check-tests
-.SILENT: check-tests
-check-tests:
-	[ -d ./kernel/tests ] || { \
-	echo ""; \
-	echo "Directory './kernel/tests' not found."; \
-	echo "Run 'make fetch' to retrieve Shen Kernel sources."; \
-	echo ""; \
-	exit 1; \
-	}
-
 #
 # Build an implementation
 #
 
 .PHONY: build-clisp
-build-clisp: check-klambda
+build-clisp:
 	clisp -i install.lsp
 
 .PHONY: build-ccl
-build-ccl: check-klambda
+build-ccl:
 	ccl -l install.lsp
 
 .PHONY: build-ecl
-build-ecl: check-klambda
+build-ecl:
 	ecl -norc -load install.lsp
 
 .PHONY: build-sbcl
-build-sbcl: check-klambda
+build-sbcl:
 	sbcl --load install.lsp
 
 #
@@ -107,19 +85,19 @@ build-sbcl: check-klambda
 #
 
 .PHONY: test-clisp
-test-clisp: check-tests
+test-clisp:
 	$(RunCLisp) $(Tests)
 
 .PHONY: test-ccl
-test-ccl: check-tests
+test-ccl:
 	$(RunCCL) $(Tests)
 
 .PHONY: test-ecl
-test-ecl: check-tests
+test-ecl:
 	$(RunECL) $(Tests)
 
 .PHONY: test-sbcl
-test-sbcl: check-tests
+test-sbcl:
 	$(RunSBCL) $(Tests)
 
 #

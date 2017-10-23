@@ -30,6 +30,16 @@
 (DEFCONSTANT SOURCE-PATH "./src/")
 
 ;
+; Confirm Pre-Requisites
+;
+
+(WHEN (NOT (PROBE-FILE (STRING-TRIM "/" KLAMBDA-PATH)))
+  (FORMAT T "~%")
+  (FORMAT T "Directory ~S not found.~%" KLAMBDA-PATH)
+  (FORMAT T "Run 'make fetch' to retrieve Shen Kernel sources.~%")
+  (QUIT))
+
+;
 ; Implementation-Specific Declarations
 ;
 
