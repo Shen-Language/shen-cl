@@ -3,9 +3,11 @@ KernelVersion=20.1
 ifeq ($(OS),Windows_NT)
 	ArchiveSuffix=.zip
 	BinarySuffix=.exe
+	All=clisp ccl sbcl
 else
 	ArchiveSuffix=.tar.gz
 	BinarySuffix=
+	All=clisp ccl ecl sbcl
 endif
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
@@ -27,7 +29,7 @@ Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\")
 
 .DEFAULT: all
 .PHONY: all
-all: clisp ccl ecl sbcl
+all: $(All)
 
 .PHONY: clisp
 clisp: build-clisp test-clisp
