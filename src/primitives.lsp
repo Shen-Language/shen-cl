@@ -1,33 +1,64 @@
-"Copyright (c) 2010-2015, Mark Tarver
+; Copyright (c) 2010-2015, Mark Tarver
 
-All rights reserved.
+; All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-1. Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
-3. The name of Mark Tarver may not be used to endorse or promote products
-   derived from this software without specific prior written permission.
+; Redistribution and use in source and binary forms, with or without
+; modification, are permitted provided that the following conditions are met:
+; 1. Redistributions of source code must retain the above copyright
+;    notice, this list of conditions and the following disclaimer.
+; 2. Redistributions in binary form must reproduce the above copyright
+;    notice, this list of conditions and the following disclaimer in the
+;    documentation and/or other materials provided with the distribution.
+; 3. The name of Mark Tarver may not be used to endorse or promote products
+;    derived from this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY Mark Tarver ''AS IS'' AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL Mark Tarver BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
+; THIS SOFTWARE IS PROVIDED BY Mark Tarver ''AS IS'' AND ANY
+; EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+; DISCLAIMED. IN NO EVENT SHALL Mark Tarver BE LIABLE FOR ANY
+; DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+; (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+; ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(SETQ *user-syntax-in* NIL)
+(DEFVAR *stinput* *STANDARD-INPUT*)
+(DEFVAR *stoutput* *STANDARD-OUTPUT*)
+(DEFVAR *sterror* *ERROR-OUTPUT*)
+(DEFVAR *language* "Common Lisp")
+(DEFVAR *port* 2.1)
+(DEFVAR *porters* "Mark Tarver")
 
-#+SBCL (DECLAIM (INLINE write-byte))
-#+SBCL (DECLAIM (INLINE read-byte))
-#+SBCL (DECLAIM (INLINE shen.double-precision))
+#+CLISP
+(PROGN
+  (DEFVAR *implementation* "GNU CLisp")
+  (DEFVAR *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0))))
+  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+MACOS "macOS" #+UNIX "Unix" "Unknown")))
+
+#+CCL
+(PROGN
+  (DEFVAR *implementation* "Clozure CL")
+  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
+  (DEFVAR *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown")))
+
+#+ECL
+(PROGN
+  (DEFVAR *implementation* "ECL")
+  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
+  (DEFVAR *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown"))
+  (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
+  (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL)
+  (EXT:SET-LIMIT 'EXT:C-STACK (* 1024 1024)))
+
+#+SBCL
+(PROGN
+  (DEFVAR *implementation* "SBCL")
+  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
+  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
+  (DECLAIM (INLINE write-byte))
+  (DECLAIM (INLINE read-byte))
+  (DECLAIM (INLINE shen.double-precision)))
 
 (DEFMACRO if (X Y Z)
   `(LET ((*C* ,X))
@@ -157,15 +188,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
       :DIRECTION :INPUT
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
-        #+CCL   :DEFAULT
-        #+SBCL  :DEFAULT))
+        #-CLISP :DEFAULT))
     ((EQ Direction 'out)
      (OPEN Path
       :DIRECTION :OUTPUT
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
-        #+CCL   :DEFAULT
-        #+SBCL  :DEFAULT
+        #-CLISP :DEFAULT
       :IF-EXISTS :SUPERSEDE))
     (T
      (ERROR "invalid direction"))))
@@ -273,16 +302,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 (DEFUN number? (N)
   (IF (NUMBERP N) 'true 'false))
 
-(SETQ *stinput* *STANDARD-INPUT*)
-(SETQ *stoutput* *STANDARD-OUTPUT*)
-(SETQ *sterror* *ERROR-OUTPUT*)
-
 (DEFUN shen-cl.eval-print (X)
   (print (eval X)))
 
 (DEFUN shen-cl.print-version ()
   (FORMAT T "~A~%" *version*)
-  (FORMAT T "Shen CL ~A~%" *port*))
+  (FORMAT T "Shen-CL ~A~%" *port*)
+  (FORMAT T "~A ~A~%" *implementation* *release*))
+
+(DEFUN shen-cl.print-help ()
+  (FORMAT T "Usage: shen [OPTIONS...]~%")
+  (FORMAT T "  -v, --version       : Prints Shen, shen-cl version numbers and exits~%")
+  (FORMAT T "  -h, --help          : Shows this help and exits~%")
+  (FORMAT T "  -e, --eval <expr>   : Evaluates expr and prints result~%")
+  (FORMAT T "  -l, --load <file>   : Reads and evaluates file~%")
+  (FORMAT T "  -q, --quiet         : Silences interactive output~%")
+  (FORMAT T "~%")
+  (FORMAT T "Evaluates options in order~%")
+  (FORMAT T "Starts the REPL if no eval/load options specified~%"))
 
 (DEFUN shen-cl.option-prefix? (Args Options)
   (AND (CONSP Args) (MEMBER (CAR Args) Options :TEST #'STRING-EQUAL)))
@@ -298,15 +335,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
      (PROGN
        (shen-cl.print-version)
        (FORMAT T "~%")
-       (FORMAT T "Usage: shen [OPTIONS...]~%")
-       (FORMAT T "  -v, --version       : Prints Shen, shen-cl version numbers and exits~%")
-       (FORMAT T "  -h, --help          : Shows this help and exits~%")
-       (FORMAT T "  -e, --eval <expr>   : Evaluates expr and prints result~%")
-       (FORMAT T "  -l, --load <file>   : Reads and evaluates file~%")
-       (FORMAT T "  -q, --quiet         : Silences interactive output~%")
-       (FORMAT T "~%")
-       (FORMAT T "Evaluates options in order~%")
-       (FORMAT T "Starts the REPL if no eval/load options specified~%")
+       (shen-cl.print-help)
        NIL))
     ((shen-cl.option-prefix? Args (LIST "-e" "--eval"))
      (PROGN
@@ -338,7 +367,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
         (SETQ *stoutput* *STANDARD-OUTPUT*)
         (SETQ *stinput* *STANDARD-INPUT*)
         (SETQ *sterror* *ERROR-OUTPUT*)
-        (LET* ((Args    EXT:*ARGS*))
+        (LET ((Args EXT:*ARGS*))
           (SETQ *argv* Args)
           (IF (shen-cl.interpret-args Args)
             (shen.shen)
@@ -347,18 +376,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   #+CCL
   (HANDLER-BIND
     ((WARNING #'MUFFLE-WARNING))
-    (LET* ((Args    (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
+    (LET ((Args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
       (SETQ *argv* Args)
       (IF (shen-cl.interpret-args Args)
         (shen.shen)
         (exit 0))))
 
+  #+ECL
+  (LET ((Args (CDR (SI:COMMAND-ARGS))))
+    (SETQ *argv* Args)
+    (IF (shen-cl.interpret-args Args)
+      (shen.shen)
+      (exit 0)))
+
   #+SBCL
-  (LET* ((Args    (CDR SB-EXT:*POSIX-ARGV*)))
+  (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
     (SETQ *argv* Args)
     (IF (shen-cl.interpret-args Args)
       (HANDLER-CASE (shen.shen)
         (SB-SYS:INTERACTIVE-INTERRUPT ()
-          (FORMAT T "~%Quit.~%")
           (exit 0)))
       (exit 0))))

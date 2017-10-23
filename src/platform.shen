@@ -56,3 +56,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         (if (and (>= ASCII 97) (<= ASCII 122))
           (n->string (- ASCII 32))
           S))))
+
+(put (protect lisp.platform-macro) arity 1)
+
+(shen.update-symbol-table (protect lisp.platform-macro) 1)
+
+(shen.add-macro (protect lisp.platform-macro))

@@ -8,9 +8,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Added
 - Added support for CCL (Clozure Common Lisp).
+- Added support for ECL (Embeddable Common Lisp).
 - Added `-q`|`--quiet` flag that sets `*hush*` to true, disabling most output.
 
 ### Changed
 - Updated to ShenOS 20.1.
 - Script arguments are now preceded by `-l`, all args go in `*argv*`.
 - Made CLisp build output an executable like CCL and SBCL do.
+- Refactored Makefile. Now `make fetch` must always be run before anything else.
+- Moved most `*.lsp` and `*.shen` files under src/ directory.
+- Changed build output directory from `native` to `bin`.
