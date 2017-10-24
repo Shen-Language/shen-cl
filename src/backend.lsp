@@ -70,7 +70,11 @@
 
     ; Locals [cond | Cond] -> (protect [COND | (MAPCAR (/. C (cond_code Locals C)) Cond)])
     ((AND (CONSP Expr) (EQ 'cond (CAR Expr)))
-     (CONS 'COND (MAPCAR #'(LAMBDA (C) (shen.cond_code Locals C)) (CDR Expr))))
+     (CONS
+      'COND
+      (APPEND
+        (MAPCAR #'(LAMBDA (C) (shen.cond_code Locals C)) (CDR Expr))
+        '((T (simple-error "No condition was true"))))))
 
     ; Params [F | X] ->
     ;   (let Arguments (protect (MAPCAR (/. Y (kl-to-lisp Params Y)) X))

@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+- `cond` now raises an error when no condition is true, instead of returning `[]`.
 
 ## [2.2.0] - 2017-08-23
 
