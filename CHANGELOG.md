@@ -1,6 +1,6 @@
 # Change Log
 
-This log starts from the code copied over from legacy projects Shen-Language/shen-clisp and Shen-Language/shen-sbcl.
+This log starts from the code copied over from legacy projects [Shen-Language/shen-clisp](https://github.com/Shen-Language/shen-clisp) and [Shen-Language/shen-sbcl](https://github.com/Shen-Language/shen-sbcl).
 
 All notable changes to this project will be documented in this file.
 
