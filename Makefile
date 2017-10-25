@@ -21,6 +21,8 @@ RunCCL=./bin/ccl/$(BinaryName)
 RunECL=./bin/ecl/$(BinaryName)
 RunSBCL=./bin/sbcl/$(BinaryName)
 
+BootFile=boot.lsp
+
 Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\"))"
 
 #
@@ -66,19 +68,19 @@ endif
 
 .PHONY: build-clisp
 build-clisp:
-	clisp -i install.lsp
+	clisp -i $(BootFile)
 
 .PHONY: build-ccl
 build-ccl:
-	ccl -l install.lsp
+	ccl -l $(BootFile)
 
 .PHONY: build-ecl
 build-ecl:
-	ecl -norc -load install.lsp
+	ecl -norc -load $(BootFile)
 
 .PHONY: build-sbcl
 build-sbcl:
-	sbcl --load install.lsp
+	sbcl --load $(BootFile)
 
 #
 # Test an implementation
