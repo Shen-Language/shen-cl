@@ -136,9 +136,11 @@ run-sbcl:
 archive:
 ifeq ($(OS),Windows_NT)
 	powershell.exe -Command "New-Item -Force -ItemType Directory -Path .\\dist"
-	powershell.exe -Command "Compress-Archive -Force -LiteralPath .\\bin\\sbcl\\shen.exe, .\\LICENSE.txt -DestinationPath .\\dist\\shen-cl-windows-prebuilt-$(GitVersion).zip"
+	powershell.exe -Command "Compress-Archive -Force -LiteralPath .\\bin\\sbcl\\$(BinaryName), .\\LICENSE.txt -DestinationPath .\\dist\\shen-cl-windows-prebuilt-$(GitVersion).zip"
 else
-	echo "Only works on Windows for the moment"
+	# TODO: need macOS version, need to identify DARWIN
+	mkdir -p dist
+	tar -vczf ./dist/shen-cl-linux-prebuilt-$(GitVersion).tar.gz ./bin/sbcl/$(BinaryName) ./LICENSE.txt --transform 's?.*/??g'
 endif
 
 #
