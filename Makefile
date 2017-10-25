@@ -137,8 +137,10 @@ archive:
 ifeq ($(OS),Windows_NT)
 	powershell.exe -Command "New-Item -Force -ItemType Directory -Path .\\dist"
 	powershell.exe -Command "Compress-Archive -Force -LiteralPath .\\bin\\sbcl\\$(BinaryName), .\\LICENSE.txt -DestinationPath .\\dist\\shen-cl-windows-prebuilt-$(GitVersion).zip"
+else ifeq ($(shell uname -s),Darwin)
+	mkdir -p dist
+	tar -vczf ./dist/shen-cl-macos-prebuilt-$(GitVersion).tar.gz ./bin/sbcl/$(BinaryName) ./LICENSE.txt --transform 's?.*/??g'
 else
-	# TODO: need macOS version, need to identify DARWIN
 	mkdir -p dist
 	tar -vczf ./dist/shen-cl-linux-prebuilt-$(GitVersion).tar.gz ./bin/sbcl/$(BinaryName) ./LICENSE.txt --transform 's?.*/??g'
 endif
