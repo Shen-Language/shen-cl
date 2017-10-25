@@ -25,6 +25,12 @@ BootFile=boot.lsp
 
 Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\"))"
 
+GitVersion=$(shell git tag -l --contains HEAD)
+
+ifeq ("$(GitVersion)","")
+	GitVersion=$(shell git rev-parse --short HEAD)
+endif
+
 #
 # Aggregates
 #
@@ -123,12 +129,25 @@ run-sbcl:
 	$(RunSBCL) $(Args)
 
 #
+# Packging
+#
+
+.PHONY: archive
+archive:
+ifeq ($(OS),Windows_NT)
+	powershell.exe -Command "New-Item -Force -ItemType Directory -Path .\\dist"
+	powershell.exe -Command "Compress-Archive -Force -LiteralPath .\\bin\\sbcl\\shen.exe, .\\LICENSE.txt -DestinationPath .\\dist\\shen-cl-windows-prebuilt-$(GitVersion).zip"
+else
+	echo "Only works on Windows for the moment"
+endif
+
+#
 # Cleanup
 #
 
 .PHONY: clean
 clean:
-	rm -rf bin
+	rm -rf bin dist
 
 .PHONY: pure
 pure: clean

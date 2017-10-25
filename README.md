@@ -79,6 +79,7 @@ The `Makefile` uses commands typically not found on Windows, so a toolset like [
 | `test-X`  | Run test suite.                                          |
 | `X`       | Build and run test suite.                                |
 | `run-X`   | Start Shen REPL.<br>**`run-all` not defined.**           |
+| `archive` | Creates archive of compiled binaries.                    |
 
 `X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
 
@@ -89,3 +90,23 @@ An executable is generated for each platform in its platform-specific output dir
 Startup scripts can be specified on the command line by preceding them with a `-l` flag. If any startup scripts are specified this way, they will be loaded in order and then `(exit 0)` will be called. If none are, the Shen REPL will start as usual. Either way, all command line arguments will be accessible with `(command-line)`.
 
 When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l bootstrap.shen -flag"`.
+
+## Releases
+
+Archives of pre-built binaries are created using the `make archive` command. They will appear under `dist/`.
+
+Currently, only the license file and the SBCL build are included (named `shen[.exe]`).
+
+The archive is named `shen-cl-$(os)-prebuilt-$(current git tag or short commit hash).$(ext)`.
+
+Each tagged release on the project downloads page should have a set of pre-built archives. Be sure to checkout, build and archive that specific commit.
+
+Example:
+
+```shell
+make pure
+git checkout v1.2.3
+make fetch
+make all
+make archive
+```
