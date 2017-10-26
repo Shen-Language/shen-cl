@@ -16,9 +16,9 @@ This port acts as the standard implementation of the Shen language. It is also t
 
 Bug reports, fixes and enhancements are welcome. If you intend to port Shen to another variety of Common Lisp, consider doing so as a pull request to this repo.
 
-## Building
+## Prerequisites
 
-You will need to have the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Installation is different depending on operating system.
+You will need to have recent versions of the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Installation is different depending on operating system.
 
 ### Linux
 
@@ -63,7 +63,9 @@ SBCL has an msi package on its [download page](http://www.sbcl.org/platform-tabl
 
 The `Makefile` uses commands typically not found on Windows, so a toolset like [GOW](https://github.com/bmatzelle/gow) is recommended.
 
-### Makefile Operations
+### Building
+
+The `Makefile` automates all build and test operations.
 
 | Target    | Operation                             |
 |:----------|:--------------------------------------|
