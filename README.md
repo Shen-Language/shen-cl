@@ -93,15 +93,11 @@ When starting Shen via `make`, command line arguments can be passed through like
 
 ## Releases
 
-Archives of pre-built binaries are created using the `make release` command. They will appear under `release/`.
+Archives of pre-built binaries are created using the `make release` command. They will appear under `release/`, named with the operating system and current git tag or short commit hash.
 
 Currently, only the license file and the SBCL build are included (named `shen[.exe]`).
 
-The archive is named `shen-cl-$(os)-prebuilt-$(current git tag or short commit hash).$(ext)`.
-
-Each tagged release on the project downloads page should have a set of pre-built archives. Be sure to checkout, build and archive that specific commit.
-
-Example:
+Each tagged release on the project downloads page should have a set of pre-built archives. Be sure to archive the build of that specific commit, like this:
 
 ```shell
 make pure
