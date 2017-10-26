@@ -4,10 +4,20 @@ ifeq ($(OS),Windows_NT)
 	ArchiveSuffix=.zip
 	BinarySuffix=.exe
 	All=clisp ccl sbcl
+
+	ShenClisp=.\\bin\\clisp\\$(BinaryName)
+	ShenCCL=.\\bin\\ccl\\$(BinaryName)
+	ShenECL=.\\bin\\ecl\\$(BinaryName)
+	ShenSBCL=.\\bin\\sbcl\\$(BinaryName)
 else
 	ArchiveSuffix=.tar.gz
 	BinarySuffix=
 	All=clisp ccl ecl sbcl
+
+	ShenClisp=./bin/clisp/$(BinaryName)
+	ShenCCL=./bin/ccl/$(BinaryName)
+	ShenECL=./bin/ecl/$(BinaryName)
+	ShenSBCL=./bin/sbcl/$(BinaryName)
 endif
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
@@ -15,11 +25,6 @@ ReleaseName=shen-$(KernelVersion)
 ArchiveFolderName=ShenOSKernel-$(KernelVersion)
 ArchiveName=$(ArchiveFolderName)$(ArchiveSuffix)
 BinaryName=shen$(BinarySuffix)
-
-ShenClisp=./bin/clisp/$(BinaryName)
-ShenCCL=./bin/ccl/$(BinaryName)
-ShenECL=./bin/ecl/$(BinaryName)
-ShenSBCL=./bin/sbcl/$(BinaryName)
 
 RunCLisp=$(ShenCLisp) --clisp-m 10MB
 RunCCL=$(ShenCCL)
@@ -36,6 +41,8 @@ GitVersion=$(shell git tag -l --contains HEAD)
 ifeq ("$(GitVersion)","")
 	GitVersion=$(shell git rev-parse --short HEAD)
 endif
+
+PS=powershell.exe -Command
 
 #
 # Aggregates
@@ -64,15 +71,18 @@ sbcl: build-sbcl test-sbcl
 .PHONY: fetch
 fetch:
 ifeq ($(OS),Windows_NT)
-	powershell.exe -Command "Invoke-WebRequest -Uri $(UrlRoot)/$(ReleaseName)/$(ArchiveName) -OutFile $(ArchiveName)"
-	powershell.exe -Command "Expand-Archive $(ArchiveName) -DestinationPath ."
+	$(PS) "Invoke-WebRequest -Uri $(UrlRoot)/$(ReleaseName)/$(ArchiveName) -OutFile $(ArchiveName)"
+	$(PS) "Expand-Archive $(ArchiveName) -DestinationPath ."
+	$(PS) "if (Test-Path $(ArchiveName)) { Remove-Item $(ArchiveName) -Force -ErrorAction Ignore }"
+	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
+	$(PS) "Rename-Item $(ArchiveFolderName) kernel -ErrorAction Ignore"
 else
 	wget $(UrlRoot)/$(ReleaseName)/$(ArchiveName)
 	tar xf $(ArchiveName)
-endif
 	rm -f $(ArchiveName)
 	rm -rf kernel
 	mv $(ArchiveFolderName) kernel
+endif
 
 #
 # Build an implementation
@@ -138,17 +148,17 @@ run-sbcl:
 # Packging
 #
 
-.PHONY: archive
-archive:
+.PHONY: release
+release:
 ifeq ($(OS),Windows_NT)
-	powershell.exe -Command "New-Item -Force -ItemType Directory -Path .\\dist"
-	powershell.exe -Command "Compress-Archive -Force -DestinationPath .\\dist\\shen-cl-windows-prebuilt-$(GitVersion)$(ArchiveSuffix) -LiteralPath $(ShenSBCL), $(LicenseFile)"
+	$(PS) "New-Item -Path release -Force -ItemType Directory"
+	$(PS) "Compress-Archive -Force -DestinationPath release\\shen-cl-windows-prebuilt-$(GitVersion)$(ArchiveSuffix) -LiteralPath $(ShenSBCL), $(LicenseFile)"
 else ifeq ($(shell uname -s),Darwin)
-	mkdir -p dist
-	tar -vczf ./dist/shen-cl-macos-prebuilt-$(GitVersion)$(ArchiveSuffix) $(ShenSBCL) $(LicenseFile) --transform 's?.*/??g'
+	mkdir -p release
+	tar -vczf release/shen-cl-macos-prebuilt-$(GitVersion)$(ArchiveSuffix) $(ShenSBCL) $(LicenseFile) --transform 's?.*/??g'
 else
-	mkdir -p dist
-	tar -vczf ./dist/shen-cl-linux-prebuilt-$(GitVersion)$(ArchiveSuffix) $(ShenSBCL) $(LicenseFile) --transform 's?.*/??g'
+	mkdir -p release
+	tar -vczf release/shen-cl-linux-prebuilt-$(GitVersion)$(ArchiveSuffix) $(ShenSBCL) $(LicenseFile) --transform 's?.*/??g'
 endif
 
 #
@@ -157,8 +167,17 @@ endif
 
 .PHONY: clean
 clean:
-	rm -rf bin dist
+ifeq ($(OS),Windows_NT)
+	$(PS) "if (Test-Path bin) { Remove-Item bin -Recurse -Force -ErrorAction Ignore }"
+	$(PS) "if (Test-Path release) { Remove-Item release -Recurse -Force -ErrorAction Ignore }"
+else
+	rm -rf bin release
+endif
 
 .PHONY: pure
 pure: clean
+ifeq ($(OS),Windows_NT)
+	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
+else
 	rm -rf kernel
+endif

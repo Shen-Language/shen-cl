@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
-- `make archive` command that creates os-specific archive of compiled binaries.
+- `make release` command that creates os-specific archive of compiled binaries.
 
 ### Changed
 - `cond` now raises an error when no condition is true, instead of returning `[]`.
