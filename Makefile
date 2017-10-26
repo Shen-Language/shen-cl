@@ -1,40 +1,14 @@
-KernelVersion=20.1
+#
+# Identify environment information
+#
 
 ifeq ($(OS),Windows_NT)
-	ArchiveSuffix=.zip
-	BinarySuffix=.exe
-	All=clisp ccl sbcl
-
-	ShenClisp=.\\bin\\clisp\\$(BinaryName)
-	ShenCCL=.\\bin\\ccl\\$(BinaryName)
-	ShenECL=.\\bin\\ecl\\$(BinaryName)
-	ShenSBCL=.\\bin\\sbcl\\$(BinaryName)
+	OSName=windows
+else ifeq ($(shell uname -s),Darwin)
+	OSName=macos
 else
-	ArchiveSuffix=.tar.gz
-	BinarySuffix=
-	All=clisp ccl ecl sbcl
-
-	ShenClisp=./bin/clisp/$(BinaryName)
-	ShenCCL=./bin/ccl/$(BinaryName)
-	ShenECL=./bin/ecl/$(BinaryName)
-	ShenSBCL=./bin/sbcl/$(BinaryName)
+	OSName=linux
 endif
-
-UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
-ReleaseName=shen-$(KernelVersion)
-ArchiveFolderName=ShenOSKernel-$(KernelVersion)
-ArchiveName=$(ArchiveFolderName)$(ArchiveSuffix)
-BinaryName=shen$(BinarySuffix)
-
-RunCLisp=$(ShenCLisp) --clisp-m 10MB
-RunCCL=$(ShenCCL)
-RunECL=$(ShenECL)
-RunSBCL=$(ShenSBCL)
-
-BootFile=boot.lsp
-LicenseFile=LICENSE.txt
-
-Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\"))"
 
 GitVersion=$(shell git tag -l --contains HEAD)
 
@@ -42,10 +16,52 @@ ifeq ("$(GitVersion)","")
 	GitVersion=$(shell git rev-parse --short HEAD)
 endif
 
-PS=powershell.exe -Command
+#
+# Set OS-specific variables
+#
+
+ifeq ($(OSName),windows)
+	Slash=\\\\
+	ArchiveSuffix=.zip
+	BinarySuffix=.exe
+	All=clisp ccl sbcl
+	PS=powershell.exe -Command
+else
+	Slash=/
+	ArchiveSuffix=.tar.gz
+	BinarySuffix=
+	All=clisp ccl ecl sbcl
+endif
 
 #
-# Aggregates
+# Set shared variables
+#
+
+KernelVersion=20.1
+
+UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
+KernelTag=shen-$(KernelVersion)
+KernelFolderName=ShenOSKernel-$(KernelVersion)
+KernelArchiveName=$(KernelFolderName)$(ArchiveSuffix)
+KernelArchiveUrl=$(UrlRoot)/$(KernelTag)/$(KernelArchiveName)
+BinaryName=shen$(BinarySuffix)
+
+ShenCLisp=.$(Slash)bin$(Slash)clisp$(Slash)$(BinaryName)
+ShenCCL=.$(Slash)bin$(Slash)ccl$(Slash)$(BinaryName)
+ShenECL=.$(Slash)bin$(Slash)ecl$(Slash)$(BinaryName)
+ShenSBCL=.$(Slash)bin$(Slash)sbcl$(Slash)$(BinaryName)
+
+RunCLisp=$(ShenCLisp) --clisp-m 10MB
+RunCCL=$(ShenCCL)
+RunECL=$(ShenECL)
+RunSBCL=$(ShenSBCL)
+
+Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\"))"
+
+ReleaseArchiveName=shen-cl-$(GitVersion)-$(OSName)-prebuilt$(ArchiveSuffix)
+
+#
+# Aggregates and defaults
 #
 
 .DEFAULT: all
@@ -64,24 +80,27 @@ ecl: build-ecl test-ecl
 .PHONY: sbcl
 sbcl: build-sbcl test-sbcl
 
+.PHONY: run
+run: run-sbcl
+
 #
 # Dependency retrieval
 #
 
 .PHONY: fetch
 fetch:
-ifeq ($(OS),Windows_NT)
-	$(PS) "Invoke-WebRequest -Uri $(UrlRoot)/$(ReleaseName)/$(ArchiveName) -OutFile $(ArchiveName)"
-	$(PS) "Expand-Archive $(ArchiveName) -DestinationPath ."
-	$(PS) "if (Test-Path $(ArchiveName)) { Remove-Item $(ArchiveName) -Force -ErrorAction Ignore }"
+ifeq ($(OSName),windows)
+	$(PS) "Invoke-WebRequest -Uri $(KernelArchiveUrl) -OutFile $(KernelArchiveName)"
+	$(PS) "Expand-Archive $(KernelArchiveName) -DestinationPath ."
+	$(PS) "if (Test-Path $(KernelArchiveName)) { Remove-Item $(KernelArchiveName) -Force -ErrorAction Ignore }"
 	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
-	$(PS) "Rename-Item $(ArchiveFolderName) kernel -ErrorAction Ignore"
+	$(PS) "Rename-Item $(KernelFolderName) kernel -ErrorAction Ignore"
 else
-	wget $(UrlRoot)/$(ReleaseName)/$(ArchiveName)
-	tar xf $(ArchiveName)
-	rm -f $(ArchiveName)
+	wget $(KernelArchiveUrl)
+	tar xf $(KernelArchiveName)
+	rm -f $(KernelArchiveName)
 	rm -rf kernel
-	mv $(ArchiveFolderName) kernel
+	mv $(KernelFolderName) kernel
 endif
 
 #
@@ -90,19 +109,19 @@ endif
 
 .PHONY: build-clisp
 build-clisp:
-	clisp -i $(BootFile)
+	clisp -i boot.lsp
 
 .PHONY: build-ccl
 build-ccl:
-	ccl -l $(BootFile)
+	ccl -l boot.lsp
 
 .PHONY: build-ecl
 build-ecl:
-	ecl -norc -load $(BootFile)
+	ecl -norc -load boot.lsp
 
 .PHONY: build-sbcl
 build-sbcl:
-	sbcl --load $(BootFile)
+	sbcl --load boot.lsp
 
 #
 # Test an implementation
@@ -150,15 +169,12 @@ run-sbcl:
 
 .PHONY: release
 release:
-ifeq ($(OS),Windows_NT)
+ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
-	$(PS) "Compress-Archive -Force -DestinationPath release\\shen-cl-windows-prebuilt-$(GitVersion)$(ArchiveSuffix) -LiteralPath $(ShenSBCL), $(LicenseFile)"
-else ifeq ($(shell uname -s),Darwin)
-	mkdir -p release
-	tar -vczf release/shen-cl-macos-prebuilt-$(GitVersion)$(ArchiveSuffix) $(ShenSBCL) $(LicenseFile) --transform 's?.*/??g'
+	$(PS) "Compress-Archive -Force -DestinationPath release\\$(ReleaseArchiveName) -LiteralPath $(ShenSBCL), LICENSE.txt"
 else
 	mkdir -p release
-	tar -vczf release/shen-cl-linux-prebuilt-$(GitVersion)$(ArchiveSuffix) $(ShenSBCL) $(LicenseFile) --transform 's?.*/??g'
+	tar -vczf release/$(ReleaseArchiveName) $(ShenSBCL) LICENSE.txt --transform 's?.*/??g'
 endif
 
 #
@@ -167,7 +183,7 @@ endif
 
 .PHONY: clean
 clean:
-ifeq ($(OS),Windows_NT)
+ifeq ($(OSName),windows)
 	$(PS) "if (Test-Path bin) { Remove-Item bin -Recurse -Force -ErrorAction Ignore }"
 	$(PS) "if (Test-Path release) { Remove-Item release -Recurse -Force -ErrorAction Ignore }"
 else
@@ -176,7 +192,7 @@ endif
 
 .PHONY: pure
 pure: clean
-ifeq ($(OS),Windows_NT)
+ifeq ($(OSName),windows)
 	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
 else
 	rm -rf kernel
