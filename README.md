@@ -47,7 +47,7 @@ Clozure will need to be installed manually:
 "C:\Program Files\ccl\wx86cl64.exe" %*
 ```
 
-ECL has a prebuilt installer on its [download page](https://common-lisp.net/project/ecl/static/files/prebuilt/).
+ECL needs to be [built from source](https://common-lisp.net/project/ecl/static/files/release/). Refer to the [appveyor.yml](https://gitlab.com/embeddable-common-lisp/ecl/blob/develop/appveyor.yml) config for build procedure. Requires [Visual Studio 2015+](https://www.visualstudio.com/downloads/) tools. ECL support is spotty on Windows and is not included in `make all` when on Windows.
 
 SBCL has an msi package on its [download page](http://www.sbcl.org/platform-table.html).
 
