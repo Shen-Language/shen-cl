@@ -63,7 +63,7 @@ SBCL has an msi package on its [download page](http://www.sbcl.org/platform-tabl
 
 The `Makefile` uses commands typically not found on Windows, so a toolset like [GOW](https://github.com/bmatzelle/gow) is recommended.
 
-### Building
+## Building
 
 The `Makefile` automates all build and test operations.
 
