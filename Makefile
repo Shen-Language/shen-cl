@@ -16,12 +16,18 @@ ArchiveFolderName=ShenOSKernel-$(KernelVersion)
 ArchiveName=$(ArchiveFolderName)$(ArchiveSuffix)
 BinaryName=shen$(BinarySuffix)
 
-RunCLisp=./bin/clisp/$(BinaryName) --clisp-m 10MB
-RunCCL=./bin/ccl/$(BinaryName)
-RunECL=./bin/ecl/$(BinaryName)
-RunSBCL=./bin/sbcl/$(BinaryName)
+ShenClisp=./bin/clisp/$(BinaryName)
+ShenCCL=./bin/ccl/$(BinaryName)
+ShenECL=./bin/ecl/$(BinaryName)
+ShenSBCL=./bin/sbcl/$(BinaryName)
+
+RunCLisp=$(ShenCLisp) --clisp-m 10MB
+RunCCL=$(ShenCCL)
+RunECL=$(ShenECL)
+RunSBCL=$(ShenSBCL)
 
 BootFile=boot.lsp
+LicenseFile=LICENSE.txt
 
 Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\"))"
 
@@ -136,13 +142,13 @@ run-sbcl:
 archive:
 ifeq ($(OS),Windows_NT)
 	powershell.exe -Command "New-Item -Force -ItemType Directory -Path .\\dist"
-	powershell.exe -Command "Compress-Archive -Force -LiteralPath .\\bin\\sbcl\\$(BinaryName), .\\LICENSE.txt -DestinationPath .\\dist\\shen-cl-windows-prebuilt-$(GitVersion).zip"
+	powershell.exe -Command "Compress-Archive -Force -DestinationPath .\\dist\\shen-cl-windows-prebuilt-$(GitVersion)$(ArchiveSuffix) -LiteralPath $(ShenSBCL), $(LicenseFile)"
 else ifeq ($(shell uname -s),Darwin)
 	mkdir -p dist
-	tar -vczf ./dist/shen-cl-macos-prebuilt-$(GitVersion).tar.gz ./bin/sbcl/$(BinaryName) ./LICENSE.txt --transform 's?.*/??g'
+	tar -vczf ./dist/shen-cl-macos-prebuilt-$(GitVersion)$(ArchiveSuffix) $(ShenSBCL) $(LicenseFile) --transform 's?.*/??g'
 else
 	mkdir -p dist
-	tar -vczf ./dist/shen-cl-linux-prebuilt-$(GitVersion).tar.gz ./bin/sbcl/$(BinaryName) ./LICENSE.txt --transform 's?.*/??g'
+	tar -vczf ./dist/shen-cl-linux-prebuilt-$(GitVersion)$(ArchiveSuffix) $(ShenSBCL) $(LicenseFile) --transform 's?.*/??g'
 endif
 
 #

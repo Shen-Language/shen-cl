@@ -107,6 +107,6 @@ Example:
 make pure
 git checkout v1.2.3
 make fetch
-make all
+make sbcl
 make archive
 ```
