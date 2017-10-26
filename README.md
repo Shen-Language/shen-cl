@@ -20,13 +20,6 @@ Bug reports, fixes and enhancements are welcome. If you intend to port Shen to a
 
 You will need to have the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Installation is different depending on operating system.
 
-| Implementation | Minimum Version |
-|:---------------|:----------------|
-| `clisp`        | `2.49`          |
-| `ccl`          | `1.10`          |
-| `ecl`          | `11.1.1`        |
-| `sbcl`         | `1.3.1`         |
-
 ### Linux
 
 CLisp, ECL and SBCL are available through `apt`. Just run `sudo apt install clisp ecl sbcl`.
@@ -72,14 +65,14 @@ The `Makefile` uses commands typically not found on Windows, so a toolset like [
 
 ### Makefile Operations
 
-| Target    | Operation                                                |
-|:----------|:---------------------------------------------------------|
-| `fetch`   | Download and extract Shen sources.<br>**Do this first.** |
-| `build-X` | Build executable.                                        |
-| `test-X`  | Run test suite.                                          |
-| `X`       | Build and run test suite.                                |
-| `run-X`   | Start Shen REPL.<br>**`run-all` not defined.**           |
-| `release` | Creates archive of compiled binaries.                    |
+| Target    | Operation                             |
+|:----------|:--------------------------------------|
+| `fetch`   | Download and extract Shen sources.    |
+| `build-X` | Build executable.                     |
+| `test-X`  | Run test suite.                       |
+| `X`       | Build and run test suite.             |
+| `run-X`   | Start Shen REPL.                      |
+| `release` | Creates archive of compiled binaries. |
 
 `X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
 
