@@ -26,19 +26,9 @@ CLisp, ECL and SBCL are available through `apt`. Just run `sudo apt install clis
 
 ECL requires `libffi-dev` to build, which can also be retrieved through `apt`.
 
-There is a [separately available package](http://mr.gy/blog/clozure-cl-deb.html) for Clozure. Run the following to download and install it:
+There is a [separately available debian package](http://mr.gy/blog/clozure-cl-deb.html) for Clozure. Download and install with `dpkg -i`.
 
-```shell
-wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
-sudo dpkg -i clozure-cl_1.11_amd64.deb
-```
-
-If the version of SBCL available throught `apt` is too old, a sufficiently new version can be downloaded and installed like this:
-
-```shell
-wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
-sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
-```
+If the version of SBCL available throught `apt` is too old, a sufficiently new version is [available from debian](http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb).
 
 ### macOS
 
@@ -61,7 +51,7 @@ ECL has a prebuilt installer on its [download page](https://common-lisp.net/proj
 
 SBCL has an msi package on its [download page](http://www.sbcl.org/platform-table.html).
 
-The `Makefile` uses commands typically not found on Windows, so a toolset like [GOW](https://github.com/bmatzelle/gow) is recommended.
+The `Makefile` might not be entirely Windows-friendly, so a toolset like [GOW](https://github.com/bmatzelle/gow) can fill the gap, or use [MGWIN](http://www.mingw.org/) or [Cygwin](https://www.cygwin.com/).
 
 ## Building
 
