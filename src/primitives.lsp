@@ -23,30 +23,35 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+;
+; Identify Environment
+;
+
+#+(OR WIN32 WIN64 MINGW32) (PUSH :WINDOWS *FEATURES*)
+#+(OR APPLE DARWIN) (PUSH :MACOS *FEATURES*)
+
 (DEFVAR *stinput* *STANDARD-INPUT*)
 (DEFVAR *stoutput* *STANDARD-OUTPUT*)
 (DEFVAR *sterror* *ERROR-OUTPUT*)
 (DEFVAR *language* "Common Lisp")
 (DEFVAR *port* 2.2)
 (DEFVAR *porters* "Mark Tarver")
+(DEFVAR *os* (OR #+WINDOWS "Windows" #+MACOS "macOS" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
 
 #+CLISP
 (PROGN
   (DEFVAR *implementation* "GNU CLisp")
-  (DEFVAR *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0))))
-  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+MACOS "macOS" #+UNIX "Unix" "Unknown")))
+  (DEFVAR *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0)))))
 
 #+CCL
 (PROGN
   (DEFVAR *implementation* "Clozure CL")
-  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
-  (DEFVAR *os* (OR #+WINDOWS "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown")))
+  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION)))
 
 #+ECL
 (PROGN
   (DEFVAR *implementation* "ECL")
   (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
-  (DEFVAR *os* (OR #+(OR :WIN32 :MINGW32) "Windows" #+LINUX "Linux" #+APPLE "macOS" #+UNIX "Unix" "Unknown"))
   (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
   (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL)
   (EXT:SET-LIMIT 'EXT:C-STACK (* 1024 1024)))
@@ -55,7 +60,6 @@
 (PROGN
   (DEFVAR *implementation* "SBCL")
   (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
-  (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
   (DECLAIM (INLINE write-byte))
   (DECLAIM (INLINE read-byte))
   (DECLAIM (INLINE shen.double-precision)))
@@ -357,43 +361,41 @@
     (T
      T)))
 
+(DEFUN shen-cl.init ()
+
+  #+CLISP (SETQ *stoutput* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
+  #+CLISP (SETQ *stinput* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
+  #+CLISP (SETQ *sterror* *stoutput*)
+
+  (SETQ *argv*
+    #+CLISP EXT:*ARGS*
+    #+CCL   (CDR *COMMAND-LINE-ARGUMENT-LIST*)
+    #+ECL   (CDR (SI:COMMAND-ARGS))
+    #+SBCL  (CDR SB-EXT:*POSIX-ARGV*)))
+
 (DEFUN shen-cl.toplevel ()
+  (shen-cl.init)
 
   #+CLISP
-  (HANDLER-BIND
-    ((WARNING #'MUFFLE-WARNING))
-    (WITH-OPEN-STREAM (*STANDARD-INPUT* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
-      (WITH-OPEN-STREAM (*STANDARD-OUTPUT* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
-        (SETQ *stoutput* *STANDARD-OUTPUT*)
-        (SETQ *stinput* *STANDARD-INPUT*)
-        (SETQ *sterror* *ERROR-OUTPUT*)
-        (LET ((Args EXT:*ARGS*))
-          (SETQ *argv* Args)
-          (IF (shen-cl.interpret-args Args)
-            (shen.shen)
-            (EXT:EXIT 0))))))
+  (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))
+    (IF (shen-cl.interpret-args *argv*)
+      (shen.shen)
+      (EXT:EXIT 0)))
 
   #+CCL
-  (HANDLER-BIND
-    ((WARNING #'MUFFLE-WARNING))
-    (LET ((Args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
-      (SETQ *argv* Args)
-      (IF (shen-cl.interpret-args Args)
-        (shen.shen)
-        (exit 0))))
-
-  #+ECL
-  (LET ((Args (CDR (SI:COMMAND-ARGS))))
-    (SETQ *argv* Args)
-    (IF (shen-cl.interpret-args Args)
+  (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))
+    (IF (shen-cl.interpret-args *argv*)
       (shen.shen)
       (exit 0)))
 
+  #+ECL
+  (IF (shen-cl.interpret-args *argv*)
+    (shen.shen)
+    (exit 0))
+
   #+SBCL
-  (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
-    (SETQ *argv* Args)
-    (IF (shen-cl.interpret-args Args)
-      (HANDLER-CASE (shen.shen)
-        (SB-SYS:INTERACTIVE-INTERRUPT ()
-          (exit 0)))
-      (exit 0))))
+  (IF (shen-cl.interpret-args *argv*)
+    (HANDLER-CASE (shen.shen)
+      (SB-SYS:INTERACTIVE-INTERRUPT ()
+        (exit 0)))
+    (exit 0)))
