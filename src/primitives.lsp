@@ -27,42 +27,46 @@
 ; Identify Environment
 ;
 
-#+(OR WIN32 WIN64 MINGW32) (PUSH :WINDOWS *FEATURES*)
-#+(OR APPLE DARWIN) (PUSH :MACOS *FEATURES*)
+#+(AND (NOT WINDOWS) (OR WIN32 WIN64 MINGW32)) (PUSH :WINDOWS *FEATURES*)
+#+(AND (NOT MACOS) (OR APPLE DARWIN)) (PUSH :MACOS *FEATURES*)
 
-(DEFVAR *stinput* *STANDARD-INPUT*)
-(DEFVAR *stoutput* *STANDARD-OUTPUT*)
-(DEFVAR *sterror* *ERROR-OUTPUT*)
+;
+; Shared Global Declarations
+;
+
 (DEFVAR *language* "Common Lisp")
 (DEFVAR *port* 2.2)
 (DEFVAR *porters* "Mark Tarver")
 (DEFVAR *os* (OR #+WINDOWS "Windows" #+MACOS "macOS" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
+(DEFVAR *stinput* *STANDARD-INPUT*)
+(DEFVAR *stoutput* *STANDARD-OUTPUT*)
+(DEFVAR *sterror* *ERROR-OUTPUT*)
+(DEFVAR *argv* NIL)
 
-#+CLISP
-(PROGN
-  (DEFVAR *implementation* "GNU CLisp")
-  (DEFVAR *release* (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0)))))
+;
+; Implementation-Specific Declarations
+;
 
-#+CCL
-(PROGN
-  (DEFVAR *implementation* "Clozure CL")
-  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION)))
+(DEFVAR *implementation* #+CLISP "GNU CLisp" #+CCL "Clozure CL" #+ECL "ECL" #+SBCL "SBCL")
+(DEFVAR *release*
+  #+CLISP (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0)))
+  #-CLISP (LISP-IMPLEMENTATION-VERSION))
 
 #+ECL
 (PROGN
-  (DEFVAR *implementation* "ECL")
-  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
   (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
   (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL)
   (EXT:SET-LIMIT 'EXT:C-STACK (* 1024 1024)))
 
 #+SBCL
 (PROGN
-  (DEFVAR *implementation* "SBCL")
-  (DEFVAR *release* (LISP-IMPLEMENTATION-VERSION))
   (DECLAIM (INLINE write-byte))
   (DECLAIM (INLINE read-byte))
   (DECLAIM (INLINE shen.double-precision)))
+
+;
+; KL Primitive Definitions
+;
 
 (DEFMACRO if (X Y Z)
   `(LET ((*C* ,X))
@@ -306,6 +310,10 @@
 (DEFUN number? (N)
   (IF (NUMBERP N) 'true 'false))
 
+;
+; Shared Startup Procedures
+;
+
 (DEFUN shen-cl.eval-print (X)
   (print (eval X)))
 
@@ -361,10 +369,13 @@
     (T
      T)))
 
-(DEFUN shen-cl.init ()
+;
+; Implementation-Specific Startup Procedures
+;
 
-  #+CLISP (SETQ *stoutput* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
+(DEFUN shen-cl.init ()
   #+CLISP (SETQ *stinput* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
+  #+CLISP (SETQ *stoutput* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
   #+CLISP (SETQ *sterror* *stoutput*)
 
   (SETQ *argv*
@@ -380,7 +391,7 @@
   (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))
     (IF (shen-cl.interpret-args *argv*)
       (shen.shen)
-      (EXT:EXIT 0)))
+      (exit 0)))
 
   #+CCL
   (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))

@@ -23,6 +23,10 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+;
+; Optimizing Overwrites
+;
+
 (DEFUN shen.pvar? (X)
   (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
     'true
@@ -99,6 +103,10 @@
 
 (DEFUN thaw (F)
   (FUNCALL F))
+
+;
+; Implementation-Specific Overwrites
+;
 
 #+CLISP
 (DEFUN exit (Code)
