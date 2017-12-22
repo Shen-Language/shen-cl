@@ -31,6 +31,14 @@
 #+(AND (NOT MACOS) (OR APPLE DARWIN)) (PUSH :MACOS *FEATURES*)
 
 ;
+; Disable Debugging
+;
+
+#+ECL
+(SETF *DEBUGGER-HOOK*
+  #'(LAMBDA (C H) (DECLARE (IGNORE H)) (PRINT C) (SI:QUIT 1)))
+
+;
 ; Shared Global Declarations
 ;
 
