@@ -92,9 +92,9 @@ fetch:
 ifeq ($(OSName),windows)
 	$(PS) "Invoke-WebRequest -Uri $(KernelArchiveUrl) -OutFile $(KernelArchiveName)"
 	$(PS) "Expand-Archive $(KernelArchiveName) -DestinationPath ."
-	$(PS) "if (Test-Path $(KernelArchiveName)) { Remove-Item $(KernelArchiveName) -Force -ErrorAction Ignore }"
-	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
-	$(PS) "Rename-Item $(KernelFolderName) kernel -ErrorAction Ignore"
+	$(PS) "if (Test-Path $(KernelArchiveName)) { Remove-Item $(KernelArchiveName) -Force }"
+	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force }"
+	$(PS) "Rename-Item $(KernelFolderName) kernel"
 else
 	wget $(KernelArchiveUrl)
 	tar xf $(KernelArchiveName)
@@ -184,8 +184,8 @@ endif
 .PHONY: clean
 clean:
 ifeq ($(OSName),windows)
-	$(PS) "if (Test-Path bin) { Remove-Item bin -Recurse -Force -ErrorAction Ignore }"
-	$(PS) "if (Test-Path release) { Remove-Item release -Recurse -Force -ErrorAction Ignore }"
+	$(PS) "if (Test-Path bin) { Remove-Item bin -Recurse -Force }"
+	$(PS) "if (Test-Path release) { Remove-Item release -Recurse -Force }"
 else
 	rm -rf bin release
 endif
@@ -193,7 +193,7 @@ endif
 .PHONY: pure
 pure: clean
 ifeq ($(OSName),windows)
-	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
+	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force }"
 else
 	rm -rf kernel
 endif
