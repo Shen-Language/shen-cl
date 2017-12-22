@@ -1,0 +1,5 @@
+*.md        text
+*.lsp       text
+*.txt       text
+*.yml       text
+Makefile    text
