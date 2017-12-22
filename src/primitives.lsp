@@ -70,7 +70,119 @@
 (PROGN
   (DECLAIM (INLINE write-byte))
   (DECLAIM (INLINE read-byte))
-  (DECLAIM (INLINE shen.double-precision)))
+  (DECLAIM (INLINE shen-cl.double)))
+
+;
+; Internal Helpers
+;
+
+(DEFUN shen-cl.escape (S)
+  (COND
+    ((STRING-EQUAL S "")          S)
+    ((STRING-EQUAL (pos S 0) "#") (cn "_hash1957" (shen-cl.escape (tlstr S))))
+    ((STRING-EQUAL (pos S 0) "'") (cn "_quote1957" (shen-cl.escape (tlstr S))))
+    ((STRING-EQUAL (pos S 0) "`") (cn "_backquote1957" (shen-cl.escape (tlstr S))))
+    ((STRING-EQUAL (pos S 0) "|") (cn "bar!1957" (shen-cl.escape (tlstr S))))
+    (T                            (cn (pos S 0) (shen-cl.escape (tlstr S))))))
+
+(DEFUN shen-cl.unescape (X)
+  (COND
+    ((STRING-EQUAL X "")                  X)
+    ((shen-cl.prefix? X "_hash1957")      (cn "#" (shen-cl.unescape (SUBSEQ X 9))))
+    ((shen-cl.prefix? X "_quote1957")     (cn "'" (shen-cl.unescape (SUBSEQ X 10))))
+    ((shen-cl.prefix? X "_backquote1957") (cn "`" (shen-cl.unescape (SUBSEQ X 14))))
+    ((shen-cl.prefix? X "bar!1957")       (cn "|" (shen-cl.unescape (SUBSEQ X 8))))
+    (T                                    (cn (pos X 0) (shen-cl.unescape (tlstr X))))))
+
+; Returns Lisp boolean
+(DEFUN shen-cl.== (X Y)
+  (COND
+    ((AND (CONSP X) (CONSP Y) (shen-cl.== (CAR X) (CAR Y)))
+     (shen-cl.== (CDR X) (CDR Y)))
+    ((AND (STRINGP X) (STRINGP Y))
+     (STRING= X Y))
+    ((AND (NUMBERP X) (NUMBERP Y))
+     (= X Y))
+    ((AND (ARRAYP X) (ARRAYP Y))
+     (AND (= (LENGTH X) (LENGTH Y)) (shen-cl.array= X Y 0 (LENGTH X))))
+    (T
+     (EQUAL X Y))))
+
+(DEFUN shen-cl.array= (X Y Index Size)
+  (OR
+    (= Index Size)
+    (AND
+      (shen-cl.== (AREF X Index) (AREF Y Index))
+      (shen-cl.array= X Y (1+ Index) Size))))
+
+(DEFUN shen-cl.process-number (S)
+  (COND
+    ((STRING-EQUAL S "")
+     "")
+    ((STRING-EQUAL (pos S 0) "d")
+     (IF (STRING-EQUAL (pos S 1) "0") "" (cn "e" (tlstr S))))
+    (T
+     (cn (pos S 0) (shen-cl.process-number (tlstr S))))))
+
+(DEFUN shen-cl.prefix? (Str Prefix)
+  (LET ((Prefix-Length (LENGTH Prefix)))
+    (AND
+      (>= (LENGTH Str) Prefix-Length)
+      (STRING-EQUAL Str Prefix :END1 Prefix-Length))))
+
+(DEFUN shen-cl.open-file (Path Direction)
+  (COND
+    ((EQ Direction 'in)
+     (OPEN Path
+      :DIRECTION :INPUT
+      :ELEMENT-TYPE
+        #+CLISP 'UNSIGNED-BYTE
+        #-CLISP :DEFAULT))
+    ((EQ Direction 'out)
+     (OPEN Path
+      :DIRECTION :OUTPUT
+      :ELEMENT-TYPE
+        #+CLISP 'UNSIGNED-BYTE
+        #-CLISP :DEFAULT
+      :IF-EXISTS :SUPERSEDE))
+    (T
+     (ERROR "invalid direction"))))
+
+(DEFUN shen-cl.double (X)
+  (IF (INTEGERP X) X (COERCE X 'DOUBLE-FLOAT)))
+
+(DEFUN shen-cl.* (X Y)
+  (IF (OR (ZEROP X) (ZEROP Y))
+    0
+    (* (shen-cl.double X) (shen-cl.double Y))))
+
+(DEFUN shen-cl.+ (X Y)
+  (+ (shen-cl.double X) (shen-cl.double Y)))
+
+(DEFUN shen-cl.- (X Y)
+  (- (shen-cl.double X) (shen-cl.double Y)))
+
+(DEFUN shen-cl./ (X Y)
+  (LET ((Div (/ (shen-cl.double X) (shen-cl.double Y))))
+    (IF (INTEGERP Div)
+      Div
+      (* (COERCE 1.0 'DOUBLE-FLOAT) Div))))
+
+(DEFUN shen-cl.> (X Y)
+  (IF (> X Y) 'true 'false))
+
+(DEFUN shen-cl.< (X Y)
+  (IF (< X Y) 'true 'false))
+
+(DEFUN shen-cl.>= (X Y)
+  (IF (>= X Y) 'true 'false))
+
+(DEFUN shen-cl.<= (X Y)
+  (IF (<= X Y) 'true 'false))
+
+; Returns Shen boolean
+(DEFUN shen-cl.= (X Y)
+  (IF (shen-cl.== X Y) 'true 'false))
 
 ;
 ; KL Primitive Definitions
@@ -119,19 +231,10 @@
   (IF (CONSP X) 'true 'false))
 
 (DEFUN intern (String)
-  (INTERN (shen.process-intern String)))
-
-(DEFUN shen.process-intern (S)
-  (COND
-    ((STRING-EQUAL S "")          S)
-    ((STRING-EQUAL (pos S 0) "#") (cn "_hash1957" (shen.process-intern (tlstr S))))
-    ((STRING-EQUAL (pos S 0) "'") (cn "_quote1957" (shen.process-intern (tlstr S))))
-    ((STRING-EQUAL (pos S 0) "`") (cn "_backquote1957" (shen.process-intern (tlstr S))))
-    ((STRING-EQUAL (pos S 0) "|") (cn "bar!1957" (shen.process-intern (tlstr S))))
-    (T                            (cn (pos S 0) (shen.process-intern (tlstr S))))))
+  (INTERN (shen-cl.escape String)))
 
 (DEFUN eval-kl (X)
-  (LET ((E (EVAL (shen.kl-to-lisp NIL X))))
+  (LET ((E (EVAL (shen-cl.kl->lisp NIL X))))
     (IF (AND (CONSP X) (EQ (CAR X) 'defun))
       (COMPILE E)
       E)))
@@ -157,36 +260,6 @@
 (DEFUN <-address (Vector N)
   (SVREF Vector N))
 
-(DEFUN shen.equal? (X Y)
-  (IF (shen.ABSEQUAL X Y) 'true 'false))
-
-(DEFUN shen.ABSEQUAL (X Y)
-  (COND
-    ((AND (CONSP X) (CONSP Y) (shen.ABSEQUAL (CAR X) (CAR Y)))
-     (shen.ABSEQUAL (CDR X) (CDR Y)))
-    ((AND (STRINGP X) (STRINGP Y))
-     (STRING= X Y))
-    ((AND (NUMBERP X) (NUMBERP Y))
-     (= X Y))
-    ((AND (ARRAYP X) (ARRAYP Y))
-     (CF-VECTORS X Y (LENGTH X) (LENGTH Y)))
-    (T
-     (EQUAL X Y))))
-
-(DEFUN CF-VECTORS (X Y LX LY)
-  (AND
-    (= LX LY)
-    (CF-VECTORS-HELP X Y 0 (1- LX))))
-
-(DEFUN CF-VECTORS-HELP (X Y COUNT MAX)
-  (COND
-    ((= COUNT MAX)
-     (shen.ABSEQUAL (AREF X MAX) (AREF Y MAX)))
-    ((shen.ABSEQUAL (AREF X COUNT) (AREF Y COUNT))
-     (CF-VECTORS-HELP X Y (1+ COUNT) MAX))
-    (T
-     NIL)))
-
 (DEFUN write-byte (Byte S)
   (WRITE-BYTE Byte S))
 
@@ -195,25 +268,7 @@
 
 (DEFUN open (String Direction)
   (LET ((Path (FORMAT NIL "~A~A" *home-directory* String)))
-    (shen.openh Path Direction)))
-
-(DEFUN shen.openh (Path Direction)
-  (COND
-    ((EQ Direction 'in)
-     (OPEN Path
-      :DIRECTION :INPUT
-      :ELEMENT-TYPE
-        #+CLISP 'UNSIGNED-BYTE
-        #-CLISP :DEFAULT))
-    ((EQ Direction 'out)
-     (OPEN Path
-      :DIRECTION :OUTPUT
-      :ELEMENT-TYPE
-        #+CLISP 'UNSIGNED-BYTE
-        #-CLISP :DEFAULT
-      :IF-EXISTS :SUPERSEDE))
-    (T
-     (ERROR "invalid direction"))))
+    (shen-cl.open-file Path Direction)))
 
 (DEFUN type (X MyType)
   (DECLARE (IGNORE MyType))
@@ -245,75 +300,18 @@
 (DEFUN str (X)
   (COND
     ((NULL X)      (ERROR "[] is not an atom in Shen; str cannot convert it to a string.~%"))
-    ((SYMBOLP X)   (shen.process-string (SYMBOL-NAME X)))
-    ((NUMBERP X)   (shen.process-number (FORMAT NIL "~A" X)))
+    ((SYMBOLP X)   (shen-cl.unescape (SYMBOL-NAME X)))
+    ((NUMBERP X)   (shen-cl.process-number (FORMAT NIL "~A" X)))
     ((STRINGP X)   (FORMAT NIL "~S" X))
     ((STREAMP X)   (FORMAT NIL "~A" X))
     ((FUNCTIONP X) (FORMAT NIL "~A" X))
     (T             (ERROR "~S is not an atom, stream or closure; str cannot convert it to a string.~%" X))))
-
-(DEFUN shen.process-number (S)
-  (COND
-    ((STRING-EQUAL S "")
-     "")
-    ((STRING-EQUAL (pos S 0) "d")
-     (IF (STRING-EQUAL (pos S 1) "0") "" (cn "e" (tlstr S))))
-    (T
-     (cn (pos S 0) (shen.process-number (tlstr S))))))
-
-(DEFUN shen-cl.prefix? (Str Prefix)
-  (LET ((Prefix-Length (LENGTH Prefix)))
-    (AND
-      (>= (LENGTH Str) Prefix-Length)
-      (STRING-EQUAL Str Prefix :END1 Prefix-Length))))
-
-(DEFUN shen.process-string (X)
-  (COND
-    ((STRING-EQUAL X "")                  X)
-    ((shen-cl.prefix? X "_hash1957")      (cn "#" (shen.process-string (SUBSEQ X 9))))
-    ((shen-cl.prefix? X "_quote1957")     (cn "'" (shen.process-string (SUBSEQ X 10))))
-    ((shen-cl.prefix? X "_backquote1957") (cn "`" (shen.process-string (SUBSEQ X 14))))
-    ((shen-cl.prefix? X "bar!1957")       (cn "|" (shen.process-string (SUBSEQ X 8))))
-    (T                                    (cn (pos X 0) (shen.process-string (tlstr X))))))
 
 (DEFUN get-time (Time)
   (COND
     ((EQ Time 'run)  (* 1.0 (/ (GET-INTERNAL-RUN-TIME) INTERNAL-TIME-UNITS-PER-SECOND)))
     ((EQ Time 'unix) (- (GET-UNIVERSAL-TIME) 2208988800))
     (T               (ERROR "get-time does not understand the parameter ~A~%" Time))))
-
-(DEFUN shen.double-precision (X)
-  (IF (INTEGERP X) X (COERCE X 'DOUBLE-FLOAT)))
-
-(DEFUN shen.multiply (X Y)
-  (IF (OR (ZEROP X) (ZEROP Y))
-    0
-    (* (shen.double-precision X) (shen.double-precision Y))))
-
-(DEFUN shen.add (X Y)
-  (+ (shen.double-precision X) (shen.double-precision Y)))
-
-(DEFUN shen.subtract (X Y)
-  (- (shen.double-precision X) (shen.double-precision Y)))
-
-(DEFUN shen.divide (X Y)
-  (LET ((Div (/ (shen.double-precision X)
-                (shen.double-precision Y))))
-    (IF (INTEGERP Div)
-      Div
-      (* (COERCE 1.0 'DOUBLE-FLOAT) Div))))
-
-(DEFUN shen.greater? (X Y)
-  (IF (> X Y) 'true 'false))
-
-(DEFUN shen.less? (X Y)
-  (IF (< X Y) 'true 'false))
-
-(DEFUN shen.greater-than-or-equal-to? (X Y)
-  (IF (>= X Y) 'true 'false))
-
-(DEFUN shen.less-than-or-equal-to? (X Y)
-  (IF (<= X Y) 'true 'false))
 
 (DEFUN number? (N)
   (IF (NUMBERP N) 'true 'false))

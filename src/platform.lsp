@@ -26,7 +26,7 @@
 (DEFUN lisp.platform-macro (Expr)
   (IF (shen-cl.true? (symbol? Expr))
     (LET ((Str (str Expr)))
-      (IF (AND (> (LENGTH Str) 5) (STRING= "lisp." (SUBSEQ Str 0 5)))
+      (IF (shen-cl.prefix? Str "lisp.")
         (LIST 'protect (intern (STRING-UPCASE (SUBSTITUTE #\: #\. (SUBSEQ Str 5)))))
         Expr))
     Expr))
