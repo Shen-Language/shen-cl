@@ -346,30 +346,25 @@
 (DEFUN shen-cl.interpret-args (Args)
   (COND
     ((shen-cl.option-prefix? Args (LIST "-v" "--version"))
-     (PROGN
        (shen-cl.print-version)
-       NIL))
+       NIL)
     ((shen-cl.option-prefix? Args (LIST "-h" "--help"))
-     (PROGN
        (shen-cl.print-version)
        (FORMAT T "~%")
        (shen-cl.print-help)
-       NIL))
+       NIL)
     ((shen-cl.option-prefix? Args (LIST "-e" "--eval"))
-     (PROGN
        (LET ((Exprs (read-from-string (CADR Args))))
          (MAPC #'shen-cl.eval-print Exprs))
        (shen-cl.interpret-args (CDDR Args))
-       NIL))
+       NIL)
     ((shen-cl.option-prefix? Args (LIST "-l" "--load"))
-     (PROGN
        (load (CADR Args))
        (shen-cl.interpret-args (CDDR Args))
-       NIL))
+       NIL)
     ((shen-cl.option-prefix? Args (LIST "-q" "--quiet"))
-     (PROGN
        (SETQ *hush* 'true)
-       (shen-cl.interpret-args (CDR Args))))
+       (shen-cl.interpret-args (CDR Args)))
     ((CONSP Args)
      (shen-cl.interpret-args (CDR Args)))
     (T
