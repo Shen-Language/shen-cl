@@ -118,16 +118,16 @@
 ;
 
 #-ECL
-(DEFUN shen-cl.compile-lsp (file)
-  (LET ((lsp-file (FORMAT NIL "~A~A.lsp" shen-cl.binary-path file)))
-    (COMPILE-FILE lsp-file)))
+(DEFUN shen-cl.compile-lisp (file)
+  (LET ((lisp-file (FORMAT NIL "~A~A.lisp" shen-cl.binary-path file)))
+    (COMPILE-FILE lisp-file)))
 
 #+ECL
-(DEFUN shen-cl.compile-lsp (file)
-  (LET ((lsp-file (FORMAT NIL "~A~A.lsp" shen-cl.binary-path file))
-        (fas-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix))
-        (obj-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.object-suffix)))
-    (COMPILE-FILE lsp-file :OUTPUT-FILE obj-file :SYSTEM-P T)
+(DEFUN shen-cl.compile-lisp (file)
+  (LET ((lisp-file (FORMAT NIL "~A~A.lisp" shen-cl.binary-path file))
+        (fas-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix))
+        (obj-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.object-suffix)))
+    (COMPILE-FILE lisp-file :OUTPUT-FILE obj-file :SYSTEM-P T)
     (PUSH obj-file shen-cl.*object-files*)
     (C:BUILD-FASL fas-file :LISP-FILES (LIST obj-file))))
 
@@ -135,20 +135,20 @@
 ; Shared Loading Procedure
 ;
 
-(DEFUN shen-cl.import-lsp (file)
-  (LET ((src-file (FORMAT NIL "~A~A.lsp" shen-cl.source-path file))
-        (lsp-file (FORMAT NIL "~A~A.lsp" shen-cl.binary-path file))
-        (fas-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix)))
-    (shen-cl.copy-file src-file lsp-file)
-    (shen-cl.compile-lsp file)
+(DEFUN shen-cl.import-lisp (file)
+  (LET ((src-file  (FORMAT NIL "~A~A.lisp" shen-cl.source-path file))
+        (lisp-file (FORMAT NIL "~A~A.lisp" shen-cl.binary-path file))
+        (fas-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix)))
+    (shen-cl.copy-file src-file lisp-file)
+    (shen-cl.compile-lisp file)
     (LOAD fas-file)))
 
 (DEFUN shen-cl.import-kl (file)
-  (LET ((kl-file  (FORMAT NIL "~A~A.kl" shen-cl.klambda-path file))
-        (lsp-file (FORMAT NIL "~A~A.lsp" shen-cl.binary-path file))
-        (fas-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix)))
-    (shen-cl.write-lsp-file lsp-file (shen-cl.translate-kl (shen-cl.read-kl-file kl-file)))
-    (shen-cl.compile-lsp file)
+  (LET ((kl-file   (FORMAT NIL "~A~A.kl" shen-cl.klambda-path file))
+        (lisp-file (FORMAT NIL "~A~A.lisp" shen-cl.binary-path file))
+        (fas-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix)))
+    (shen-cl.write-lisp-file lisp-file (shen-cl.translate-kl (shen-cl.read-kl-file kl-file)))
+    (shen-cl.compile-lisp file)
     (LOAD fas-file)))
 
 (DEFUN shen-cl.read-kl-file (file)
@@ -174,7 +174,7 @@
 (DEFUN shen-cl.translate-kl (kl-code)
   (MAPCAR #'(LAMBDA (expr) (shen-cl.kl->lisp NIL expr)) kl-code))
 
-(DEFUN shen-cl.write-lsp-file (file code)
+(DEFUN shen-cl.write-lisp-file (file code)
   (WITH-OPEN-FILE
     (out file
       :DIRECTION         :OUTPUT
@@ -200,17 +200,17 @@
           WHILE (PLUSP pos)
           DO (WRITE-SEQUENCE buf out :END pos))))))
 
-(COMPILE 'shen-cl.compile-lsp)
-(COMPILE 'shen-cl.import-lsp)
+(COMPILE 'shen-cl.compile-lisp)
+(COMPILE 'shen-cl.import-lisp)
 (COMPILE 'shen-cl.import-kl)
 (COMPILE 'shen-cl.read-kl-file)
 (COMPILE 'shen-cl.clean-kl)
 (COMPILE 'shen-cl.translate-kl)
-(COMPILE 'shen-cl.write-lsp-file)
+(COMPILE 'shen-cl.write-lisp-file)
 (COMPILE 'shen-cl.copy-file)
 
-(shen-cl.import-lsp "primitives")
-(shen-cl.import-lsp "backend")
+(shen-cl.import-lisp "primitives")
+(shen-cl.import-lisp "backend")
 (shen-cl.import-kl "toplevel")
 (shen-cl.import-kl "core")
 (shen-cl.import-kl "sys")
@@ -225,8 +225,8 @@
 (shen-cl.import-kl "declarations")
 (shen-cl.import-kl "types")
 (shen-cl.import-kl "t-star")
-(shen-cl.import-lsp "overwrite")
-(shen-cl.import-lsp "platform")
+(shen-cl.import-lisp "overwrite")
+(shen-cl.import-lisp "platform")
 
 (MAKUNBOUND 'shen-cl.klambda-path)
 (MAKUNBOUND 'shen-cl.source-path)
@@ -237,13 +237,13 @@
 (MAKUNBOUND 'shen-cl.object-suffix)
 (MAKUNBOUND 'shen-cl.compiled-suffix)
 (MAKUNBOUND 'shen-cl.binary-folder)
-(FMAKUNBOUND 'shen-cl.compile-lsp)
-(FMAKUNBOUND 'shen-cl.import-lsp)
+(FMAKUNBOUND 'shen-cl.compile-lisp)
+(FMAKUNBOUND 'shen-cl.import-lisp)
 (FMAKUNBOUND 'shen-cl.import-kl)
 (FMAKUNBOUND 'shen-cl.read-kl-file)
 (FMAKUNBOUND 'shen-cl.clean-kl)
 (FMAKUNBOUND 'shen-cl.translate-kl)
-(FMAKUNBOUND 'shen-cl.write-lsp-file)
+(FMAKUNBOUND 'shen-cl.write-lisp-file)
 (FMAKUNBOUND 'shen-cl.copy-file)
 
 ;

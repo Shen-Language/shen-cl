@@ -109,19 +109,19 @@ endif
 
 .PHONY: build-clisp
 build-clisp:
-	clisp -i boot.lsp
+	clisp -i build.lisp
 
 .PHONY: build-ccl
 build-ccl:
-	ccl -l boot.lsp
+	ccl -l build.lisp
 
 .PHONY: build-ecl
 build-ecl:
-	ecl -norc -load boot.lsp
+	ecl -norc -load build.lisp
 
 .PHONY: build-sbcl
 build-sbcl:
-	sbcl --load boot.lsp
+	sbcl --load build.lisp
 
 #
 # Test an implementation
