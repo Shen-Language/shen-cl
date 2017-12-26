@@ -10,9 +10,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Added
 - `make release` command that creates os-specific archive of compiled binaries.
+- ECL build emits static and shared libraries with os-specific suffixes (see `build.lisp`).
 
 ### Changed
 - `cond` now raises an error when no condition is true, instead of returning `[]`.
+- `cond` optimizes away clauses after clause with `true` condition.
+- Lisp source files renamed from `*.lsp` to `*.lisp`.
+- `boot.lsp` renamed to `build.lisp`.
+- Replaced `platform.shen` with `platform.lisp`.
+- Normalized use of `shen-cl.` prefix for internal functions.
+- `hd` and `tl` now raise error when given an empty list.
+
+### Fixed
+- `T` can be used as a variable as `defun` and `lambda` parameter in addition to `let` variable.
 
 ## [2.2.0] - 2017-08-23
 
