@@ -27,116 +27,116 @@
 ; Shared Overwrites
 ;
 
-(DEFUN shen.pvar? (X)
-  (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
+(DEFUN shen.pvar? (x)
+  (IF (AND (ARRAYP x) (NOT (STRINGP x)) (EQ (SVREF x 0) 'shen.pvar))
     'true
     'false))
 
-(DEFUN shen.lazyderef (X ProcessN)
-  (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
-    (LET ((Value (shen.valvector X ProcessN)))
-      (IF (EQ Value 'shen.-null-)
-        X
-        (shen.lazyderef Value ProcessN)))
-    X))
+(DEFUN shen.lazyderef (x n)
+  (IF (AND (ARRAYP x) (NOT (STRINGP x)) (EQ (SVREF x 0) 'shen.pvar))
+    (LET ((val (shen.valvector x n)))
+      (IF (EQ val 'shen.-null-)
+        x
+        (shen.lazyderef val n)))
+    x))
 
-(DEFUN shen.valvector (Var ProcessN)
-  (SVREF (SVREF shen.*prologvectors* ProcessN) (SVREF Var 1)))
+(DEFUN shen.valvector (var n)
+  (SVREF (SVREF shen.*prologvectors* n) (SVREF var 1)))
 
-(DEFUN shen.unbindv (Var N)
-  (LET ((Vector (SVREF shen.*prologvectors* N)))
-    (SETF (SVREF Vector (SVREF Var 1)) 'shen.-null-)))
+(DEFUN shen.unbindv (var n)
+  (LET ((vec (SVREF shen.*prologvectors* n)))
+    (SETF (SVREF vec (SVREF var 1)) 'shen.-null-)))
 
-(DEFUN shen.bindv (Var Val N)
-  (LET ((Vector (SVREF shen.*prologvectors* N)))
-    (SETF (SVREF Vector (SVREF Var 1)) Val)))
+(DEFUN shen.bindv (var val n)
+  (LET ((vec (SVREF shen.*prologvectors* n)))
+    (SETF (SVREF vec (SVREF var 1)) val)))
 
-(DEFUN shen.copy-vector-stage-1 (Count Vector BigVector Max)
-  (IF (= Max Count)
-    BigVector
+(DEFUN shen.copy-vector-stage-1 (index source dest size)
+  (IF (= size index)
+    dest
     (shen.copy-vector-stage-1
-      (1+ Count)
-      Vector
-      (address-> BigVector Count (<-address Vector Count))
-      Max)))
+      (1+ index)
+      source
+      (address-> dest index (<-address source index))
+      size)))
 
-(DEFUN shen.copy-vector-stage-2 (Count Max Fill BigVector)
-  (IF (= Max Count)
-    BigVector
+(DEFUN shen.copy-vector-stage-2 (index size val dest)
+  (IF (= size index)
+    dest
     (shen.copy-vector-stage-2
-      (1+ Count)
-      Max
-      Fill
-      (address-> BigVector Count Fill))))
+      (1+ index)
+      size
+      val
+      (address-> dest index val))))
 
-(DEFUN shen.newpv (N)
-  (LET ((Count+1 (1+ (THE INTEGER (SVREF shen.*varcounter* N))))
-        (Vector (SVREF shen.*prologvectors* N)))
-    (SETF (SVREF shen.*varcounter* N) Count+1)
-    (IF (= (THE INTEGER Count+1) (THE INTEGER (limit Vector)))
-      (shen.resizeprocessvector N Count+1)
+(DEFUN shen.newpv (n)
+  (LET ((counter (1+ (THE INTEGER (SVREF shen.*varcounter* n))))
+        (vec     (SVREF shen.*prologvectors* n)))
+    (SETF (SVREF shen.*varcounter* n) counter)
+    (IF (= (THE INTEGER counter) (THE INTEGER (limit vec)))
+      (shen.resizeprocessvector n counter)
       'skip)
-    (shen.mk-pvar Count+1)))
+    (shen.mk-pvar counter)))
 
-(DEFUN vector-> (Vector N X)
-  (IF (ZEROP N)
+(DEFUN vector-> (vec n x)
+  (IF (ZEROP n)
     (ERROR "cannot access 0th element of a vector~%")
-    (address-> Vector N X)))
+    (address-> vec n x)))
 
-(DEFUN <-vector (Vector N)
-  (IF (ZEROP N)
+(DEFUN <-vector (vec n)
+  (IF (ZEROP n)
     (ERROR "cannot access 0th element of a vector~%")
-    (let VectorElement (SVREF Vector N)
-      (IF (EQ VectorElement (fail))
+    (LET ((x (SVREF vec n)))
+      (IF (EQ x (fail))
         (ERROR "vector element not found~%")
-        VectorElement))))
+        x))))
 
-(DEFUN variable? (X)
-  (IF (AND (SYMBOLP X) (NOT (NULL X)) (UPPER-CASE-P (CHAR (SYMBOL-NAME X) 0)))
+(DEFUN variable? (x)
+  (IF (AND (SYMBOLP x) (NOT (NULL x)) (UPPER-CASE-P (CHAR (SYMBOL-NAME x) 0)))
     'true
     'false))
 
-(DEFUN shen.+string? (X)
-  (IF (AND (STRINGP X) (NOT (STRING-EQUAL X "")))
+(DEFUN shen.+string? (x)
+  (IF (AND (STRINGP x) (NOT (STRING-EQUAL x "")))
     'true
     'false))
 
-(DEFUN thaw (F)
-  (FUNCALL F))
+(DEFUN thaw (fn)
+  (FUNCALL fn))
 
 ;
 ; Implementation-Specific Overwrites
 ;
 
 #+CLISP
-(DEFUN exit (Code)
-  (EXT:EXIT Code))
+(DEFUN exit (code)
+  (EXT:EXIT code))
 
 #+(AND CCL (NOT WINDOWS))
-(DEFUN exit (Code)
-  (CCL:QUIT Code))
+(DEFUN exit (code)
+  (CCL:QUIT code))
 
 #+(AND CCL WINDOWS)
-(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN exit (Code) (#__exit Code))"))
+(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN exit (code) (#__exit code))"))
 
 #+ECL
-(DEFUN exit (Code)
-  (SI:QUIT Code))
+(DEFUN exit (code)
+  (SI:QUIT code))
 
 #+SBCL
-(DEFUN exit (Code)
-  (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
+(DEFUN exit (code)
+  (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) code))
 
 #+(OR CCL SBCL)
-(DEFUN read-char-code (S)
-  (LET ((C (READ-CHAR S NIL -1)))
-    (IF (EQ C -1)
+(DEFUN read-char-code (s)
+  (LET ((ch (READ-CHAR s NIL -1)))
+    (IF (EQ ch -1)
       -1
-      (CHAR-INT C))))
+      (CHAR-INT ch))))
 
 #+(OR CCL SBCL)
-(DEFUN pr (X S)
-  (WRITE-STRING X S)
-  (WHEN (OR (EQ S *stoutput*) (EQ S *stinput*))
-    (FORCE-OUTPUT S))
-  X)
+(DEFUN pr (x s)
+  (WRITE-STRING x s)
+  (WHEN (OR (EQ s *stoutput*) (EQ s *sterror*))
+    (FORCE-OUTPUT s))
+  x)

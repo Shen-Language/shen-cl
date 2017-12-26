@@ -23,392 +23,392 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(DEFUN shen-cl.kl->lisp (Locals Expr)
+(DEFUN shen-cl.kl->lisp (locals expr)
   (COND
 
     ; Retain empty lists and local variables
-    ((NULL Expr)
+    ((NULL expr)
      ())
-    ((AND (SYMBOLP Expr) (MEMBER Expr Locals))
-     (shen-cl.rename Expr))
+    ((AND (SYMBOLP expr) (MEMBER expr locals))
+     (shen-cl.rename expr))
 
     ; Quote idle symbols
-    ((SYMBOLP Expr)
-     (LIST 'QUOTE Expr))
+    ((SYMBOLP expr)
+     (LIST 'QUOTE expr))
 
     ; Handle special forms, function applications
-    ((CONSP Expr)
+    ((CONSP expr)
      (COND
 
       ; Ignore type expressions
-      ((shen-cl.form? 'type 3 Expr)
-       (shen-cl.kl->lisp Locals (CADR Expr)))
+      ((shen-cl.form? 'type 3 expr)
+       (shen-cl.kl->lisp locals (CADR expr)))
 
       ; Build lambda, escaping param with shen-cl.rename
-      ((shen-cl.form? 'lambda 3 Expr)
+      ((shen-cl.form? 'lambda 3 expr)
        (LIST 'FUNCTION
         (LIST 'LAMBDA
-          (LIST (shen-cl.rename (CADR Expr)))
-          (shen-cl.kl->lisp (CONS (CADR Expr) Locals) (CADDR Expr)))))
+          (LIST (shen-cl.rename (CADR expr)))
+          (shen-cl.kl->lisp (CONS (CADR expr) locals) (CADDR expr)))))
 
       ; Flatten nested let's into single LET*
-      ((shen-cl.form? 'let 4 Expr)
-       (LET* ((Lets (shen-cl.flatten-lets Expr)))
+      ((shen-cl.form? 'let 4 expr)
+       (LET* ((lets (shen-cl.flatten-lets expr)))
         (LIST 'LET*
-          (shen-cl.let-bindings Locals (CAR Lets))
-          (shen-cl.kl->lisp (APPEND (MAPCAR #'CAR (CAR Lets)) Locals) (CDR Lets)))))
+          (shen-cl.let-bindings locals (CAR lets))
+          (shen-cl.kl->lisp (APPEND (MAPCAR #'CAR (CAR lets)) locals) (CDR lets)))))
 
       ; Flatten nested do's into single PROGN
-      ((shen-cl.form? 'do 0 Expr)
+      ((shen-cl.form? 'do 0 expr)
        (CONS 'PROGN
-        (MAPCAR #'(LAMBDA (X) (shen-cl.kl->lisp Locals X)) (shen-cl.flatten-dos Expr))))
+        (MAPCAR #'(LAMBDA (X) (shen-cl.kl->lisp locals X)) (shen-cl.flatten-dos expr))))
 
       ; Rebuild cond, optimizing for true/false conditions, raising error if no condition is true
-      ((shen-cl.form? 'cond 0 Expr)
+      ((shen-cl.form? 'cond 0 expr)
        (CONS 'COND
-        (shen-cl.build-cond Locals (CDR Expr))))
+        (shen-cl.build-cond locals (CDR expr))))
 
       ; Build defun
-      ((shen-cl.form? 'defun 4 Expr)
+      ((shen-cl.form? 'defun 4 expr)
        (LIST 'DEFUN
-        (CADR Expr)
-        (MAPCAR #'shen-cl.rename (CADDR Expr))
-        (shen-cl.kl->lisp (CADDR Expr) (CADDDR Expr))))
+        (CADR expr)
+        (MAPCAR #'shen-cl.rename (CADDR expr))
+        (shen-cl.kl->lisp (CADDR expr) (CADDDR expr))))
 
       ; Function application
       (T
-       (LET ((Args (MAPCAR #'(LAMBDA (Y) (shen-cl.kl->lisp Locals Y)) (CDR Expr))))
+       (LET ((args (MAPCAR #'(LAMBDA (Y) (shen-cl.kl->lisp locals Y)) (CDR expr))))
         (shen-cl.optimise-application
           (COND
 
             ; Application of function in local variable
-            ((CONSP (MEMBER (CAR Expr) Locals))
+            ((CONSP (MEMBER (CAR expr) locals))
              (LIST 'shen-cl.apply
-              (CAR Expr)
-              (CONS 'LIST Args)))
+              (CAR expr)
+              (CONS 'LIST args)))
 
             ; Application of function result of expression
-            ((CONSP (CAR Expr))
+            ((CONSP (CAR expr))
              (LIST 'shen-cl.apply
-              (shen-cl.kl->lisp Locals (CAR Expr))
-              (CONS 'LIST Args)))
+              (shen-cl.kl->lisp locals (CAR expr))
+              (CONS 'LIST args)))
 
             ; Application of partial applied function
-            ((shen-cl.partial-application? (CAR Expr) Args)
-             (shen-cl.partially-apply (CAR Expr) Args))
+            ((shen-cl.partial-application? (CAR expr) args)
+             (shen-cl.partially-apply (CAR expr) args))
 
             ; Application of global function
             (T
-             (CONS (shen-cl.maplispsym (CAR Expr)) Args))))))))
+             (CONS (shen-cl.map-operator (CAR expr)) args))))))))
 
     ; Pass through anything else
     (T
-     Expr)))
+     expr)))
 
-(DEFUN shen-cl.form? (Id Size Expr)
+(DEFUN shen-cl.form? (id size expr)
   (AND
-    (CONSP Expr)
-    (OR (= 0 Size) (EQ Size (LIST-LENGTH Expr)))
-    (EQ Id (CAR Expr))))
+    (CONSP expr)
+    (OR (= 0 size) (EQ size (LIST-LENGTH expr)))
+    (EQ id (CAR expr))))
 
-(DEFUN shen-cl.rename (X)
-  (IF (EQ 'T X) 'T1957 X))
+(DEFUN shen-cl.rename (x)
+  (IF (EQ 'T x) 'T1957 x))
 
-(DEFUN shen-cl.flatten-dos (Expr)
-  (IF (shen-cl.form? 'do 0 Expr)
-    (MAPCAN #'shen-cl.flatten-dos (CDR Expr))
-    (LIST Expr)))
+(DEFUN shen-cl.flatten-dos (expr)
+  (IF (shen-cl.form? 'do 0 expr)
+    (MAPCAN #'shen-cl.flatten-dos (CDR expr))
+    (LIST expr)))
 
-(DEFUN shen-cl.flatten-lets (Expr)
-  (IF (shen-cl.form? 'let 4 Expr)
-    (LET ((Lets    (shen-cl.flatten-lets (CADDDR Expr)))
-          (Binding (LIST (CADR Expr) (CADDR Expr))))
-      (CONS (CONS Binding (CAR Lets)) (CDR Lets)))
-    (CONS () Expr)))
+(DEFUN shen-cl.flatten-lets (expr)
+  (IF (shen-cl.form? 'let 4 expr)
+    (LET ((lets    (shen-cl.flatten-lets (CADDDR expr)))
+          (binding (LIST (CADR expr) (CADDR expr))))
+      (CONS (CONS binding (CAR lets)) (CDR lets)))
+    (CONS () expr)))
 
-(DEFUN shen-cl.apply (F Args)
-  (LET ((FSym (shen-cl.maplispsym F)))
+(DEFUN shen-cl.apply (fn args)
+  (LET ((mapped-fn (shen-cl.map-operator fn)))
     (trap-error
-      (shen-cl.apply-help FSym Args)
-      #'(LAMBDA (E) (shen-cl.analyse-application F FSym Args (error-to-string E))))))
+      (shen-cl.apply-help mapped-fn args)
+      #'(LAMBDA (e) (shen-cl.analyse-application fn mapped-fn args (error-to-string e))))))
 
-(DEFUN shen-cl.apply-help (F Args)
+(DEFUN shen-cl.apply-help (fn args)
   (COND
-    ((NULL Args)
-     (FUNCALL F))
-    ((AND (CONSP Args) (NULL (CDR Args)))
-     (FUNCALL F (CAR Args)))
-    ((CONSP Args)
-     (shen-cl.apply-help (FUNCALL F (CAR Args)) (CDR Args)))
+    ((NULL args)
+     (FUNCALL fn))
+    ((AND (CONSP args) (NULL (CDR args)))
+     (FUNCALL fn (CAR args)))
+    ((CONSP args)
+     (shen-cl.apply-help (FUNCALL fn (CAR args)) (CDR args)))
     (T
      (shen.f_error 'shen-cl.apply-help))))
 
-(DEFUN shen-cl.analyse-application (F FSym Args Message)
-  (IF (OR (shen-cl.partial-application? F Args) (shen-cl.lazyboolop? F))
-    (shen-cl.curried-apply (shen-cl.build-up-lambda-expression FSym F) Args)
-    (simple-error Message)))
+(DEFUN shen-cl.analyse-application (fn mapped-fn args message)
+  (IF (OR (shen-cl.partial-application? fn args) (shen-cl.lazyboolop? fn))
+    (shen-cl.curried-apply (shen-cl.build-up-lambda-expression mapped-fn fn) args)
+    (simple-error message)))
 
-(DEFUN shen-cl.build-up-lambda-expression (FSym F)
-  (EVAL (shen-cl.mk-lambda FSym (arity F))))
+(DEFUN shen-cl.build-up-lambda-expression (mapped-fn fn)
+  (EVAL (shen-cl.mk-lambda mapped-fn (arity fn))))
 
-(DEFUN shen-cl.lazyboolop? (Op)
-  (OR (EQ Op 'and) (EQ Op 'or)))
+(DEFUN shen-cl.lazyboolop? (op)
+  (OR (EQ op 'and) (EQ op 'or)))
 
-(DEFUN shen-cl.curried-apply (F Args)
-  (IF (CONSP Args)
-    (LET ((App   (FUNCALL F (CAR Args))))
-      (IF (NULL (CDR Args))
-        App
-        (shen-cl.curried-apply App (CDR Args))))
-    (simple-error (cn "cannot apply " (shen-cl.app F (FORMAT NIL "~%") 'shen-cl.a)))))
+(DEFUN shen-cl.curried-apply (fn args)
+  (IF (CONSP args)
+    (LET ((app (FUNCALL fn (CAR args))))
+      (IF (NULL (CDR args))
+        app
+        (shen-cl.curried-apply app (CDR args))))
+    (simple-error (cn "cannot apply " (shen-cl.app fn (FORMAT NIL "~%") 'shen-cl.a)))))
 
-(DEFUN shen-cl.partial-application? (F Args)
-  (LET ((Arity (trap-error (arity F) #'(LAMBDA (E) -1))))
-    (NOT (OR (= Arity -1) (>= (LIST-LENGTH Args) Arity)))))
+(DEFUN shen-cl.partial-application? (fn args)
+  (LET ((ar (trap-error (arity fn) #'(LAMBDA (E) -1))))
+    (NOT (OR (= ar -1) (>= (LIST-LENGTH args) ar)))))
 
-(DEFUN shen-cl.partially-apply (F Args)
-  (LET* ((Arity (arity F))
-         (Lambda (shen-cl.mk-lambda (LIST (shen-cl.maplispsym F)) Arity)))
-      (shen-cl.build-partial-application Lambda Args)))
+(DEFUN shen-cl.partially-apply (fn args)
+  (shen-cl.build-partial-application
+    (shen-cl.mk-lambda (LIST (shen-cl.map-operator fn)) (arity fn))
+    args))
 
-(DEFUN shen-cl.optimise-application (Expr)
-  (IF (CONSP Expr)
+(DEFUN shen-cl.optimise-application (expr)
+  (IF (CONSP expr)
     (COND
 
       ; hd -> CAR
-      ((shen-cl.form? 'hd 2 Expr)
-       (LIST 'CAR (shen-cl.optimise-application (CADR Expr))))
+      ((shen-cl.form? 'hd 2 expr)
+       (LIST 'CAR (shen-cl.optimise-application (CADR expr))))
 
       ; tl -> CDR
-      ((shen-cl.form? 'tl 2 Expr)
-       (LIST 'CDR (shen-cl.optimise-application (CADR Expr))))
+      ((shen-cl.form? 'tl 2 expr)
+       (LIST 'CDR (shen-cl.optimise-application (CADR expr))))
 
       ; cons -> CONS
-      ((shen-cl.form? 'cons 3 Expr)
+      ((shen-cl.form? 'cons 3 expr)
        (LIST 'CONS
-        (shen-cl.optimise-application (CADR Expr))
-        (shen-cl.optimise-application (CADDR Expr))))
+        (shen-cl.optimise-application (CADR expr))
+        (shen-cl.optimise-application (CADDR expr))))
 
       ; append -> APPEND
-      ((shen-cl.form? 'append 3 Expr)
+      ((shen-cl.form? 'append 3 expr)
        (LIST 'APPEND
-        (shen-cl.optimise-application (CADR Expr))
-        (shen-cl.optimise-application (CADDR Expr))))
+        (shen-cl.optimise-application (CADR expr))
+        (shen-cl.optimise-application (CADDR expr))))
 
       ; reverse -> REVERSE
-      ((shen-cl.form? 'reverse 2 Expr)
-       (LIST 'REVERSE (shen-cl.optimise-application (CADR Expr))))
+      ((shen-cl.form? 'reverse 2 expr)
+       (LIST 'REVERSE (shen-cl.optimise-application (CADR expr))))
 
       ; if -> IF
-      ((shen-cl.form? 'if 4 Expr)
+      ((shen-cl.form? 'if 4 expr)
        (LIST 'IF
-        (shen-cl.optimise-conditional (CADR Expr))
-        (shen-cl.optimise-application (CADDR Expr))
-        (shen-cl.optimise-application (CADDDR Expr))))
+        (shen-cl.optimise-conditional (CADR expr))
+        (shen-cl.optimise-application (CADDR expr))
+        (shen-cl.optimise-application (CADDDR expr))))
 
       ; (value (QUOTE X)) -> X
       ((AND
-        (shen-cl.form? 'value 2 Expr)
-        (shen-cl.form? 'QUOTE 2 (CADR Expr)))
-       (CADADR Expr))
+        (shen-cl.form? 'value 2 expr)
+        (shen-cl.form? 'QUOTE 2 (CADR expr)))
+       (CADADR expr))
 
       ; (+ 1 X) -> (1+ X)
       ((AND
-        (shen-cl.form? '+ 3 Expr)
-        (shen-cl.== 1 (CADR Expr)))
-       (LIST (intern "1+") (shen-cl.optimise-application (CADDR Expr))))
+        (shen-cl.form? '+ 3 expr)
+        (shen-cl.== 1 (CADR expr)))
+       (LIST (intern "1+") (shen-cl.optimise-application (CADDR expr))))
 
       ; (+ X 1) -> (1+ X)
       ((AND
-        (shen-cl.form? '+ 3 Expr)
-        (shen-cl.== 1 (CADDR Expr)))
-       (LIST (intern "1+") (shen-cl.optimise-application (CADR Expr))))
+        (shen-cl.form? '+ 3 expr)
+        (shen-cl.== 1 (CADDR expr)))
+       (LIST (intern "1+") (shen-cl.optimise-application (CADR expr))))
 
       ; (- X 1) -> (1- X)
       ((AND
-        (shen-cl.form? '- 3 Expr)
-        (shen-cl.== 1 (CADDR Expr)))
-       (LIST (intern "1-") (shen-cl.optimise-application (CADR Expr))))
+        (shen-cl.form? '- 3 expr)
+        (shen-cl.== 1 (CADDR expr)))
+       (LIST (intern "1-") (shen-cl.optimise-application (CADR expr))))
 
       ; Otherwise, optimize every sub-expression
       (T
-       (MAPCAR 'shen-cl.optimise-application Expr)))
+       (MAPCAR 'shen-cl.optimise-application expr)))
 
     ; Pass through anything else
-    Expr))
+    expr))
 
-(DEFUN shen-cl.mk-lambda (F Arity)
-  (IF (shen-cl.== 0 Arity)
-    F
-    (LET ((Var (gensym 'V)))
-      (LIST 'lambda Var (shen-cl.mk-lambda (shen-cl.endcons F Var) (1- Arity))))))
+(DEFUN shen-cl.mk-lambda (f ar)
+  (IF (shen-cl.== 0 ar)
+    f
+    (LET ((v (GENSYM)))
+      (LIST 'lambda v (shen-cl.mk-lambda (shen-cl.endcons f v) (1- ar))))))
 
-(DEFUN shen-cl.endcons (F X)
-  (IF (CONSP F)
-    (APPEND F (LIST X))
-    (LIST F X)))
+(DEFUN shen-cl.endcons (fn x)
+  (IF (CONSP fn)
+    (APPEND fn (LIST x))
+    (LIST fn x)))
 
-(DEFUN shen-cl.build-partial-application (F Args)
+(DEFUN shen-cl.build-partial-application (fn args)
   (COND
-    ((NULL Args)  F)
-    ((CONSP Args) (shen-cl.build-partial-application (LIST 'FUNCALL F (CAR Args)) (CDR Args)))
+    ((NULL args)  fn)
+    ((CONSP args) (shen-cl.build-partial-application (LIST 'FUNCALL fn (CAR args)) (CDR args)))
     (T            (shen.f_error 'shen-cl.build-partial-application))))
 
-(DEFUN shen-cl.let-bindings (Locals Bindings)
-  (IF (CONSP Bindings)
-    (LET ((Name (CAAR Bindings)))
+(DEFUN shen-cl.let-bindings (locals bindings)
+  (IF (CONSP bindings)
+    (LET ((name (CAAR bindings)))
       (CONS
-        (LIST (shen-cl.rename Name) (shen-cl.kl->lisp Locals (CADAR Bindings)))
-        (shen-cl.let-bindings (CONS Name Locals) (CDR Bindings))))
+        (LIST (shen-cl.rename name) (shen-cl.kl->lisp locals (CADAR bindings)))
+        (shen-cl.let-bindings (CONS name locals) (CDR bindings))))
     ()))
 
-(DEFUN shen-cl.build-cond (Locals Clauses)
-  (IF (CONSP Clauses)
-    (IF (EQ 2 (LIST-LENGTH (CAR Clauses)))
-      (LET ((Test   (CAAR Clauses))
-            (Result (CADAR Clauses)))
+(DEFUN shen-cl.build-cond (locals clauses)
+  (IF (CONSP clauses)
+    (IF (EQ 2 (LIST-LENGTH (CAR clauses)))
+      (LET ((condition (CAAR clauses))
+            (body      (CADAR clauses)))
         (COND
-          ((EQ 'true Test)
-           (LIST (LIST 'T (shen-cl.kl->lisp Locals Result))))
-          ((EQ 'false Test)
-           (shen-cl.build-cond Locals Clauses))
+          ((EQ 'true condition)
+           (LIST (LIST 'T (shen-cl.kl->lisp locals body))))
+          ((EQ 'false condition)
+           (shen-cl.build-cond locals clauses))
           (T
            (CONS
-            (LIST (shen-cl.conditional Locals Test) (shen-cl.kl->lisp Locals Result))
-            (shen-cl.build-cond Locals (CDR Clauses))))))
+            (LIST (shen-cl.conditional locals condition) (shen-cl.kl->lisp locals body))
+            (shen-cl.build-cond locals (CDR clauses))))))
       (shen.f_error 'shen-cl.build-cond))
     (LIST (LIST 'T '(simple-error "No condition was true")))))
 
-(DEFUN shen-cl.conditional (Locals Expr)
+(DEFUN shen-cl.conditional (locals expr)
   (COND
-    ((EQ 'true Expr)
+    ((EQ 'true expr)
      'T)
-    ((EQ 'false Expr)
+    ((EQ 'false expr)
      'NIL)
-    ((AND (CONSP Expr) (shen-cl.lazyboolop? (CAR Expr)))
+    ((AND (CONSP expr) (shen-cl.lazyboolop? (CAR expr)))
      (CONS
-      (INTERN (STRING-UPCASE (SYMBOL-NAME (CAR Expr))))
-      (MAPCAR #'(LAMBDA (X) (shen-cl.optimise-conditional (shen-cl.kl->lisp Locals X))) (CDR Expr))))
+      (INTERN (STRING-UPCASE (SYMBOL-NAME (CAR expr))))
+      (MAPCAR #'(LAMBDA (X) (shen-cl.optimise-conditional (shen-cl.kl->lisp locals X))) (CDR expr))))
     (T
-     (shen-cl.optimise-conditional (shen-cl.kl->lisp Locals Expr)))))
+     (shen-cl.optimise-conditional (shen-cl.kl->lisp locals expr)))))
 
-(DEFUN shen-cl.optimise-conditional (Expr)
+(DEFUN shen-cl.optimise-conditional (expr)
   (COND
 
     ; cons? -> CONSP
-    ((shen-cl.form? 'cons? 2 Expr)
-     (CONS 'CONSP (CDR Expr)))
+    ((shen-cl.form? 'cons? 2 expr)
+     (CONS 'CONSP (CDR expr)))
 
     ; string? -> STRINGP
-    ((shen-cl.form? 'string? 2 Expr)
-     (CONS 'STRINGP (CDR Expr)))
+    ((shen-cl.form? 'string? 2 expr)
+     (CONS 'STRINGP (CDR expr)))
 
     ; number? -> NUMBERP
-    ((shen-cl.form? 'number? 2 Expr)
-     (CONS 'NUMBERP (CDR Expr)))
+    ((shen-cl.form? 'number? 2 expr)
+     (CONS 'NUMBERP (CDR expr)))
 
     ; empty? -> NULL
-    ((shen-cl.form? 'empty? 2 Expr)
-     (CONS 'NULL (CDR Expr)))
+    ((shen-cl.form? 'empty? 2 expr)
+     (CONS 'NULL (CDR expr)))
 
     ; and -> AND
-    ((shen-cl.form? 'and 3 Expr)
+    ((shen-cl.form? 'and 3 expr)
      (LIST 'AND
-      (shen-cl.optimise-conditional (CADR Expr))
-      (shen-cl.optimise-conditional (CADDR Expr))))
+      (shen-cl.optimise-conditional (CADR expr))
+      (shen-cl.optimise-conditional (CADDR expr))))
 
     ; or -> OR
-    ((shen-cl.form? 'or 3 Expr)
+    ((shen-cl.form? 'or 3 expr)
      (LIST 'OR
-      (shen-cl.optimise-conditional (CADR Expr))
-      (shen-cl.optimise-conditional (CADDR Expr))))
+      (shen-cl.optimise-conditional (CADR expr))
+      (shen-cl.optimise-conditional (CADDR expr))))
 
     ; not -> NOT
-    ((shen-cl.form? 'not 2 Expr)
-     (LIST 'NOT (shen-cl.optimise-conditional (CADR Expr))))
+    ((shen-cl.form? 'not 2 expr)
+     (LIST 'NOT (shen-cl.optimise-conditional (CADR expr))))
 
     ; (shen-cl.= X ()) -> (NULL X)
     ((AND
-      (shen-cl.form? 'shen-cl.= 3 Expr)
-      (NULL (CADDR Expr)))
-     (LIST 'NULL (CADR Expr)))
+      (shen-cl.form? 'shen-cl.= 3 expr)
+      (NULL (CADDR expr)))
+     (LIST 'NULL (CADR expr)))
     ((AND
-      (shen-cl.form? 'shen-cl.= 3 Expr)
-      (NULL (CADR Expr)))
-     (CONS 'NULL (CDDR Expr)))
+      (shen-cl.form? 'shen-cl.= 3 expr)
+      (NULL (CADR expr)))
+     (CONS 'NULL (CDDR expr)))
 
     ; (shen-cl.= X (QUOTE Y)) -> (EQ X (QUOTE Y))
     ; (shen-cl.= X (fail)) -> (EQ X (fail))
     ((AND
-      (shen-cl.form? 'shen-cl.= 3 Expr)
+      (shen-cl.form? 'shen-cl.= 3 expr)
       (OR
         (AND
-          (shen-cl.form? 'QUOTE 2 (CADDR Expr))
-          (EQ 'T (SYMBOLP (CAR (CDADDR Expr)))))
+          (shen-cl.form? 'QUOTE 2 (CADDR expr))
+          (EQ 'T (SYMBOLP (CAR (CDADDR expr)))))
         (AND
-          (shen-cl.form? 'QUOTE 2 (CADR Expr))
-          (EQ 'T (SYMBOLP (CADADR Expr))))
-        (shen-cl.form? 'fail 1 (CADDR Expr))
-        (shen-cl.form? 'fail 1 (CADR Expr))))
-     (CONS 'EQ (CDR Expr)))
+          (shen-cl.form? 'QUOTE 2 (CADR expr))
+          (EQ 'T (SYMBOLP (CADADR expr))))
+        (shen-cl.form? 'fail 1 (CADDR expr))
+        (shen-cl.form? 'fail 1 (CADR expr))))
+     (CONS 'EQ (CDR expr)))
 
     ; (shen-cl.= X String) -> (EQUAL X String)
     ((AND
-      (shen-cl.form? 'shen-cl.= 3 Expr)
+      (shen-cl.form? 'shen-cl.= 3 expr)
       (OR
-        (STRINGP (CADR Expr))
-        (STRINGP (CADDR Expr))))
-     (CONS 'EQUAL (CDR Expr)))
+        (STRINGP (CADR expr))
+        (STRINGP (CADDR expr))))
+     (CONS 'EQUAL (CDR expr)))
 
     ; (shen-cl.= X Number) -> (IF (NUMBERP X) (= X Number))
     ((AND
-      (shen-cl.form? 'shen-cl.= 3 Expr)
-      (NUMBERP (CADDR Expr)))
-     (LIST 'IF (LIST 'NUMBERP (CADR Expr)) (CONS '= (CDR Expr))))
+      (shen-cl.form? 'shen-cl.= 3 expr)
+      (NUMBERP (CADDR expr)))
+     (LIST 'IF (LIST 'NUMBERP (CADR expr)) (CONS '= (CDR expr))))
     ((AND
-      (shen-cl.form? 'shen-cl.= 3 Expr)
-      (NUMBERP (CADR Expr)))
-     (LIST 'IF (CONS 'NUMBERP (CDDR Expr)) (LIST '= (CADDR Expr) (CADR Expr))))
+      (shen-cl.form? 'shen-cl.= 3 expr)
+      (NUMBERP (CADR expr)))
+     (LIST 'IF (CONS 'NUMBERP (CDDR expr)) (CONS '= (CDR expr))))
 
     ; shen-cl.= -> shen-cl.==
-    ((shen-cl.form? 'shen-cl.= 3 Expr)
-     (CONS 'shen-cl.== (CDR Expr)))
+    ((shen-cl.form? 'shen-cl.= 3 expr)
+     (CONS 'shen-cl.== (CDR expr)))
 
     ; shen-cl.> -> >
-    ((shen-cl.form? 'shen-cl.> 3 Expr)
-     (CONS '> (CDR Expr)))
+    ((shen-cl.form? 'shen-cl.> 3 expr)
+     (CONS '> (CDR expr)))
 
     ; shen-cl.>= -> >=
-    ((shen-cl.form? 'shen-cl.>= 3 Expr)
-     (CONS '>= (CDR Expr)))
+    ((shen-cl.form? 'shen-cl.>= 3 expr)
+     (CONS '>= (CDR expr)))
 
     ; shen-cl.< -> <
-    ((shen-cl.form? 'shen-cl.< 3 Expr)
-     (CONS '< (CDR Expr)))
+    ((shen-cl.form? 'shen-cl.< 3 expr)
+     (CONS '< (CDR expr)))
 
     ; shen-cl.<= -> <=
-    ((shen-cl.form? 'shen-cl.<= 3 Expr)
-     (CONS '<= (CDR Expr)))
+    ((shen-cl.form? 'shen-cl.<= 3 expr)
+     (CONS '<= (CDR expr)))
 
-    ; Otherwise, convert from Shen bool to Lisp bool with shen-cl.true?
+    ; Otherwise, inject conversion from Shen bool to Lisp bool with shen-cl.true?
     (T
-     (LIST 'shen-cl.true? Expr))))
+     (LIST 'shen-cl.true? expr))))
 
-(DEFUN shen-cl.true? (X)
+(DEFUN shen-cl.true? (x)
   (COND
-    ((EQ 'true  X) 'T)
-    ((EQ 'false X) ())
+    ((EQ 'true  x) 'T)
+    ((EQ 'false x) ())
     (T (simple-error (cn "boolean expected: not ~A~%" X)))))
 
-(DEFUN shen-cl.maplispsym (S)
+(DEFUN shen-cl.map-operator (s)
   (COND
-    ((EQ S '=)  'shen-cl.=)
-    ((EQ S '>)  'shen-cl.>)
-    ((EQ S '<)  'shen-cl.<)
-    ((EQ S '>=) 'shen-cl.>=)
-    ((EQ S '<=) 'shen-cl.<=)
-    ((EQ S '+)  'shen-cl.+)
-    ((EQ S '-)  'shen-cl.-)
-    ((EQ S '/)  'shen-cl./)
-    ((EQ S '*)  'shen-cl.*)
-    (T          S)))
+    ((EQ s '=)  'shen-cl.=)
+    ((EQ s '>)  'shen-cl.>)
+    ((EQ s '<)  'shen-cl.<)
+    ((EQ s '>=) 'shen-cl.>=)
+    ((EQ s '<=) 'shen-cl.<=)
+    ((EQ s '+)  'shen-cl.+)
+    ((EQ s '-)  'shen-cl.-)
+    ((EQ s '/)  'shen-cl./)
+    ((EQ s '*)  'shen-cl.*)
+    (T          s)))

@@ -36,7 +36,7 @@
 
 #+ECL
 (SETF *DEBUGGER-HOOK*
-  #'(LAMBDA (C H) (DECLARE (IGNORE H)) (PRINT C) (SI:QUIT 1)))
+  #'(LAMBDA (e h) (DECLARE (IGNORE h)) (PRINT e) (SI:QUIT 1)))
 
 ;
 ; Shared Global Declarations
@@ -57,7 +57,7 @@
 
 (DEFVAR *implementation* #+CLISP "GNU CLisp" #+CCL "Clozure CL" #+ECL "ECL" #+SBCL "SBCL")
 (DEFVAR *release*
-  #+CLISP (LET ((V (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ V 0 (POSITION #\SPACE V :START 0)))
+  #+CLISP (LET ((v (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ v 0 (POSITION #\SPACE v :START 0)))
   #-CLISP (LISP-IMPLEMENTATION-VERSION))
 
 #+ECL
@@ -76,70 +76,82 @@
 ; Internal Helpers
 ;
 
-(DEFUN shen-cl.escape (S)
-  (COND
-    ((STRING-EQUAL S "")          S)
-    ((STRING-EQUAL (pos S 0) "#") (cn "_hash1957" (shen-cl.escape (tlstr S))))
-    ((STRING-EQUAL (pos S 0) "'") (cn "_quote1957" (shen-cl.escape (tlstr S))))
-    ((STRING-EQUAL (pos S 0) "`") (cn "_backquote1957" (shen-cl.escape (tlstr S))))
-    ((STRING-EQUAL (pos S 0) "|") (cn "bar!1957" (shen-cl.escape (tlstr S))))
-    (T                            (cn (pos S 0) (shen-cl.escape (tlstr S))))))
+; TODO: sbcl doesn't want this to be a DEFCONSTANT, thinks it's being redefined
+(DEFVAR shen-cl.*escapes*
+  (LIST
+    (CONS "#" "_hash1957")
+    (CONS "'" "_quote1957")
+    (CONS "`" "_backtick1957")
+    (CONS "|" "_pipe1957")))
 
-(DEFUN shen-cl.unescape (X)
-  (COND
-    ((STRING-EQUAL X "")                  X)
-    ((shen-cl.prefix? X "_hash1957")      (cn "#" (shen-cl.unescape (SUBSEQ X 9))))
-    ((shen-cl.prefix? X "_quote1957")     (cn "'" (shen-cl.unescape (SUBSEQ X 10))))
-    ((shen-cl.prefix? X "_backquote1957") (cn "`" (shen-cl.unescape (SUBSEQ X 14))))
-    ((shen-cl.prefix? X "bar!1957")       (cn "|" (shen-cl.unescape (SUBSEQ X 8))))
-    (T                                    (cn (pos X 0) (shen-cl.unescape (tlstr X))))))
+(DEFUN shen-cl.replace-all (s part replacement)
+  (WITH-OUTPUT-TO-STRING (out)
+    (LOOP
+      WITH part-length = (LENGTH part)
+      FOR old-pos = 0 THEN (+ pos part-length)
+      FOR pos = (SEARCH part s :START2 old-pos :TEST #'CHAR=)
+      DO (WRITE-STRING s out :START old-pos :END (OR pos (LENGTH s)))
+      WHEN pos DO (WRITE-STRING replacement out)
+      WHILE pos)))
 
-; Returns Lisp boolean
-(DEFUN shen-cl.== (X Y)
+(DEFUN shen-cl.escape (s)
+  (REDUCE
+    #'(LAMBDA (s pair) (shen-cl.replace-all s (CAR pair) (CDR pair)))
+    shen-cl.*escapes*
+    :INITIAL-VALUE s))
+
+(DEFUN shen-cl.unescape (s)
+  (REDUCE
+    #'(LAMBDA (s pair) (shen-cl.replace-all s (CDR pair) (CAR pair)))
+    shen-cl.*escapes*
+    :INITIAL-VALUE s))
+
+(DEFUN shen-cl.== (x y)
+  "Returns Lisp boolean"
   (COND
-    ((AND (CONSP X) (CONSP Y) (shen-cl.== (CAR X) (CAR Y)))
-     (shen-cl.== (CDR X) (CDR Y)))
-    ((AND (STRINGP X) (STRINGP Y))
-     (STRING= X Y))
-    ((AND (NUMBERP X) (NUMBERP Y))
-     (= X Y))
-    ((AND (ARRAYP X) (ARRAYP Y))
-     (AND (= (LENGTH X) (LENGTH Y)) (shen-cl.array= X Y 0 (LENGTH X))))
+    ((AND (CONSP x) (CONSP y) (shen-cl.== (CAR x) (CAR y)))
+     (shen-cl.== (CDR x) (CDR y)))
+    ((AND (STRINGP x) (STRINGP y))
+     (STRING= x y))
+    ((AND (NUMBERP x) (NUMBERP y))
+     (= x y))
+    ((AND (ARRAYP x) (ARRAYP y))
+     (AND (= (LENGTH x) (LENGTH y)) (shen-cl.array= x y 0 (LENGTH x))))
     (T
-     (EQUAL X Y))))
+     (EQUAL x y))))
 
-(DEFUN shen-cl.array= (X Y Index Size)
+(DEFUN shen-cl.array= (x y index size)
   (OR
-    (= Index Size)
+    (= index size)
     (AND
-      (shen-cl.== (AREF X Index) (AREF Y Index))
-      (shen-cl.array= X Y (1+ Index) Size))))
+      (shen-cl.== (AREF x index) (AREF y index))
+      (shen-cl.array= x y (1+ index) size))))
 
-(DEFUN shen-cl.process-number (S)
+(DEFUN shen-cl.process-number (s)
   (COND
-    ((STRING-EQUAL S "")
+    ((STRING-EQUAL s "")
      "")
-    ((STRING-EQUAL (pos S 0) "d")
-     (IF (STRING-EQUAL (pos S 1) "0") "" (cn "e" (tlstr S))))
+    ((STRING-EQUAL (pos s 0) "d")
+     (IF (STRING-EQUAL (pos s 1) "0") "" (cn "e" (tlstr s))))
     (T
-     (cn (pos S 0) (shen-cl.process-number (tlstr S))))))
+     (cn (pos s 0) (shen-cl.process-number (tlstr s))))))
 
-(DEFUN shen-cl.prefix? (Str Prefix)
-  (LET ((Prefix-Length (LENGTH Prefix)))
+(DEFUN shen-cl.prefix? (s prefix)
+  (LET ((prefix-length (LENGTH prefix)))
     (AND
-      (>= (LENGTH Str) Prefix-Length)
-      (STRING-EQUAL Str Prefix :END1 Prefix-Length))))
+      (>= (LENGTH s) prefix-length)
+      (STRING-EQUAL s prefix :END1 prefix-length))))
 
-(DEFUN shen-cl.open-file (Path Direction)
+(DEFUN shen-cl.open-file (path direction)
   (COND
-    ((EQ Direction 'in)
-     (OPEN Path
+    ((EQ direction 'in)
+     (OPEN path
       :DIRECTION :INPUT
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
         #-CLISP :DEFAULT))
-    ((EQ Direction 'out)
-     (OPEN Path
+    ((EQ direction 'out)
+     (OPEN path
       :DIRECTION :OUTPUT
       :ELEMENT-TYPE
         #+CLISP 'UNSIGNED-BYTE
@@ -148,180 +160,183 @@
     (T
      (ERROR "invalid direction"))))
 
-(DEFUN shen-cl.double (X)
-  (IF (INTEGERP X) X (COERCE X 'DOUBLE-FLOAT)))
+(DEFUN shen-cl.double (x)
+  (IF (INTEGERP x) x (COERCE x 'DOUBLE-FLOAT)))
 
-(DEFUN shen-cl.* (X Y)
-  (IF (OR (ZEROP X) (ZEROP Y))
+(DEFUN shen-cl.* (x y)
+  (IF (OR (ZEROP x) (ZEROP y))
     0
-    (* (shen-cl.double X) (shen-cl.double Y))))
+    (* (shen-cl.double x) (shen-cl.double y))))
 
-(DEFUN shen-cl.+ (X Y)
-  (+ (shen-cl.double X) (shen-cl.double Y)))
+(DEFUN shen-cl.+ (x y)
+  (+ (shen-cl.double x) (shen-cl.double y)))
 
-(DEFUN shen-cl.- (X Y)
-  (- (shen-cl.double X) (shen-cl.double Y)))
+(DEFUN shen-cl.- (x y)
+  (- (shen-cl.double x) (shen-cl.double y)))
 
-(DEFUN shen-cl./ (X Y)
-  (LET ((Div (/ (shen-cl.double X) (shen-cl.double Y))))
-    (IF (INTEGERP Div)
-      Div
-      (* (COERCE 1.0 'DOUBLE-FLOAT) Div))))
+(DEFUN shen-cl./ (x y)
+  (LET ((z (/ (shen-cl.double x) (shen-cl.double y))))
+    (IF (INTEGERP z)
+      z
+      (* (COERCE 1.0 'DOUBLE-FLOAT) z))))
 
-(DEFUN shen-cl.> (X Y)
-  (IF (> X Y) 'true 'false))
+(DEFUN shen-cl.> (x y)
+  (IF (> x y) 'true 'false))
 
-(DEFUN shen-cl.< (X Y)
-  (IF (< X Y) 'true 'false))
+(DEFUN shen-cl.< (x y)
+  (IF (< x y) 'true 'false))
 
-(DEFUN shen-cl.>= (X Y)
-  (IF (>= X Y) 'true 'false))
+(DEFUN shen-cl.>= (x y)
+  (IF (>= x y) 'true 'false))
 
-(DEFUN shen-cl.<= (X Y)
-  (IF (<= X Y) 'true 'false))
+(DEFUN shen-cl.<= (x y)
+  (IF (<= x y) 'true 'false))
 
-; Returns Shen boolean
-(DEFUN shen-cl.= (X Y)
-  (IF (shen-cl.== X Y) 'true 'false))
+(DEFUN shen-cl.= (x y)
+  "Returns Shen boolean"
+  (IF (shen-cl.== x y) 'true 'false))
 
 ;
 ; KL Primitive Definitions
 ;
 
-(DEFMACRO if (X Y Z)
-  `(LET ((*C* ,X))
-    (COND
-      ((EQ *C* 'true)  ,Y)
-      ((EQ *C* 'false) ,Z)
-      (T               (ERROR "~S is not a boolean~%" *C*)))))
+(DEFMACRO if (c x y)
+  (LET ((r (GENSYM)))
+    `(LET ((,r ,c))
+      (COND
+        ((EQ ,r 'true)  ,x)
+        ((EQ ,r 'false) ,y)
+        (T               (ERROR "~S is not a boolean~%" ,r))))))
 
-(DEFMACRO and (X Y)
-  `(if ,X (if ,Y 'true 'false) 'false))
+(DEFMACRO and (x y)
+  `(if ,x (if ,y 'true 'false) 'false))
 
-(DEFMACRO or (X Y)
-  `(if ,X 'true (if ,Y 'true 'false)))
+(DEFMACRO or (x y)
+  `(if ,x 'true (if ,y 'true 'false)))
 
-(DEFUN set (X Y)
-  (SET X Y))
+(DEFUN set (s x)
+  (SET s x))
 
-(DEFUN value (X)
-  (SYMBOL-VALUE X))
+(DEFUN value (s)
+  (SYMBOL-VALUE s))
 
-(DEFUN simple-error (String)
-  (ERROR "~A" String))
+(DEFUN simple-error (s)
+  (ERROR "~A" s))
 
-(DEFMACRO trap-error (X F)
-  `(HANDLER-CASE ,X (ERROR (Condition) (FUNCALL ,F Condition))))
+(DEFMACRO trap-error (body handler)
+  (LET ((e (GENSYM)))
+    `(HANDLER-CASE ,body (ERROR (,e) (FUNCALL ,handler ,e)))))
 
-(DEFUN error-to-string (E)
-  (IF (TYPEP E 'CONDITION)
-    (FORMAT NIL "~A" E)
-    (ERROR "~S is not an exception~%" E)))
+(DEFUN error-to-string (e)
+  (IF (TYPEP e 'CONDITION)
+    (FORMAT NIL "~A" e)
+    (ERROR "~S is not an exception~%" e)))
 
-(DEFUN cons (X Y)
-  (CONS X Y))
+(DEFUN cons (x y)
+  (CONS x y))
 
-(DEFUN hd (X)
-  (CAR X))
+(DEFUN hd (x)
+  (CAR x))
 
-(DEFUN tl (X)
-  (CDR X))
+(DEFUN tl (x)
+  (CDR x))
 
-(DEFUN cons? (X)
-  (IF (CONSP X) 'true 'false))
+(DEFUN cons? (x)
+  (IF (CONSP x) 'true 'false))
 
-(DEFUN intern (String)
-  (INTERN (shen-cl.escape String)))
+(DEFUN intern (s)
+  (INTERN (shen-cl.escape s)))
 
-(DEFUN eval-kl (X)
-  (LET ((E (EVAL (shen-cl.kl->lisp NIL X))))
-    (IF (AND (CONSP X) (EQ (CAR X) 'defun))
-      (COMPILE E)
-      E)))
+(DEFUN eval-kl (x)
+  (LET ((e (EVAL (shen-cl.kl->lisp NIL x))))
+    (IF (AND (CONSP x) (EQ (CAR x) 'defun))
+      (COMPILE e)
+      e)))
 
-(DEFMACRO lambda (X Y)
-  `(FUNCTION (LAMBDA (,X) ,Y)))
+(DEFMACRO let (x y z)
+  `(LET ((,x ,y)) ,z))
 
-(DEFMACRO let (X Y Z)
-  `(LET ((,X ,Y)) ,Z))
+(DEFMACRO lambda (param body)
+  `(FUNCTION (LAMBDA (,param) ,body)))
 
-(DEFMACRO freeze (X)
-  `(FUNCTION (LAMBDA () ,X)))
+(DEFMACRO freeze (x)
+  `(FUNCTION (LAMBDA () ,x)))
 
-(DEFUN absvector (N)
-  (MAKE-ARRAY (LIST N)))
+(DEFUN absvector (n)
+  (MAKE-ARRAY n))
 
-(DEFUN absvector? (X)
-  (IF (ARRAYP X) 'true 'false))
+(DEFUN absvector? (x)
+  (IF (ARRAYP x) 'true 'false))
 
-(DEFUN address-> (Vector N Value)
-  (SETF (SVREF Vector N) Value) Vector)
+(DEFUN address-> (a n x)
+  (SETF (SVREF a n) x) a)
 
-(DEFUN <-address (Vector N)
-  (SVREF Vector N))
+(DEFUN <-address (a n)
+  (SVREF a n))
 
-(DEFUN write-byte (Byte S)
-  (WRITE-BYTE Byte S))
+(DEFUN write-byte (b s)
+  (WRITE-BYTE b s))
 
-(DEFUN read-byte (S)
-  (READ-BYTE S NIL -1))
+(DEFUN read-byte (s)
+  (READ-BYTE s NIL -1))
 
-(DEFUN open (String Direction)
-  (LET ((Path (FORMAT NIL "~A~A" *home-directory* String)))
-    (shen-cl.open-file Path Direction)))
+(DEFUN open (path direction)
+  (shen-cl.open-file (FORMAT NIL "~A~A" *home-directory* path) direction))
 
-(DEFUN type (X MyType)
-  (DECLARE (IGNORE MyType))
-  X)
+(DEFUN type (x type)
+  (DECLARE (IGNORE type))
+  x)
 
-(DEFUN close (Stream)
-  (CLOSE Stream)
+(DEFUN close (s)
+  (CLOSE s)
   NIL)
 
-(DEFUN pos (X N)
-  (COERCE (LIST (CHAR X N)) 'STRING))
+(DEFUN pos (s n)
+  (COERCE (LIST (CHAR s n)) 'STRING))
 
-(DEFUN tlstr (X)
-  (SUBSEQ X 1))
+(DEFUN tlstr (s)
+  (DECLARE (TYPE STRING s))
+  (SUBSEQ s 1))
 
-(DEFUN cn (Str1 Str2)
-  (DECLARE (TYPE STRING Str1) (TYPE STRING Str2))
-  (CONCATENATE 'STRING Str1 Str2))
+(DEFUN cn (s1 s2)
+  (DECLARE (TYPE STRING s1) (TYPE STRING s2))
+  (CONCATENATE 'STRING s1 s2))
 
-(DEFUN string? (S)
-  (IF (STRINGP S) 'true 'false))
+(DEFUN string? (x)
+  (IF (STRINGP x) 'true 'false))
 
-(DEFUN n->string (N)
-  (FORMAT NIL "~C" (CODE-CHAR N)))
+(DEFUN n->string (n)
+  (FORMAT NIL "~C" (CODE-CHAR n)))
 
-(DEFUN string->n (S)
-  (CHAR-CODE (CAR (COERCE S 'LIST))))
+(DEFUN string->n (s)
+  (DECLARE (TYPE STRING s))
+  (CHAR-CODE (CAR (COERCE s 'LIST))))
 
-(DEFUN str (X)
+(DEFUN str (x)
   (COND
-    ((NULL X)      (ERROR "[] is not an atom in Shen; str cannot convert it to a string.~%"))
-    ((SYMBOLP X)   (shen-cl.unescape (SYMBOL-NAME X)))
-    ((NUMBERP X)   (shen-cl.process-number (FORMAT NIL "~A" X)))
-    ((STRINGP X)   (FORMAT NIL "~S" X))
-    ((STREAMP X)   (FORMAT NIL "~A" X))
-    ((FUNCTIONP X) (FORMAT NIL "~A" X))
-    (T             (ERROR "~S is not an atom, stream or closure; str cannot convert it to a string.~%" X))))
+    ((NULL x)      (ERROR "[] is not an atom in Shen; str cannot convert it to a string.~%"))
+    ((SYMBOLP x)   (shen-cl.unescape (SYMBOL-NAME x)))
+    ((NUMBERP x)   (shen-cl.process-number (FORMAT NIL "~A" x)))
+    ((STRINGP x)   (FORMAT NIL "~S" x))
+    ((STREAMP x)   (FORMAT NIL "~A" x))
+    ((FUNCTIONP x) (FORMAT NIL "~A" x))
+    (T             (ERROR "~S is not an atom, stream or closure; str cannot convert it to a string.~%" x))))
 
-(DEFUN get-time (Time)
+(DEFUN get-time (mode)
   (COND
-    ((EQ Time 'run)  (* 1.0 (/ (GET-INTERNAL-RUN-TIME) INTERNAL-TIME-UNITS-PER-SECOND)))
-    ((EQ Time 'unix) (- (GET-UNIVERSAL-TIME) 2208988800))
-    (T               (ERROR "get-time does not understand the parameter ~A~%" Time))))
+    ((EQ mode 'run)  (* 1.0 (/ (GET-INTERNAL-RUN-TIME) INTERNAL-TIME-UNITS-PER-SECOND)))
+    ((EQ mode 'unix) (- (GET-UNIVERSAL-TIME) 2208988800))
+    (T               (ERROR "get-time does not understand the parameter ~A~%" mode))))
 
-(DEFUN number? (N)
-  (IF (NUMBERP N) 'true 'false))
+(DEFUN number? (x)
+  (IF (NUMBERP x) 'true 'false))
 
 ;
 ; Shared Startup Procedures
 ;
 
-(DEFUN shen-cl.eval-print (X)
-  (print (eval X)))
+(DEFUN shen-cl.eval-print (x)
+  (print (eval x)))
 
 (DEFUN shen-cl.print-version ()
   (FORMAT T "~A~%" *version*)
@@ -339,34 +354,33 @@
   (FORMAT T "Evaluates options in order~%")
   (FORMAT T "Starts the REPL if no eval/load options specified~%"))
 
-(DEFUN shen-cl.option-prefix? (Args Options)
-  (AND (CONSP Args) (MEMBER (CAR Args) Options :TEST #'STRING-EQUAL)))
+(DEFUN shen-cl.flag? (args options)
+  (AND (CONSP args) (MEMBER (CAR args) options :TEST #'STRING-EQUAL)))
 
-; Returns T if repl should be started
-(DEFUN shen-cl.interpret-args (Args)
+(DEFUN shen-cl.interpret-args (args)
+  "Returns T if repl should be started"
   (COND
-    ((shen-cl.option-prefix? Args (LIST "-v" "--version"))
-       (shen-cl.print-version)
-       NIL)
-    ((shen-cl.option-prefix? Args (LIST "-h" "--help"))
-       (shen-cl.print-version)
-       (FORMAT T "~%")
-       (shen-cl.print-help)
-       NIL)
-    ((shen-cl.option-prefix? Args (LIST "-e" "--eval"))
-       (LET ((Exprs (read-from-string (CADR Args))))
-         (MAPC #'shen-cl.eval-print Exprs))
-       (shen-cl.interpret-args (CDDR Args))
-       NIL)
-    ((shen-cl.option-prefix? Args (LIST "-l" "--load"))
-       (load (CADR Args))
-       (shen-cl.interpret-args (CDDR Args))
-       NIL)
-    ((shen-cl.option-prefix? Args (LIST "-q" "--quiet"))
-       (SETQ *hush* 'true)
-       (shen-cl.interpret-args (CDR Args)))
-    ((CONSP Args)
-     (shen-cl.interpret-args (CDR Args)))
+    ((shen-cl.flag? args (LIST "-v" "--version"))
+     (shen-cl.print-version)
+     NIL)
+    ((shen-cl.flag? args (LIST "-h" "--help"))
+     (shen-cl.print-version)
+     (FORMAT T "~%")
+     (shen-cl.print-help)
+     NIL)
+    ((shen-cl.flag? args (LIST "-e" "--eval"))
+     (MAPC #'shen-cl.eval-print (read-from-string (CADR args)))
+     (shen-cl.interpret-args (CDDR args))
+     NIL)
+    ((shen-cl.flag? args (LIST "-l" "--load"))
+     (load (CADR args))
+     (shen-cl.interpret-args (CDDR args))
+     NIL)
+    ((shen-cl.flag? args (LIST "-q" "--quiet"))
+     (SETQ *hush* 'true)
+     (shen-cl.interpret-args (CDR args)))
+    ((CONSP args)
+     (shen-cl.interpret-args (CDR args)))
     (T
      T)))
 

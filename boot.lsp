@@ -118,87 +118,87 @@
 ;
 
 #-ECL
-(DEFUN shen-cl.compile-lsp (File)
-  (LET ((LspFile (FORMAT NIL "~A~A.lsp" shen-cl.binary-path File)))
-    (COMPILE-FILE LspFile)))
+(DEFUN shen-cl.compile-lsp (file)
+  (LET ((lsp-file (FORMAT NIL "~A~A.lsp" shen-cl.binary-path file)))
+    (COMPILE-FILE lsp-file)))
 
 #+ECL
-(DEFUN shen-cl.compile-lsp (File)
-  (LET ((LspFile (FORMAT NIL "~A~A.lsp" shen-cl.binary-path File))
-        (FasFile (FORMAT NIL "~A~A~A" shen-cl.binary-path File shen-cl.compiled-suffix))
-        (ObjFile (FORMAT NIL "~A~A~A" shen-cl.binary-path File shen-cl.object-suffix)))
-    (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
-    (PUSH ObjFile shen-cl.*object-files*)
-    (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile))))
+(DEFUN shen-cl.compile-lsp (file)
+  (LET ((lsp-file (FORMAT NIL "~A~A.lsp" shen-cl.binary-path file))
+        (fas-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix))
+        (obj-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.object-suffix)))
+    (COMPILE-FILE lsp-file :OUTPUT-FILE obj-file :SYSTEM-P T)
+    (PUSH obj-file shen-cl.*object-files*)
+    (C:BUILD-FASL fas-file :LISP-FILES (LIST obj-file))))
 
 ;
 ; Shared Loading Procedure
 ;
 
-(DEFUN shen-cl.import-lsp (File)
-  (LET ((SrcFile (FORMAT NIL "~A~A.lsp" shen-cl.source-path File))
-        (LspFile (FORMAT NIL "~A~A.lsp" shen-cl.binary-path File))
-        (FasFile (FORMAT NIL "~A~A~A" shen-cl.binary-path File shen-cl.compiled-suffix)))
-    (shen-cl.copy-file SrcFile LspFile)
-    (shen-cl.compile-lsp File)
-    (LOAD FasFile)))
+(DEFUN shen-cl.import-lsp (file)
+  (LET ((src-file (FORMAT NIL "~A~A.lsp" shen-cl.source-path file))
+        (lsp-file (FORMAT NIL "~A~A.lsp" shen-cl.binary-path file))
+        (fas-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix)))
+    (shen-cl.copy-file src-file lsp-file)
+    (shen-cl.compile-lsp file)
+    (LOAD fas-file)))
 
-(DEFUN shen-cl.import-kl (File)
-  (LET ((KlFile  (FORMAT NIL "~A~A.kl" shen-cl.klambda-path File))
-        (LspFile (FORMAT NIL "~A~A.lsp" shen-cl.binary-path File))
-        (FasFile (FORMAT NIL "~A~A~A" shen-cl.binary-path File shen-cl.compiled-suffix)))
-    (shen-cl.write-lsp-file LspFile (shen-cl.translate-kl (shen-cl.read-kl-file KlFile)))
-    (shen-cl.compile-lsp File)
-    (LOAD FasFile)))
+(DEFUN shen-cl.import-kl (file)
+  (LET ((kl-file  (FORMAT NIL "~A~A.kl" shen-cl.klambda-path file))
+        (lsp-file (FORMAT NIL "~A~A.lsp" shen-cl.binary-path file))
+        (fas-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix)))
+    (shen-cl.write-lsp-file lsp-file (shen-cl.translate-kl (shen-cl.read-kl-file kl-file)))
+    (shen-cl.compile-lsp file)
+    (LOAD fas-file)))
 
-(DEFUN shen-cl.read-kl-file (File)
+(DEFUN shen-cl.read-kl-file (file)
   (WITH-OPEN-FILE
-    (In File
+    (in file
       :DIRECTION :INPUT)
-    (LET ((CleanedCode (shen-cl.clean-kl (READ-CHAR In NIL NIL) In NIL NIL)))
-      (READ-FROM-STRING (FORMAT NIL "(~A)" (COERCE CleanedCode 'STRING))))))
+    (LET ((clean-code (shen-cl.clean-kl (READ-CHAR in NIL NIL) in NIL NIL)))
+      (READ-FROM-STRING (FORMAT NIL "(~A)" (COERCE clean-code 'STRING))))))
 
-(DEFUN shen-cl.clean-kl (Char In Chars InsideQuote)
-  (IF (NULL Char)
-    (REVERSE Chars)
+(DEFUN shen-cl.clean-kl (ch in chars quoted)
+  (IF (NULL ch)
+    (REVERSE chars)
     (shen-cl.clean-kl
-      (READ-CHAR In NIL NIL)
-      In
-      (IF (AND (NOT InsideQuote) (MEMBER Char '(#\: #\; #\,) :TEST 'CHAR-EQUAL))
-        (LIST* #\| Char #\| Chars)
-        (CONS Char Chars))
-      (IF (CHAR-EQUAL Char #\")
-        (NOT InsideQuote)
-        InsideQuote))))
+      (READ-CHAR in NIL NIL)
+      in
+      (IF (AND (NOT quoted) (MEMBER ch '(#\: #\; #\,) :TEST 'CHAR-EQUAL))
+        (LIST* #\| ch #\| chars)
+        (CONS ch chars))
+      (IF (CHAR-EQUAL ch #\")
+        (NOT quoted)
+        quoted))))
 
-(DEFUN shen-cl.translate-kl (KlCode)
-  (MAPCAR #'(LAMBDA (X) (shen-cl.kl->lisp NIL X)) KlCode))
+(DEFUN shen-cl.translate-kl (kl-code)
+  (MAPCAR #'(LAMBDA (expr) (shen-cl.kl->lisp NIL expr)) kl-code))
 
-(DEFUN shen-cl.write-lsp-file (File Code)
+(DEFUN shen-cl.write-lsp-file (file code)
   (WITH-OPEN-FILE
-    (Out File
+    (out file
       :DIRECTION         :OUTPUT
       :IF-EXISTS         :SUPERSEDE
       :IF-DOES-NOT-EXIST :CREATE)
-    (FORMAT Out "~%")
-    (MAPC #'(LAMBDA (X) (FORMAT Out "~S~%~%" X)) Code)
-    File))
+    (FORMAT out "~%")
+    (MAPC #'(LAMBDA (X) (FORMAT out "~S~%~%" X)) code)
+    file))
 
-(DEFUN shen-cl.copy-file (SrcFile DestFile)
+(DEFUN shen-cl.copy-file (src-file dest-file)
   (WITH-OPEN-FILE
-    (In SrcFile
+    (in src-file
       :DIRECTION    :INPUT
       :ELEMENT-TYPE '(UNSIGNED-BYTE 8))
     (WITH-OPEN-FILE
-      (Out DestFile
+      (out dest-file
         :DIRECTION         :OUTPUT
         :IF-EXISTS         :SUPERSEDE
         :IF-DOES-NOT-EXIST :CREATE
         :ELEMENT-TYPE      '(UNSIGNED-BYTE 8))
-      (LET ((Buf (MAKE-ARRAY 4096 :ELEMENT-TYPE (STREAM-ELEMENT-TYPE In))))
-        (LOOP FOR Pos = (READ-SEQUENCE Buf In)
-          WHILE (PLUSP Pos)
-          DO (WRITE-SEQUENCE Buf Out :END Pos))))))
+      (LET ((buf (MAKE-ARRAY 4096 :ELEMENT-TYPE (STREAM-ELEMENT-TYPE in))))
+        (LOOP FOR pos = (READ-SEQUENCE buf in)
+          WHILE (PLUSP pos)
+          DO (WRITE-SEQUENCE buf out :END pos))))))
 
 (COMPILE 'shen-cl.compile-lsp)
 (COMPILE 'shen-cl.import-lsp)

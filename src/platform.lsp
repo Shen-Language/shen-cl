@@ -23,13 +23,13 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(DEFUN lisp.platform-macro (Expr)
-  (IF (shen-cl.true? (symbol? Expr))
-    (LET ((Str (str Expr)))
+(DEFUN lisp.platform-macro (expr)
+  (IF (shen-cl.true? (symbol? expr))
+    (LET ((Str (str expr)))
       (IF (shen-cl.prefix? Str "lisp.")
         (LIST 'protect (intern (STRING-UPCASE (SUBSTITUTE #\: #\. (SUBSEQ Str 5)))))
-        Expr))
-    Expr))
+        expr))
+    expr))
 
 (put (protect 'lisp.platform-macro) 'arity 1 *property-vector*)
 
