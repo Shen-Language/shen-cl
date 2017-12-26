@@ -175,14 +175,6 @@
   (IF (CONSP expr)
     (COND
 
-      ; hd -> CAR
-      ((shen-cl.form? 'hd 2 expr)
-       (LIST 'CAR (shen-cl.optimise-application (CADR expr))))
-
-      ; tl -> CDR
-      ((shen-cl.form? 'tl 2 expr)
-       (LIST 'CDR (shen-cl.optimise-application (CADR expr))))
-
       ; cons -> CONS
       ((shen-cl.form? 'cons 3 expr)
        (LIST 'CONS
@@ -393,12 +385,6 @@
     ; Otherwise, inject conversion from Shen bool to Lisp bool with shen-cl.true?
     (T
      (LIST 'shen-cl.true? expr))))
-
-(DEFUN shen-cl.true? (x)
-  (COND
-    ((EQ 'true  x) 'T)
-    ((EQ 'false x) ())
-    (T (simple-error (cn "boolean expected: not ~A~%" X)))))
 
 (DEFUN shen-cl.map-operator (s)
   (COND

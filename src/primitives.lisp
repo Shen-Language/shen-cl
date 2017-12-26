@@ -76,7 +76,7 @@
 ; Internal Helpers
 ;
 
-; TODO: sbcl doesn't want this to be a DEFCONSTANT, thinks it's being redefined
+; TODO: SBCL doesn't want this to be a DEFCONSTANT, thinks it's being redefined
 (DEFVAR shen-cl.*escapes*
   (LIST
     (CONS "#" "_hash1957")
@@ -196,23 +196,37 @@
   "Returns Shen boolean"
   (IF (shen-cl.== x y) 'true 'false))
 
+(DEFUN shen-cl.true? (x)
+  (COND
+    ((EQ 'true  x) 'T)
+    ((EQ 'false x) 'NIL)
+    (T (simple-error (cn "~S is not a boolean~%" x)))))
+
 ;
 ; KL Primitive Definitions
 ;
 
 (DEFMACRO if (c x y)
-  (LET ((r (GENSYM)))
-    `(LET ((,r ,c))
-      (COND
-        ((EQ ,r 'true)  ,x)
-        ((EQ ,r 'false) ,y)
-        (T               (ERROR "~S is not a boolean~%" ,r))))))
+  `(IF (shen-cl.true? ,c) ,x ,y))
 
 (DEFMACRO and (x y)
   `(if ,x (if ,y 'true 'false) 'false))
 
 (DEFMACRO or (x y)
   `(if ,x 'true (if ,y 'true 'false)))
+
+(DEFMACRO trap-error (body handler)
+  (LET ((e (GENSYM)))
+    `(HANDLER-CASE ,body (ERROR (,e) (FUNCALL ,handler ,e)))))
+
+(DEFMACRO let (var val body)
+  `(LET ((,var ,val)) ,body))
+
+(DEFMACRO lambda (param body)
+  `(FUNCTION (LAMBDA (,param) ,body)))
+
+(DEFMACRO freeze (x)
+  `(FUNCTION (LAMBDA () ,x)))
 
 (DEFUN set (s x)
   (SET s x))
@@ -223,10 +237,6 @@
 (DEFUN simple-error (s)
   (ERROR "~A" s))
 
-(DEFMACRO trap-error (body handler)
-  (LET ((e (GENSYM)))
-    `(HANDLER-CASE ,body (ERROR (,e) (FUNCALL ,handler ,e)))))
-
 (DEFUN error-to-string (e)
   (IF (TYPEP e 'CONDITION)
     (FORMAT NIL "~A" e)
@@ -236,10 +246,10 @@
   (CONS x y))
 
 (DEFUN hd (x)
-  (CAR x))
+  (IF (CONSP x) (CAR x) (ERROR "~S is not a cons~%" x)))
 
 (DEFUN tl (x)
-  (CDR x))
+  (IF (CONSP x) (CDR x) (ERROR "~S is not a cons~%" x)))
 
 (DEFUN cons? (x)
   (IF (CONSP x) 'true 'false))
@@ -252,15 +262,6 @@
     (IF (AND (CONSP x) (EQ (CAR x) 'defun))
       (COMPILE e)
       e)))
-
-(DEFMACRO let (x y z)
-  `(LET ((,x ,y)) ,z))
-
-(DEFMACRO lambda (param body)
-  `(FUNCTION (LAMBDA (,param) ,body)))
-
-(DEFMACRO freeze (x)
-  `(FUNCTION (LAMBDA () ,x)))
 
 (DEFUN absvector (n)
   (MAKE-ARRAY n))
