@@ -44,6 +44,10 @@
       ((shen-cl.form? 'type 3 expr)
        (shen-cl.kl->lisp locals (CADR expr)))
 
+      ; TODO: factor out trivial lambdas:
+      ;       (lambda X (f X)) -> (FUNCTION f)
+      ;       where f is not a variable
+
       ; Build lambda, escaping param with shen-cl.rename
       ((shen-cl.form? 'lambda 3 expr)
        (LIST 'FUNCTION
