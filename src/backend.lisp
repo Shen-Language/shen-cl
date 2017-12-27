@@ -46,10 +46,14 @@
 
       ; Build lambda, escaping param with shen-cl.rename
       ((shen-cl.form? 'lambda 3 expr)
-       (LIST 'FUNCTION
-        (LIST 'LAMBDA
-          (LIST (shen-cl.rename (CADR expr)))
-          (shen-cl.kl->lisp (CONS (CADR expr) locals) (CADDR expr)))))
+       (LET ((param (CADR expr))
+             (body  (CADDR expr)))
+        (LIST 'FUNCTION
+          (IF (shen-cl.trivial-lambda? param body)
+            (CAR body)
+            (LIST 'LAMBDA
+              (LIST (shen-cl.rename (CADR expr)))
+              (shen-cl.kl->lisp (CONS (CADR expr) locals) (CADDR expr)))))))
 
       ; Flatten nested let's into single LET*
       ((shen-cl.form? 'let 4 expr)
@@ -246,13 +250,21 @@
     ((CONSP args) (shen-cl.build-partial-application (LIST 'FUNCALL fn (CAR args)) (CDR args)))
     (T            (shen.f_error 'shen-cl.build-partial-application))))
 
+(DEFUN shen-cl.trivial-lambda? (param body)
+  "A trivial lambda is of the form: (lambda X (f X))"
+  (AND
+    (CONSP body)
+    (= 2 (LENGTH body))
+    (EQ param (CADR body))
+    (SYMBOLP (CAR body))
+    (UPPER-CASE-P (CHAR (SYMBOL-NAME (CAR body)) 0))))
+
 (DEFUN shen-cl.let-bindings (locals bindings)
   (IF (CONSP bindings)
     (LET ((name (CAAR bindings)))
       (CONS
         (LIST (shen-cl.rename name) (shen-cl.kl->lisp locals (CADAR bindings)))
-        (shen-cl.let-bindings (CONS name locals) (CDR bindings))))
-    ()))
+        (shen-cl.let-bindings (CONS name locals) (CDR bindings))))))
 
 (DEFUN shen-cl.build-cond (locals clauses)
   (IF (CONSP clauses)
