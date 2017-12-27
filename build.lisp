@@ -53,15 +53,12 @@
 ; Initial Setup
 ;
 
-; TODO: make better use of packages; put shen-cl in own package, put compled kl in another
-
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
 (IN-PACKAGE :CL-USER)
 (DEFVAR shen-cl.klambda-path "./kernel/klambda/")
 (DEFVAR shen-cl.source-path "./src/")
 (DEFVAR shen-cl.binary-name "shen")
-(DEFVAR shen-cl.source-suffix ".lisp")
 
 ;
 ; Confirm Pre-Requisites
@@ -97,6 +94,7 @@
 
 #+ECL
 (PROGN
+  (DEFVAR shen-cl.*object-files* NIL)
   (EXT:INSTALL-C-COMPILER)
   (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
   (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL))
@@ -115,106 +113,102 @@
 (DEFVAR shen-cl.static-library-path (FORMAT NIL "~A~A~A" shen-cl.binary-path shen-cl.binary-name shen-cl.static-library-suffix))
 (DEFVAR shen-cl.shared-library-path (FORMAT NIL "~A~A~A" shen-cl.binary-path shen-cl.binary-name shen-cl.shared-library-suffix))
 (ENSURE-DIRECTORIES-EXIST shen-cl.binary-path)
-(DEFVAR shen-cl.code ())
 
 ;
-; Implementation-Specific Compilation Procedure
+; Implementation-Specific Loading Procedure
 ;
 
-; TODO: just eval the forms that would be written to kernel.lisp instead
 #-ECL
 (DEFUN shen-cl.compile-lisp (file)
-  (LET ((lisp-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.source-suffix))
-        (fas-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix)))
-    (COMPILE-FILE lisp-file)
-    (LOAD fas-file)))
+  (LET ((lisp-file (FORMAT NIL "~A~A.lisp" shen-cl.binary-path file)))
+    (COMPILE-FILE lisp-file)))
 
 #+ECL
 (DEFUN shen-cl.compile-lisp (file)
-  (LET ((lisp-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.source-suffix))
+  (LET ((lisp-file (FORMAT NIL "~A~A.lisp" shen-cl.binary-path file))
         (fas-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix))
         (obj-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.object-suffix)))
     (COMPILE-FILE lisp-file :OUTPUT-FILE obj-file :SYSTEM-P T)
-    (DEFVAR shen-cl.object-files (LIST obj-file))
-
-    ; TODO: not necessary?
-    ;(C:BUILD-FASL fas-file :LISP-FILES (LIST obj-file))
-    ;(LOAD fas-file)
-    ))
-
-; TODO: new version of #+ECL shen-cl.compile-lisp (that doesn't work)
-; (DEFUN shen-cl.compile-lisp (file)
-;   (LET ((lisp-file (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.source-suffix))
-;         (obj-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.object-suffix)))
-;     (COMPILE-FILE lisp-file :OUTPUT-FILE obj-file :SYSTEM-P T)
-;     (DEFVAR shen-cl.object-files (LIST obj-file))))
+    (PUSH obj-file shen-cl.*object-files*)
+    (C:BUILD-FASL fas-file :LISP-FILES (LIST obj-file))))
 
 ;
 ; Shared Loading Procedure
 ;
 
-(DEFUN shen-cl.slurp-file (file)
-  (WITH-OPEN-FILE (stream file)
-    (LET ((contents (MAKE-STRING (FILE-LENGTH stream))))
-      (READ-SEQUENCE contents stream)
-      contents)))
-
-(DEFUN shen-cl.clean-kl-loop (s size index quoted chars)
-  (IF (= index size)
-    (COERCE (REVERSE chars) 'STRING)
-    (LET ((ch (CHAR s index)))
-      (shen-cl.clean-kl-loop
-        s
-        size
-        (1+ index)
-        (IF (CHAR-EQUAL ch #\")
-          (NOT quoted)
-          quoted)
-        (IF (AND (NOT quoted) (MEMBER ch '(#\: #\; #\,) :TEST 'CHAR-EQUAL))
-          (LIST* #\| ch #\| chars)
-          (CONS ch chars))))))
-
-(DEFUN shen-cl.clean-kl (s)
-  (shen-cl.clean-kl-loop s (LENGTH s) 0 NIL ()))
-
 (DEFUN shen-cl.import-lisp (file)
-  (SETQ shen-cl.code (APPEND shen-cl.code
-    (READ-FROM-STRING
-      (FORMAT NIL "(~A)"
-        (shen-cl.slurp-file
-          (FORMAT NIL "~A~A~A" shen-cl.source-path file shen-cl.source-suffix)))))))
+  (LET ((src-file  (FORMAT NIL "~A~A.lisp" shen-cl.source-path file))
+        (lisp-file (FORMAT NIL "~A~A.lisp" shen-cl.binary-path file))
+        (fas-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix)))
+    (shen-cl.copy-file src-file lisp-file)
+    (shen-cl.compile-lisp file)
+    (LOAD fas-file)))
 
 (DEFUN shen-cl.import-kl (file)
-  (SETQ shen-cl.code (APPEND shen-cl.code
-    (MAPCAR #'(LAMBDA (expr) (shen-cl.kl->lisp NIL expr))
-      (READ-FROM-STRING
-        (FORMAT NIL "(~A)"
-          (shen-cl.clean-kl
-            (shen-cl.slurp-file
-              (FORMAT NIL "~A~A.kl" shen-cl.klambda-path file)))))))))
+  (LET ((kl-file   (FORMAT NIL "~A~A.kl" shen-cl.klambda-path file))
+        (lisp-file (FORMAT NIL "~A~A.lisp" shen-cl.binary-path file))
+        (fas-file  (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.compiled-suffix)))
+    (shen-cl.write-lisp-file lisp-file (shen-cl.translate-kl (shen-cl.read-kl-file kl-file)))
+    (shen-cl.compile-lisp file)
+    (LOAD fas-file)))
 
-(DEFUN shen-cl.export-lisp (file)
+(DEFUN shen-cl.read-kl-file (file)
   (WITH-OPEN-FILE
-    (out (FORMAT NIL "~A~A~A" shen-cl.binary-path file shen-cl.source-suffix)
+    (in file
+      :DIRECTION :INPUT)
+    (LET ((clean-code (shen-cl.clean-kl (READ-CHAR in NIL NIL) in NIL NIL)))
+      (READ-FROM-STRING (FORMAT NIL "(~A)" (COERCE clean-code 'STRING))))))
+
+(DEFUN shen-cl.clean-kl (ch in chars quoted)
+  (IF (NULL ch)
+    (REVERSE chars)
+    (shen-cl.clean-kl
+      (READ-CHAR in NIL NIL)
+      in
+      (IF (AND (NOT quoted) (MEMBER ch '(#\: #\; #\,) :TEST 'CHAR-EQUAL))
+        (LIST* #\| ch #\| chars)
+        (CONS ch chars))
+      (IF (CHAR-EQUAL ch #\")
+        (NOT quoted)
+        quoted))))
+
+(DEFUN shen-cl.translate-kl (kl-code)
+  (MAPCAR #'(LAMBDA (expr) (shen-cl.kl->lisp NIL expr)) kl-code))
+
+(DEFUN shen-cl.write-lisp-file (file code)
+  (WITH-OPEN-FILE
+    (out file
       :DIRECTION         :OUTPUT
       :IF-EXISTS         :SUPERSEDE
       :IF-DOES-NOT-EXIST :CREATE)
-    (MAPC
-      #'(LAMBDA (expr) (FORMAT out "~S~%~%" expr))
-      (REMOVE-IF #'STRINGP shen-cl.code))
-    (FORCE-OUTPUT out))) ; TODO: is this FORCE-OUTPUT necessary?
+    (FORMAT out "~%")
+    (MAPC #'(LAMBDA (X) (FORMAT out "~S~%~%" X)) code)
+    file))
+
+(DEFUN shen-cl.copy-file (src-file dest-file)
+  (WITH-OPEN-FILE
+    (in src-file
+      :DIRECTION    :INPUT
+      :ELEMENT-TYPE '(UNSIGNED-BYTE 8))
+    (WITH-OPEN-FILE
+      (out dest-file
+        :DIRECTION         :OUTPUT
+        :IF-EXISTS         :SUPERSEDE
+        :IF-DOES-NOT-EXIST :CREATE
+        :ELEMENT-TYPE      '(UNSIGNED-BYTE 8))
+      (LET ((buf (MAKE-ARRAY 4096 :ELEMENT-TYPE (STREAM-ELEMENT-TYPE in))))
+        (LOOP FOR pos = (READ-SEQUENCE buf in)
+          WHILE (PLUSP pos)
+          DO (WRITE-SEQUENCE buf out :END pos))))))
 
 (COMPILE 'shen-cl.compile-lisp)
-(COMPILE 'shen-cl.slurp-file)
-(COMPILE 'shen-cl.clean-kl)
-(COMPILE 'shen-cl.clean-kl-loop)
 (COMPILE 'shen-cl.import-lisp)
 (COMPILE 'shen-cl.import-kl)
-(COMPILE 'shen-cl.export-lisp)
-
-; TODO: don't forget to load these to read kl
-(LOAD "./src/primitives.lisp")
-(LOAD "./src/backend.lisp")
+(COMPILE 'shen-cl.read-kl-file)
+(COMPILE 'shen-cl.clean-kl)
+(COMPILE 'shen-cl.translate-kl)
+(COMPILE 'shen-cl.write-lisp-file)
+(COMPILE 'shen-cl.copy-file)
 
 (shen-cl.import-lisp "primitives")
 (shen-cl.import-lisp "backend")
@@ -235,33 +229,23 @@
 (shen-cl.import-lisp "overwrite")
 (shen-cl.import-lisp "platform")
 
-; TODO: maybe inline export-lisp and compile-lisp here
-(shen-cl.export-lisp "kernel")
-
-; TODO: strip out copyright notices from kernel.lisp
-(shen-cl.compile-lisp "kernel")
-
-; TODO: can clisp, ccl, sbcl be compiled externally like ecl so we
-;       don't have to worry about namespace pollution?
 (MAKUNBOUND 'shen-cl.klambda-path)
 (MAKUNBOUND 'shen-cl.source-path)
 (MAKUNBOUND 'shen-cl.binary-name)
-(MAKUNBOUND 'shen-cl.source-suffix)
 (MAKUNBOUND 'shen-cl.executable-suffix)
 (MAKUNBOUND 'shen-cl.static-library-suffix)
 (MAKUNBOUND 'shen-cl.shared-library-suffix)
 (MAKUNBOUND 'shen-cl.object-suffix)
 (MAKUNBOUND 'shen-cl.compiled-suffix)
 (MAKUNBOUND 'shen-cl.binary-folder)
-(MAKUNBOUND 'shen-cl.binary-path)
-(MAKUNBOUND 'shen-cl.code)
 (FMAKUNBOUND 'shen-cl.compile-lisp)
-(FMAKUNBOUND 'shen-cl.slurp-file)
-(FMAKUNBOUND 'shen-cl.clean-kl)
-(FMAKUNBOUND 'shen-cl.clean-kl-loop)
 (FMAKUNBOUND 'shen-cl.import-lisp)
 (FMAKUNBOUND 'shen-cl.import-kl)
-(FMAKUNBOUND 'shen-cl.export-lisp)
+(FMAKUNBOUND 'shen-cl.read-kl-file)
+(FMAKUNBOUND 'shen-cl.clean-kl)
+(FMAKUNBOUND 'shen-cl.translate-kl)
+(FMAKUNBOUND 'shen-cl.write-lisp-file)
+(FMAKUNBOUND 'shen-cl.copy-file)
 
 ;
 ; Implementation-Specific Executable Output
@@ -286,25 +270,19 @@
 
 #+ECL
 (PROGN
-
-
-  ; TODO: remove when fixed
-  (FORMAT T "~%~%~%building program: ~A~%~%~%" shen-cl.object-files)
-  (FORCE-OUTPUT *STANDARD-OUTPUT*)
-
-
+  (SETQ shen-cl.*object-files* (REVERSE shen-cl.*object-files*))
   (C:BUILD-PROGRAM
     shen-cl.executable-path
-    :LISP-FILES shen-cl.object-files
+    :LISP-FILES shen-cl.*object-files*
     :EPILOGUE-CODE '(shen-cl.toplevel))
   (C:BUILD-STATIC-LIBRARY
     shen-cl.static-library-path
-    :LISP-FILES shen-cl.object-files
+    :LISP-FILES shen-cl.*object-files*
     :EPILOGUE-CODE '(shen-cl.init)
     :INIT-NAME "shen_init")
   (C:BUILD-SHARED-LIBRARY
     shen-cl.shared-library-path
-    :LISP-FILES shen-cl.object-files
+    :LISP-FILES shen-cl.*object-files*
     :EPILOGUE-CODE '(shen-cl.init)
     :INIT-NAME "shen_init")
   (SI:QUIT))
