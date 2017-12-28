@@ -51,7 +51,7 @@ ShenCCL=.$(Slash)bin$(Slash)ccl$(Slash)$(BinaryName)
 ShenECL=.$(Slash)bin$(Slash)ecl$(Slash)$(BinaryName)
 ShenSBCL=.$(Slash)bin$(Slash)sbcl$(Slash)$(BinaryName)
 
-RunCLisp=$(ShenCLisp) --clisp-m 10MB
+RunCLisp=$(ShenCLisp) --clisp-m 32MB
 RunCCL=$(ShenCCL)
 RunECL=$(ShenECL)
 RunSBCL=$(ShenSBCL)

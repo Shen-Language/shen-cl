@@ -65,7 +65,7 @@
       ; Flatten nested do's into single PROGN
       ((shen-cl.form? 'do 0 expr)
        (CONS 'PROGN
-        (MAPCAR #'(LAMBDA (X) (shen-cl.kl->lisp locals X)) (shen-cl.flatten-dos expr))))
+        (MAPCAR #'(LAMBDA (expr) (shen-cl.kl->lisp locals expr)) (shen-cl.flatten-dos expr))))
 
       ; Rebuild cond, optimizing for true/false conditions, raising error if no condition is true
       ((shen-cl.form? 'cond 0 expr)
@@ -81,7 +81,7 @@
 
       ; Function application
       (T
-       (LET ((args (MAPCAR #'(LAMBDA (Y) (shen-cl.kl->lisp locals Y)) (CDR expr))))
+       (LET ((args (MAPCAR #'(LAMBDA (expr) (shen-cl.kl->lisp locals expr)) (CDR expr))))
         (shen-cl.optimise-application
           (COND
 
@@ -132,9 +132,9 @@
 
 (DEFUN shen-cl.apply (fn args)
   (LET ((mapped-fn (shen-cl.map-operator fn)))
-    (trap-error
+    (HANDLER-CASE
       (shen-cl.apply-help mapped-fn args)
-      #'(LAMBDA (e) (shen-cl.analyse-application fn mapped-fn args (error-to-string e))))))
+      (ERROR (e) (shen-cl.analyse-application fn mapped-fn args (error-to-string e))))))
 
 (DEFUN shen-cl.apply-help (fn args)
   (COND
@@ -148,14 +148,14 @@
      (shen.f_error 'shen-cl.apply-help))))
 
 (DEFUN shen-cl.analyse-application (fn mapped-fn args message)
-  (IF (OR (shen-cl.partial-application? fn args) (shen-cl.lazyboolop? fn))
+  (IF (OR (shen-cl.partial-application? fn args) (shen-cl.lazy-bool-operator? fn))
     (shen-cl.curried-apply (shen-cl.build-up-lambda-expression mapped-fn fn) args)
-    (simple-error message)))
+    (ERROR message)))
 
 (DEFUN shen-cl.build-up-lambda-expression (mapped-fn fn)
-  (EVAL (shen-cl.mk-lambda mapped-fn (arity fn))))
+  (EVAL (shen-cl.build-lambda mapped-fn (arity fn))))
 
-(DEFUN shen-cl.lazyboolop? (op)
+(DEFUN shen-cl.lazy-bool-operator? (op)
   (OR (EQ op 'and) (EQ op 'or)))
 
 (DEFUN shen-cl.curried-apply (fn args)
@@ -164,15 +164,15 @@
       (IF (NULL (CDR args))
         app
         (shen-cl.curried-apply app (CDR args))))
-    (simple-error (cn "cannot apply " (shen-cl.app fn (FORMAT NIL "~%") 'shen-cl.a)))))
+    (ERROR "cannot apply ~A~%" fn)))
 
 (DEFUN shen-cl.partial-application? (fn args)
-  (LET ((ar (trap-error (arity fn) #'(LAMBDA (E) -1))))
+  (LET ((ar (trap-error (arity fn) #'(LAMBDA (e) -1))))
     (NOT (OR (= ar -1) (>= (LIST-LENGTH args) ar)))))
 
 (DEFUN shen-cl.partially-apply (fn args)
   (shen-cl.build-partial-application
-    (shen-cl.mk-lambda (LIST (shen-cl.map-operator fn)) (arity fn))
+    (shen-cl.build-lambda (LIST (shen-cl.map-operator fn)) (arity fn))
     args))
 
 (DEFUN shen-cl.optimise-application (expr)
@@ -233,11 +233,11 @@
     ; Pass through anything else
     expr))
 
-(DEFUN shen-cl.mk-lambda (f ar)
+(DEFUN shen-cl.build-lambda (f ar)
   (IF (shen-cl.== 0 ar)
     f
     (LET ((v (GENSYM)))
-      (LIST 'lambda v (shen-cl.mk-lambda (shen-cl.endcons f v) (1- ar))))))
+      (LIST 'lambda v (shen-cl.build-lambda (shen-cl.endcons f v) (1- ar))))))
 
 (DEFUN shen-cl.endcons (fn x)
   (IF (CONSP fn)
@@ -281,7 +281,7 @@
             (LIST (shen-cl.conditional locals condition) (shen-cl.kl->lisp locals body))
             (shen-cl.build-cond locals (CDR clauses))))))
       (shen.f_error 'shen-cl.build-cond))
-    (LIST (LIST 'T '(simple-error "No condition was true")))))
+    (LIST (LIST 'T '(ERROR "No condition was true")))))
 
 (DEFUN shen-cl.conditional (locals expr)
   (COND
@@ -289,10 +289,10 @@
      'T)
     ((EQ 'false expr)
      'NIL)
-    ((AND (CONSP expr) (shen-cl.lazyboolop? (CAR expr)))
+    ((AND (CONSP expr) (shen-cl.lazy-bool-operator? (CAR expr)))
      (CONS
       (INTERN (STRING-UPCASE (SYMBOL-NAME (CAR expr))))
-      (MAPCAR #'(LAMBDA (X) (shen-cl.optimise-conditional (shen-cl.kl->lisp locals X))) (CDR expr))))
+      (MAPCAR #'(LAMBDA (expr) (shen-cl.optimise-conditional (shen-cl.kl->lisp locals expr))) (CDR expr))))
     (T
      (shen-cl.optimise-conditional (shen-cl.kl->lisp locals expr)))))
 

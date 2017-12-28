@@ -23,189 +23,6 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-;
-; Identify Environment
-;
-
-#+(AND (NOT WINDOWS) (OR WIN32 WIN64 MINGW32)) (PUSH :WINDOWS *FEATURES*)
-#+(AND (NOT MACOS) (OR APPLE DARWIN)) (PUSH :MACOS *FEATURES*)
-
-;
-; Disable Debugging
-;
-
-#+ECL
-(SETF *DEBUGGER-HOOK*
-  #'(LAMBDA (e h) (DECLARE (IGNORE h)) (PRINT e) (SI:QUIT 1)))
-
-;
-; Shared Global Declarations
-;
-
-(DEFVAR *language* "Common Lisp")
-(DEFVAR *port* 2.2)
-(DEFVAR *porters* "Mark Tarver")
-(DEFVAR *os* (OR #+WINDOWS "Windows" #+MACOS "macOS" #+LINUX "Linux" #+UNIX "Unix" "Unknown"))
-(DEFVAR *stinput* *STANDARD-INPUT*)
-(DEFVAR *stoutput* *STANDARD-OUTPUT*)
-(DEFVAR *sterror* *ERROR-OUTPUT*)
-(DEFVAR *argv* NIL)
-
-;
-; Implementation-Specific Declarations
-;
-
-(DEFVAR *implementation* #+CLISP "GNU CLisp" #+CCL "Clozure CL" #+ECL "ECL" #+SBCL "SBCL")
-(DEFVAR *release*
-  #+CLISP (LET ((v (LISP-IMPLEMENTATION-VERSION))) (SUBSEQ v 0 (POSITION #\SPACE v :START 0)))
-  #-CLISP (LISP-IMPLEMENTATION-VERSION))
-
-#+ECL
-(PROGN
-  (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
-  (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL)
-  (EXT:SET-LIMIT 'EXT:C-STACK (* 1024 1024)))
-
-#+SBCL
-(PROGN
-  (DECLAIM (INLINE write-byte))
-  (DECLAIM (INLINE read-byte))
-  (DECLAIM (INLINE shen-cl.double)))
-
-;
-; Internal Helpers
-;
-
-; TODO: SBCL doesn't want this to be a DEFCONSTANT, thinks it's being redefined
-(DEFVAR shen-cl.*escapes*
-  (LIST
-    (CONS "#" "_hash1957")
-    (CONS "'" "_quote1957")
-    (CONS "`" "_backtick1957")
-    (CONS "|" "_pipe1957")))
-
-(DEFUN shen-cl.replace-all (s part replacement)
-  (WITH-OUTPUT-TO-STRING (out)
-    (LOOP
-      WITH part-length = (LENGTH part)
-      FOR old-pos = 0 THEN (+ pos part-length)
-      FOR pos = (SEARCH part s :START2 old-pos :TEST #'CHAR=)
-      DO (WRITE-STRING s out :START old-pos :END (OR pos (LENGTH s)))
-      WHEN pos DO (WRITE-STRING replacement out)
-      WHILE pos)))
-
-(DEFUN shen-cl.escape (s)
-  (REDUCE
-    #'(LAMBDA (s pair) (shen-cl.replace-all s (CAR pair) (CDR pair)))
-    shen-cl.*escapes*
-    :INITIAL-VALUE s))
-
-(DEFUN shen-cl.unescape (s)
-  (REDUCE
-    #'(LAMBDA (s pair) (shen-cl.replace-all s (CDR pair) (CAR pair)))
-    shen-cl.*escapes*
-    :INITIAL-VALUE s))
-
-(DEFUN shen-cl.== (x y)
-  "Returns Lisp boolean"
-  (COND
-    ((AND (CONSP x) (CONSP y) (shen-cl.== (CAR x) (CAR y)))
-     (shen-cl.== (CDR x) (CDR y)))
-    ((AND (STRINGP x) (STRINGP y))
-     (STRING= x y))
-    ((AND (NUMBERP x) (NUMBERP y))
-     (= x y))
-    ((AND (ARRAYP x) (ARRAYP y))
-     (AND (= (LENGTH x) (LENGTH y)) (shen-cl.array= x y 0 (LENGTH x))))
-    (T
-     (EQUAL x y))))
-
-(DEFUN shen-cl.array= (x y index size)
-  (OR
-    (= index size)
-    (AND
-      (shen-cl.== (AREF x index) (AREF y index))
-      (shen-cl.array= x y (1+ index) size))))
-
-(DEFUN shen-cl.process-number (s)
-  (COND
-    ((STRING-EQUAL s "")
-     "")
-    ((STRING-EQUAL (pos s 0) "d")
-     (IF (STRING-EQUAL (pos s 1) "0") "" (cn "e" (tlstr s))))
-    (T
-     (cn (pos s 0) (shen-cl.process-number (tlstr s))))))
-
-(DEFUN shen-cl.prefix? (s prefix)
-  (LET ((prefix-length (LENGTH prefix)))
-    (AND
-      (>= (LENGTH s) prefix-length)
-      (STRING-EQUAL s prefix :END1 prefix-length))))
-
-(DEFUN shen-cl.open-file (path direction)
-  (COND
-    ((EQ direction 'in)
-     (OPEN path
-      :DIRECTION :INPUT
-      :ELEMENT-TYPE
-        #+CLISP 'UNSIGNED-BYTE
-        #-CLISP :DEFAULT))
-    ((EQ direction 'out)
-     (OPEN path
-      :DIRECTION :OUTPUT
-      :ELEMENT-TYPE
-        #+CLISP 'UNSIGNED-BYTE
-        #-CLISP :DEFAULT
-      :IF-EXISTS :SUPERSEDE))
-    (T
-     (ERROR "invalid direction"))))
-
-(DEFUN shen-cl.double (x)
-  (IF (INTEGERP x) x (COERCE x 'DOUBLE-FLOAT)))
-
-(DEFUN shen-cl.* (x y)
-  (IF (OR (ZEROP x) (ZEROP y))
-    0
-    (* (shen-cl.double x) (shen-cl.double y))))
-
-(DEFUN shen-cl.+ (x y)
-  (+ (shen-cl.double x) (shen-cl.double y)))
-
-(DEFUN shen-cl.- (x y)
-  (- (shen-cl.double x) (shen-cl.double y)))
-
-(DEFUN shen-cl./ (x y)
-  (LET ((z (/ (shen-cl.double x) (shen-cl.double y))))
-    (IF (INTEGERP z)
-      z
-      (* (COERCE 1.0 'DOUBLE-FLOAT) z))))
-
-(DEFUN shen-cl.> (x y)
-  (IF (> x y) 'true 'false))
-
-(DEFUN shen-cl.< (x y)
-  (IF (< x y) 'true 'false))
-
-(DEFUN shen-cl.>= (x y)
-  (IF (>= x y) 'true 'false))
-
-(DEFUN shen-cl.<= (x y)
-  (IF (<= x y) 'true 'false))
-
-(DEFUN shen-cl.= (x y)
-  "Returns Shen boolean"
-  (IF (shen-cl.== x y) 'true 'false))
-
-(DEFUN shen-cl.true? (x)
-  (COND
-    ((EQ 'true  x) 'T)
-    ((EQ 'false x) 'NIL)
-    (T (simple-error (cn "~S is not a boolean~%" x)))))
-
-;
-; KL Primitive Definitions
-;
-
 (DEFMACRO if (c x y)
   `(IF (shen-cl.true? ,c) ,x ,y))
 
@@ -255,13 +72,14 @@
   (IF (CONSP x) 'true 'false))
 
 (DEFUN intern (s)
+  (DECLARE (TYPE STRING s))
   (INTERN (shen-cl.escape s)))
 
-(DEFUN eval-kl (x)
-  (LET ((e (EVAL (shen-cl.kl->lisp NIL x))))
-    (IF (AND (CONSP x) (EQ (CAR x) 'defun))
-      (COMPILE e)
-      e)))
+(DEFUN eval-kl (expr)
+  (LET ((x (EVAL (shen-cl.kl->lisp () expr))))
+    (IF (AND (CONSP expr) (EQ (CAR expr) 'defun))
+      (COMPILE x)
+      x)))
 
 (DEFUN absvector (n)
   (MAKE-ARRAY n))
@@ -293,6 +111,7 @@
   NIL)
 
 (DEFUN pos (s n)
+  (DECLARE (TYPE STRING s))
   (COERCE (LIST (CHAR s n)) 'STRING))
 
 (DEFUN tlstr (s)
@@ -317,7 +136,7 @@
   (COND
     ((NULL x)      (ERROR "[] is not an atom in Shen; str cannot convert it to a string.~%"))
     ((SYMBOLP x)   (shen-cl.unescape (SYMBOL-NAME x)))
-    ((NUMBERP x)   (shen-cl.process-number (FORMAT NIL "~A" x)))
+    ((NUMBERP x)   (shen-cl.clean-numeric (FORMAT NIL "~A" x)))
     ((STRINGP x)   (FORMAT NIL "~S" x))
     ((STREAMP x)   (FORMAT NIL "~A" x))
     ((FUNCTIONP x) (FORMAT NIL "~A" x))
@@ -331,98 +150,3 @@
 
 (DEFUN number? (x)
   (IF (NUMBERP x) 'true 'false))
-
-;
-; Shared Startup Procedures
-;
-
-(DEFUN shen-cl.eval-print (x)
-  (print (eval x)))
-
-(DEFUN shen-cl.print-version ()
-  (FORMAT T "~A~%" *version*)
-  (FORMAT T "Shen-CL ~A~%" *port*)
-  (FORMAT T "~A ~A~%" *implementation* *release*))
-
-(DEFUN shen-cl.print-help ()
-  (FORMAT T "Usage: shen [OPTIONS...]~%")
-  (FORMAT T "  -v, --version       : Prints Shen, shen-cl version numbers and exits~%")
-  (FORMAT T "  -h, --help          : Shows this help and exits~%")
-  (FORMAT T "  -e, --eval <expr>   : Evaluates expr and prints result~%")
-  (FORMAT T "  -l, --load <file>   : Reads and evaluates file~%")
-  (FORMAT T "  -q, --quiet         : Silences interactive output~%")
-  (FORMAT T "~%")
-  (FORMAT T "Evaluates options in order~%")
-  (FORMAT T "Starts the REPL if no eval/load options specified~%"))
-
-(DEFUN shen-cl.flag? (args options)
-  (AND (CONSP args) (MEMBER (CAR args) options :TEST #'STRING-EQUAL)))
-
-(DEFUN shen-cl.interpret-args (args)
-  "Returns T if repl should be started"
-  (COND
-    ((shen-cl.flag? args (LIST "-v" "--version"))
-     (shen-cl.print-version)
-     NIL)
-    ((shen-cl.flag? args (LIST "-h" "--help"))
-     (shen-cl.print-version)
-     (FORMAT T "~%")
-     (shen-cl.print-help)
-     NIL)
-    ((shen-cl.flag? args (LIST "-e" "--eval"))
-     (MAPC #'shen-cl.eval-print (read-from-string (CADR args)))
-     (shen-cl.interpret-args (CDDR args))
-     NIL)
-    ((shen-cl.flag? args (LIST "-l" "--load"))
-     (load (CADR args))
-     (shen-cl.interpret-args (CDDR args))
-     NIL)
-    ((shen-cl.flag? args (LIST "-q" "--quiet"))
-     (SETQ *hush* 'true)
-     (shen-cl.interpret-args (CDR args)))
-    ((CONSP args)
-     (shen-cl.interpret-args (CDR args)))
-    (T
-     T)))
-
-;
-; Implementation-Specific Startup Procedures
-;
-
-(DEFUN shen-cl.init ()
-  #+CLISP (SETQ *stinput* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
-  #+CLISP (SETQ *stoutput* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
-  #+CLISP (SETQ *sterror* *stoutput*)
-
-  (SETQ *argv*
-    #+CLISP EXT:*ARGS*
-    #+CCL   (CDR *COMMAND-LINE-ARGUMENT-LIST*)
-    #+ECL   (CDR (SI:COMMAND-ARGS))
-    #+SBCL  (CDR SB-EXT:*POSIX-ARGV*)))
-
-(DEFUN shen-cl.toplevel ()
-  (shen-cl.init)
-
-  #+CLISP
-  (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))
-    (IF (shen-cl.interpret-args *argv*)
-      (shen.shen)
-      (exit 0)))
-
-  #+CCL
-  (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))
-    (IF (shen-cl.interpret-args *argv*)
-      (shen.shen)
-      (exit 0)))
-
-  #+ECL
-  (IF (shen-cl.interpret-args *argv*)
-    (shen.shen)
-    (exit 0))
-
-  #+SBCL
-  (IF (shen-cl.interpret-args *argv*)
-    (HANDLER-CASE (shen.shen)
-      (SB-SYS:INTERACTIVE-INTERRUPT ()
-        (exit 0)))
-    (exit 0)))

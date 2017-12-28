@@ -23,21 +23,17 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-;
-; Identify Environment
-;
+(SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
+(PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
+(IN-PACKAGE :CL-USER)
 
 #+(AND (NOT WINDOWS) (OR WIN32 WIN64 MINGW32)) (PUSH :WINDOWS *FEATURES*)
 #+(AND (NOT MACOS) (OR APPLE DARWIN)) (PUSH :MACOS *FEATURES*)
 
-;
-; Disable Debugging
-;
-
 (SETF *DEBUGGER-HOOK*
-  #'(LAMBDA (Error H)
-      (DECLARE (IGNORE H))
-      (FORMAT T "~%~%Error: ~A~%~%" Error)
+  #'(LAMBDA (e h)
+      (DECLARE (IGNORE h))
+      (FORMAT T "~%~%Error: ~A~%~%" e)
       #+CLISP
         (EXT:EXIT 1)
       #+(AND CCL (NOT WINDOWS))
@@ -49,16 +45,37 @@
       #+SBCL
         (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) 1)))
 
-;
-; Initial Setup
-;
-
-(SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
-(PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
-(IN-PACKAGE :CL-USER)
 (DEFVAR shen-cl.klambda-path "./kernel/klambda/")
 (DEFVAR shen-cl.source-path "./src/")
 (DEFVAR shen-cl.binary-name "shen")
+(DEFVAR shen-cl.executable-suffix (OR #+WINDOWS ".exe" ""))
+(DEFVAR shen-cl.static-library-suffix (OR #+WINDOWS ".lib" ".a"))
+(DEFVAR shen-cl.shared-library-suffix (OR #+WINDOWS ".dll" #+MACOS ".dylib" ".so"))
+(DEFVAR shen-cl.object-suffix (OR #+WINDOWS ".obj" ".o"))
+(DEFVAR shen-cl.compiled-suffix (OR #+CCL (NAMESTRING *.FASL-PATHNAME*) #+SBCL ".fasl" ".fas"))
+(DEFVAR shen-cl.binary-path (FORMAT NIL "./bin/~A/" #+CLISP "clisp" #+CCL "ccl" #+ECL "ecl" #+SBCL "sbcl"))
+(DEFVAR shen-cl.binary-path-root (FORMAT NIL "~A~A" shen-cl.binary-path shen-cl.binary-name))
+(DEFVAR shen-cl.executable-path (FORMAT NIL "~A~A" shen-cl.binary-path-root shen-cl.executable-suffix))
+(DEFVAR shen-cl.static-library-path (FORMAT NIL "~A~A" shen-cl.binary-path-root shen-cl.static-library-suffix))
+(DEFVAR shen-cl.shared-library-path (FORMAT NIL "~A~A" shen-cl.binary-path-root shen-cl.shared-library-suffix))
+
+#+CLISP
+(PROGN
+  (SETQ CUSTOM:*COMPILE-WARNINGS* NIL)
+  (SETQ CUSTOM:*SUPPRESS-CHECK-REDEFINITION* T)
+  (SETQ *COMPILE-VERBOSE* NIL))
+
+#+ECL
+(PROGN
+  (DEFVAR shen-cl.*object-files* ())
+  (EXT:INSTALL-C-COMPILER)
+  (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
+  (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL))
+
+#+SBCL
+(PROGN
+  (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
+  (SETF SB-EXT:*MUFFLED-WARNINGS* T))
 
 ;
 ; Confirm Pre-Requisites
@@ -70,48 +87,6 @@
   (FORMAT T "Run 'make fetch' to retrieve Shen Kernel sources.~%")
   (QUIT))
 
-;
-; OS-Specific Declarations
-;
-
-(DEFVAR shen-cl.executable-suffix (OR #+WINDOWS ".exe" ""))
-(DEFVAR shen-cl.static-library-suffix (OR #+WINDOWS ".lib" ".a"))
-(DEFVAR shen-cl.shared-library-suffix (OR #+WINDOWS ".dll" #+MACOS ".dylib" ".so"))
-(DEFVAR shen-cl.object-suffix (OR #+WINDOWS ".obj" ".o"))
-
-;
-; Implementation-Specific Declarations
-;
-
-(DEFVAR shen-cl.compiled-suffix (OR #+CCL (NAMESTRING *.FASL-PATHNAME*) #+SBCL ".fasl" ".fas"))
-(DEFVAR shen-cl.binary-folder #+CLISP "clisp" #+CCL "ccl" #+ECL "ecl" #+SBCL "sbcl")
-
-#+CLISP
-(PROGN
-  (SETQ CUSTOM:*COMPILE-WARNINGS* NIL)
-  (SETQ CUSTOM:*SUPPRESS-CHECK-REDEFINITION* T)
-  (SETQ *COMPILE-VERBOSE* NIL))
-
-#+ECL
-(PROGN
-  (DEFVAR shen-cl.*object-files* NIL)
-  (EXT:INSTALL-C-COMPILER)
-  (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
-  (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL))
-
-#+SBCL
-(PROGN
-  (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
-  (SETF SB-EXT:*MUFFLED-WARNINGS* T))
-
-;
-; Shared Declarations
-;
-
-(DEFVAR shen-cl.binary-path (FORMAT NIL "./bin/~A/" shen-cl.binary-folder))
-(DEFVAR shen-cl.executable-path (FORMAT NIL "~A~A~A" shen-cl.binary-path shen-cl.binary-name shen-cl.executable-suffix))
-(DEFVAR shen-cl.static-library-path (FORMAT NIL "~A~A~A" shen-cl.binary-path shen-cl.binary-name shen-cl.static-library-suffix))
-(DEFVAR shen-cl.shared-library-path (FORMAT NIL "~A~A~A" shen-cl.binary-path shen-cl.binary-name shen-cl.shared-library-suffix))
 (ENSURE-DIRECTORIES-EXIST shen-cl.binary-path)
 
 ;
@@ -173,7 +148,7 @@
         quoted))))
 
 (DEFUN shen-cl.translate-kl (kl-code)
-  (MAPCAR #'(LAMBDA (expr) (shen-cl.kl->lisp NIL expr)) kl-code))
+  (MAPCAR #'(LAMBDA (expr) (shen-cl.kl->lisp () expr)) kl-code))
 
 (DEFUN shen-cl.write-lisp-file (file code)
   (WITH-OPEN-FILE
@@ -181,8 +156,7 @@
       :DIRECTION         :OUTPUT
       :IF-EXISTS         :SUPERSEDE
       :IF-DOES-NOT-EXIST :CREATE)
-    (FORMAT out "~%")
-    (MAPC #'(LAMBDA (X) (FORMAT out "~S~%~%" X)) code)
+    (MAPC #'(LAMBDA (expr) (FORMAT out "~S~%~%" expr)) code)
     file))
 
 (DEFUN shen-cl.copy-file (src-file dest-file)
@@ -210,6 +184,8 @@
 (COMPILE 'shen-cl.write-lisp-file)
 (COMPILE 'shen-cl.copy-file)
 
+(shen-cl.import-lisp "init")
+(shen-cl.import-lisp "internal")
 (shen-cl.import-lisp "primitives")
 (shen-cl.import-lisp "backend")
 (shen-cl.import-kl "toplevel")
@@ -228,27 +204,10 @@
 (shen-cl.import-kl "t-star")
 (shen-cl.import-lisp "overwrite")
 (shen-cl.import-lisp "platform")
-
-(MAKUNBOUND 'shen-cl.klambda-path)
-(MAKUNBOUND 'shen-cl.source-path)
-(MAKUNBOUND 'shen-cl.binary-name)
-(MAKUNBOUND 'shen-cl.executable-suffix)
-(MAKUNBOUND 'shen-cl.static-library-suffix)
-(MAKUNBOUND 'shen-cl.shared-library-suffix)
-(MAKUNBOUND 'shen-cl.object-suffix)
-(MAKUNBOUND 'shen-cl.compiled-suffix)
-(MAKUNBOUND 'shen-cl.binary-folder)
-(FMAKUNBOUND 'shen-cl.compile-lisp)
-(FMAKUNBOUND 'shen-cl.import-lisp)
-(FMAKUNBOUND 'shen-cl.import-kl)
-(FMAKUNBOUND 'shen-cl.read-kl-file)
-(FMAKUNBOUND 'shen-cl.clean-kl)
-(FMAKUNBOUND 'shen-cl.translate-kl)
-(FMAKUNBOUND 'shen-cl.write-lisp-file)
-(FMAKUNBOUND 'shen-cl.copy-file)
+(shen-cl.import-lisp "main")
 
 ;
-; Implementation-Specific Executable Output
+; Implementation-Specific Binary Output
 ;
 
 #+CLISP
@@ -257,7 +216,7 @@
     shen-cl.executable-path
     :EXECUTABLE 0
     :QUIET T
-    :INIT-FUNCTION 'shen-cl.toplevel)
+    :INIT-FUNCTION 'shen-cl.main)
   (QUIT))
 
 #+CCL
@@ -265,7 +224,7 @@
   (CCL:SAVE-APPLICATION
     shen-cl.executable-path
     :PREPEND-KERNEL T
-    :TOPLEVEL-FUNCTION 'shen-cl.toplevel)
+    :TOPLEVEL-FUNCTION 'shen-cl.main)
   (CCL:QUIT))
 
 #+ECL
@@ -274,7 +233,7 @@
   (C:BUILD-PROGRAM
     shen-cl.executable-path
     :LISP-FILES shen-cl.*object-files*
-    :EPILOGUE-CODE '(shen-cl.toplevel))
+    :EPILOGUE-CODE '(shen-cl.main))
   (C:BUILD-STATIC-LIBRARY
     shen-cl.static-library-path
     :LISP-FILES shen-cl.*object-files*
@@ -292,4 +251,4 @@
   shen-cl.executable-path
   :EXECUTABLE T
   :SAVE-RUNTIME-OPTIONS T
-  :TOPLEVEL 'shen-cl.toplevel)
+  :TOPLEVEL 'shen-cl.main)
