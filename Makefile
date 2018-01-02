@@ -24,6 +24,7 @@ ifeq ($(OSName),windows)
 	Slash=\\\\
 	ArchiveSuffix=.zip
 	BinarySuffix=.exe
+#	All=clisp ccl ecl sbcl
 	All=clisp ccl sbcl
 	PS=powershell.exe -Command
 else
@@ -199,9 +200,9 @@ ifeq ($(OSName),windows)
 	$(PS) "Compress-Archive -Force \
 	  -DestinationPath release\\$(ReleaseArchiveNameCCL) \
 		-LiteralPath $(ShenCCL), LICENSE.txt"
-	$(PS) "Compress-Archive -Force \
-	  -DestinationPath release\\$(ReleaseArchiveNameECL) \
-		-LiteralPath $(ShenStaticLib), $(ShenSharedLib), LICENSE.txt"
+#	$(PS) "Compress-Archive -Force \
+#	  -DestinationPath release\\$(ReleaseArchiveNameECL) \
+#		-LiteralPath $(ShenStaticLib), $(ShenSharedLib), LICENSE.txt"
 	$(PS) "Compress-Archive -Force \
 	  -DestinationPath release\\$(ReleaseArchiveNameSBCL) \
 		-LiteralPath $(ShenSBCL), LICENSE.txt"
