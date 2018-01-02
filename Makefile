@@ -33,6 +33,20 @@ else
 	All=clisp ccl ecl sbcl
 endif
 
+ifeq ($(OSName),windows)
+  ShenStaticLibName=libshen.lib
+	ShenSharedLibName=libshen.dll
+else ifeq ($(OSName),macos)
+  ShenStaticLibName=libshen.a
+	ShenSharedLibName=libshen.dylib
+else
+  ShenStaticLibName=libshen.a
+	ShenSharedLibName=libshen.so
+endif
+
+ShenStaticLib=$(BinFolderECL)$(ShenStaticLibName)
+ShenSharedLib=$(BinFolderECL)$(ShenSharedLibName)
+
 #
 # Set shared variables
 #
@@ -46,10 +60,15 @@ KernelArchiveName=$(KernelFolderName)$(ArchiveSuffix)
 KernelArchiveUrl=$(UrlRoot)/$(KernelTag)/$(KernelArchiveName)
 BinaryName=shen$(BinarySuffix)
 
-ShenCLisp=.$(Slash)bin$(Slash)clisp$(Slash)$(BinaryName)
-ShenCCL=.$(Slash)bin$(Slash)ccl$(Slash)$(BinaryName)
-ShenECL=.$(Slash)bin$(Slash)ecl$(Slash)$(BinaryName)
-ShenSBCL=.$(Slash)bin$(Slash)sbcl$(Slash)$(BinaryName)
+BinFolderCLisp=.$(Slash)bin$(Slash)clisp$(Slash)
+BinFolderCCL=.$(Slash)bin$(Slash)ccl$(Slash)
+BinFolderECL=.$(Slash)bin$(Slash)ecl$(Slash)
+BinFolderSBCL=.$(Slash)bin$(Slash)sbcl$(Slash)
+
+ShenCLisp=$(BinFolderCLisp)$(BinaryName)
+ShenCCL=$(BinFolderCCL)$(BinaryName)
+ShenECL=$(BinFolderECL)$(BinaryName)
+ShenSBCL=$(BinFolderSBCL)$(BinaryName)
 
 RunCLisp=$(ShenCLisp) --clisp-m 32MB
 RunCCL=$(ShenCCL)
@@ -58,7 +77,10 @@ RunSBCL=$(ShenSBCL)
 
 Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\"))"
 
-ReleaseArchiveName=shen-cl-$(GitVersion)-$(OSName)-prebuilt$(ArchiveSuffix)
+ReleaseArchiveNameCLisp=shen-clisp-$(GitVersion)-$(OSName)-prebuilt$(ArchiveSuffix)
+ReleaseArchiveNameCCL=shen-ccl-$(GitVersion)-$(OSName)-prebuilt$(ArchiveSuffix)
+ReleaseArchiveNameECL=shen-ecl-$(GitVersion)-$(OSName)-prebuilt$(ArchiveSuffix)
+ReleaseArchiveNameSBCL=shen-sbcl-$(GitVersion)-$(OSName)-prebuilt$(ArchiveSuffix)
 
 #
 # Aggregates and defaults
@@ -171,10 +193,32 @@ run-sbcl:
 release:
 ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
-	$(PS) "Compress-Archive -Force -DestinationPath release\\$(ReleaseArchiveName) -LiteralPath $(ShenSBCL), LICENSE.txt"
+	$(PS) "Compress-Archive -Force \
+	  -DestinationPath release\\$(ReleaseArchiveNameCLisp) \
+	  -LiteralPath $(ShenCLisp), LICENSE.txt"
+	$(PS) "Compress-Archive -Force \
+	  -DestinationPath release\\$(ReleaseArchiveNameCCL) \
+		-LiteralPath $(ShenCCL), LICENSE.txt"
+	$(PS) "Compress-Archive -Force \
+	  -DestinationPath release\\$(ReleaseArchiveNameECL) \
+		-LiteralPath $(ShenStaticLib), $(ShenSharedLib), LICENSE.txt"
+	$(PS) "Compress-Archive -Force \
+	  -DestinationPath release\\$(ReleaseArchiveNameSBCL) \
+		-LiteralPath $(ShenSBCL), LICENSE.txt"
 else
 	mkdir -p release
-	tar -vczf release/$(ReleaseArchiveName) $(ShenSBCL) LICENSE.txt --transform 's?.*/??g'
+	tar -vczf release/$(ReleaseArchiveNameCLisp) \
+	  $(ShenCLisp) LICENSE.txt \
+		--transform 's?.*/??g'
+	tar -vczf release/$(ReleaseArchiveNameCCL) \
+	  $(ShenCCL) LICENSE.txt \
+		--transform 's?.*/??g'
+	tar -vczf release/$(ReleaseArchiveNameECL) \
+	  $(ShenECL) $(ShenStaticLib) $(ShenSharedLib) LICENSE.txt \
+		--transform 's?.*/??g'
+	tar -vczf release/$(ReleaseArchiveNameSBCL) \
+	  $(ShenSBCL) LICENSE.txt \
+		--transform 's?.*/??g'
 endif
 
 #

@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
-- `make release` command that creates os-specific archive of compiled binaries.
+- `make release` command that creates os-specific archive of compiled binaries for each target CL implementation.
 - ECL build emits static and shared libraries with os-specific suffixes (see `build.lisp`).
 
 ### Changed
