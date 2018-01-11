@@ -34,6 +34,12 @@ If the version of SBCL available throught `apt` is too old, a sufficiently new v
 
 CLisp, Clozure, ECL and SBCL can be acquired through Homebrew with `brew install clisp clozure-cl ecl sbcl`.
 
+### FreeBSD, OpenBSD and NetBSD
+
+CLisp, ECL and SBCL are available through packages, ports or pkgsrc.
+
+Also, this repo's `Makefile` is a GNU make makefile and typing `make ...` is likely to invoke the system make (BSD make) and quit on you harshly, complaining about parsing errors. Hence, it is necessary to ensure that the `gmake` package/port is installed, and replace `make ...` in the instructions below with `gmake ...`.
+
 ### Windows
 
 CLisp has an installer and a zip package on [SoureForge](https://sourceforge.net/projects/clisp/files/clisp/2.49/). You'll have to include `clisp.exe` as well as `libintl-8.dll` and `libreadline6.dll` in on your PATH to ensure the clisp build of shen-cl will run.
