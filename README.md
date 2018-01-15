@@ -36,9 +36,9 @@ CLisp, Clozure, ECL and SBCL can be acquired through Homebrew with `brew install
 
 ### FreeBSD, OpenBSD and NetBSD
 
-CLisp, ECL and SBCL are available through packages, ports or pkgsrc.
+CLisp, Clozure, ECL and SBCL are available through packages, ports or pkgsrc, with some minor exceptions. (For instance, as of early 2018, Clozure is *only* available for FreeBSD, CLisp is *not* available on FreeBSD, and SBCL is *not* available as a binary package for NetBSD 7.x/8.x amd64, but *is* available for NetBSD 7.x i386.)  As always, you should check for yourself the availability of these CLs with the package manager of the particular BSD you are running, e.g., `pkg search sbcl` or `pkg_info -Q sbcl`.
 
-Also, this repo's `Makefile` is a GNU make makefile and typing `make ...` is likely to invoke the system make (BSD make) and quit on you harshly, complaining about parsing errors. Hence, it is necessary to ensure that the `gmake` package/port is installed, and replace `make ...` in the instructions below with `gmake ...`.
+Also, you will need to install GNU make. This repo's `Makefile` is a GNU make makefile and typing `make ...` is likely to invoke the system make (BSD make) and quit on you harshly, complaining about parsing errors. Hence, it is necessary to ensure that the `gmake` package/port is installed, and replace `make ...` in the instructions below with `gmake ...`.
 
 ### Windows
 
