@@ -42,6 +42,13 @@ else
 	ArchiveSuffix=.tar.gz
 	BinarySuffix=
 	All=clisp ccl ecl sbcl
+	ifeq ($(OSName),freebsd)
+		All=ccl ecl sbcl
+	else ifeq ($(OSName),openbsd)
+		All=clisp ecl sbcl
+	else ifeq ($(OSName),netbsd)
+		All=clisp ecl
+	endif
 endif
 
 #
