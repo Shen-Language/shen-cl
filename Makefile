@@ -2,16 +2,21 @@
 # Identify environment information
 #
 
+FetchCmd=wget
+
 ifeq ($(OS),Windows_NT)
 	OSName=windows
 else ifeq ($(shell uname -s),Darwin)
 	OSName=macos
 else ifeq ($(shell uname -s),FreeBSD)
 	OSName=freebsd
+	FetchCmd=/usr/bin/fetch
 else ifeq ($(shell uname -s),OpenBSD)
 	OSName=openbsd
+	FetchCmd=/usr/bin/ftp
 else ifeq ($(shell uname -s),NetBSD)
 	OSName=netbsd
+	FetchCmd=/usr/bin/ftp -o $(KernelArchiveName)
 else
 	OSName=linux
 endif
@@ -36,17 +41,14 @@ else
 	Slash=/
 	ArchiveSuffix=.tar.gz
 	BinarySuffix=
-
-ifeq ($(OSName),freebsd)
-	All=ccl ecl sbcl
-else ifeq ($(OSName),openbsd)
-	All=clisp ecl sbcl
-else ifeq ($(OSName),netbsd)
-	All=clisp ecl
-else
 	All=clisp ccl ecl sbcl
-endif
-
+	ifeq ($(OSName),freebsd)
+		All=ccl ecl sbcl
+	else ifeq ($(OSName),openbsd)
+		All=clisp ecl sbcl
+	else ifeq ($(OSName),netbsd)
+		All=clisp ecl
+	endif
 endif
 
 #
@@ -112,17 +114,6 @@ ifeq ($(OSName),windows)
 	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
 	$(PS) "Rename-Item $(KernelFolderName) kernel -ErrorAction Ignore"
 else
-
-ifeq ($(OSName),freebsd)
-	FetchCmd=/usr/bin/fetch
-else ifeq ($(OSName),openbsd)
-	FetchCmd=/usr/bin/ftp
-else ifeq ($(OSName),netbsd)
-	FetchCmd=/usr/bin/ftp -o $(KernelArchiveName)
-else
-	FetchCmd=wget
-endif
-
 	$(FetchCmd) $(KernelArchiveUrl)
 	tar zxf $(KernelArchiveName)
 	rm -f $(KernelArchiveName)
