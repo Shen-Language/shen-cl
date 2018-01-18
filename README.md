@@ -20,7 +20,7 @@ Bug reports, fixes and enhancements are welcome. If you intend to port Shen to a
 
 You will need to have recent versions of the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Installation is different depending on operating system.
 
-Support for Common Lisp implementations varies over different operating systems. By default, only implementations available in binary form are built with the `make all` command. Check the value of the `All` variable in the `Makefile` by running `make env` to which are supported on your machine.
+Support for Common Lisp implementations varies over different operating systems. By default, only implementations available in binary form are built with the `make all` command. Check the value of the `All` variable in the `Makefile` to see which are supported for your OS and architecture.
 
 Check the project page for any CL implementation to build from source if necessary.
 
