@@ -45,7 +45,7 @@ else
 	ifeq ($(OSName),freebsd)
 		All=ccl ecl sbcl
 	else ifeq ($(OSName),openbsd)
-		All=clisp ecl sbcl
+		All=ecl sbcl
 	else ifeq ($(OSName),netbsd)
 		All=clisp ecl
 	endif
