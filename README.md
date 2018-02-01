@@ -97,7 +97,11 @@ When starting Shen via `make`, command line arguments can be passed through like
 
 Archives of pre-built binaries are created using the `make release` command. They will appear under `release/`, named with the operating system and current git tag or short commit hash.
 
-Currently, only the license file and the SBCL build are included (named `shen[.exe]`).
+An archive is created for each supported implementation on the current operating system. An executable and/or binaries are included depending on implementation.
+
+For CLisp, CCL and SBCL, the archive contains the `shen[.exe]` executable and a copy of the license.
+
+For ECL, the archive contains the `shen[.exe]` executable, a `shen[.a|.lib]` static library, a `shen[.so|.dylib|.dll]` shared library and a copy of the license.
 
 Each tagged release on the project downloads page should have a set of pre-built archives. Be sure to archive the build of that specific commit, like this:
 
