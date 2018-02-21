@@ -120,7 +120,7 @@
   (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
 
 #+(OR CCL SBCL)
-(DEFUN read-char-code (S)
+(DEFUN shen.read-char-code (S)
   (LET ((C (READ-CHAR S NIL -1)))
     (IF (EQ C -1)
       -1
