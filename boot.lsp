@@ -190,6 +190,7 @@
 (import-kl "toplevel")
 (import-kl "core")
 (import-kl "sys")
+(import-kl "dict")
 (import-kl "sequent")
 (import-kl "yacc")
 (import-kl "reader")
