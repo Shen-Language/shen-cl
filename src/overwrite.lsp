@@ -101,26 +101,26 @@
   (FUNCALL F))
 
 #+CLISP
-(DEFUN exit (Code)
+(DEFUN shen-cl.exit (Code)
   (EXT:EXIT Code))
 
 #+(AND CCL (NOT WINDOWS))
-(DEFUN exit (Code)
+(DEFUN shen-cl.exit (Code)
   (CCL:QUIT Code))
 
 #+(AND CCL WINDOWS)
-(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN exit (Code) (#__exit Code))"))
+(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN shen-cl.exit (Code) (#__exit Code))"))
 
 #+ECL
-(DEFUN exit (Code)
+(DEFUN shen-cl.exit (Code)
   (SI:QUIT Code))
 
 #+SBCL
-(DEFUN exit (Code)
+(DEFUN shen-cl.exit (Code)
   (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
 
 #+(OR CCL SBCL)
-(DEFUN read-char-code (S)
+(DEFUN shen.read-char-code (S)
   (LET ((C (READ-CHAR S NIL -1)))
     (IF (EQ C -1)
       -1

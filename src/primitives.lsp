@@ -380,14 +380,14 @@
       (SETQ *argv* Args)
       (IF (shen-cl.interpret-args Args)
         (shen.shen)
-        (exit 0))))
+        (shen-cl.exit 0))))
 
   #+ECL
   (LET ((Args (CDR (SI:COMMAND-ARGS))))
     (SETQ *argv* Args)
     (IF (shen-cl.interpret-args Args)
       (shen.shen)
-      (exit 0)))
+      (shen-cl.exit 0)))
 
   #+SBCL
   (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
@@ -395,5 +395,5 @@
     (IF (shen-cl.interpret-args Args)
       (HANDLER-CASE (shen.shen)
         (SB-SYS:INTERACTIVE-INTERRUPT ()
-          (exit 0)))
-      (exit 0))))
+          (shen-cl.exit 0)))
+      (shen-cl.exit 0))))
