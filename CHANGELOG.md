@@ -8,11 +8,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+Updated to Shen Open Source Kernel 21.0.
+
 ### Added
 - `make release` command that creates os-specific archive of compiled binaries.
+- `dict.kl` to list of KL imports.
 
 ### Changed
 - `cond` now raises an error when no condition is true, instead of returning `[]`.
+
+### Renamed
+- `exit` -> `shen-cl.exit`.
+- `read-char-code` -> `shen.read-char-code`
+
+### Removed
+- `command-line` - use `(value *argv*)` instead.
 
 ## [2.2.0] - 2017-08-23
 
