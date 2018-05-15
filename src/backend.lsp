@@ -531,6 +531,15 @@
     ((EQ 'false X) ())
     (T (simple-error (cn "boolean expected: not ~A~%" X)))))
 
+(DEFUN shen.lisp-prefixed? (Symbol)
+  (AND (SYMBOLP Symbol)
+       (shen-cl.prefix? (str Symbol) "lisp.")))
+
+(DEFUN shen.lisp-function-name (Symbol)
+  (LET* ((Str (str Symbol))
+         (LispName (STRING-UPCASE (SUBSTITUTE #\: #\. (SUBSEQ Str 5)))))
+    (INTERN LispName)))
+
 (DEFUN shen.maplispsym (Symbol)
   (COND
     ((EQ Symbol '=)  'shen.equal?)
@@ -542,4 +551,5 @@
     ((EQ Symbol '-)  'shen.subtract)
     ((EQ Symbol '/)  'shen.divide)
     ((EQ Symbol '*)  'shen.multiply)
+    ((shen.lisp-prefixed? Symbol) (shen.lisp-function-name Symbol))
     (T               Symbol)))

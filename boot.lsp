@@ -114,16 +114,6 @@
     (compile-lsp File)
     (LOAD FasFile)))
 
-(DEFUN import-shen (File)
-  (LET ((ShenFile (FORMAT NIL "~A~A.shen" SOURCE-PATH File))
-        (KlFile   (FORMAT NIL "~A~A.kl" BINARY-PATH File))
-        (LspFile  (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
-        (FasFile  (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX)))
-    (write-lsp-file KlFile (shen.elim-def (read-file ShenFile)))
-    (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
-    (compile-lsp File)
-    (LOAD FasFile)))
-
 (DEFUN read-kl-file (File)
   (WITH-OPEN-FILE
     (In File
@@ -176,7 +166,6 @@
 (COMPILE 'compile-lsp)
 (COMPILE 'import-lsp)
 (COMPILE 'import-kl)
-(COMPILE 'import-shen)
 (COMPILE 'read-kl-file)
 (COMPILE 'clean-kl)
 (COMPILE 'translate-kl)
@@ -203,12 +192,10 @@
 (import-kl "types")
 (import-kl "t-star")
 (import-lsp "overwrite")
-(import-shen "platform")
 
 (FMAKUNBOUND 'compile-lsp)
 (FMAKUNBOUND 'import-lsp)
 (FMAKUNBOUND 'import-kl)
-(FMAKUNBOUND 'import-shen)
 (FMAKUNBOUND 'read-kl-file)
 (FMAKUNBOUND 'clean-kl)
 (FMAKUNBOUND 'translate-kl)
