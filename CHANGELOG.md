@@ -16,6 +16,7 @@ Updated to Shen Open Source Kernel 21.0.
 
 ### Changed
 - `cond` now raises an error when no condition is true, instead of returning `[]`.
+- Reimplemented `lisp.` prefixed native calls in the compiler.
 
 ### Renamed
 - `exit` -> `shen-cl.exit`.
