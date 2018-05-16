@@ -108,7 +108,8 @@ run: run-sbcl
 .PHONY: fetch
 fetch:
 ifeq ($(OSName),windows)
-	$(PS) "Invoke-WebRequest -Uri $(KernelArchiveUrl) -OutFile $(KernelArchiveName)"
+	$(PS) "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
+	       Invoke-WebRequest -Uri $(KernelArchiveUrl) -OutFile $(KernelArchiveName)"
 	$(PS) "Expand-Archive $(KernelArchiveName) -DestinationPath ."
 	$(PS) "if (Test-Path $(KernelArchiveName)) { Remove-Item $(KernelArchiveName) -Force -ErrorAction Ignore }"
 	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
