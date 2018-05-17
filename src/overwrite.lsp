@@ -25,10 +25,10 @@
 
 (DEFVAR shen-cl.kernel-sysfunc? (FDEFINITION 'shen.sysfunc?))
 
-(DEFUN shen.sysfunc? (Name)
+(DEFUN shen.sysfunc? (Symbol)
   (or
-    (APPLY shen-cl.kernel-sysfunc? (LIST Name))
-    (IF (AND (NOT (NULL Name)) (shen.lisp-prefixed? Name)) 'true 'false)))
+    (APPLY shen-cl.kernel-sysfunc? (LIST Symbol))
+    (IF (shen.lisp-prefixed? Symbol) 'true 'false)))
 
 (DEFUN shen.pvar? (X)
   (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
