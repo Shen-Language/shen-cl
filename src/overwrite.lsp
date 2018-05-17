@@ -23,6 +23,13 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+(DEFVAR shen-cl.kernel-sysfunc? (FDEFINITION 'shen.sysfunc?))
+
+(DEFUN shen.sysfunc? (Symbol)
+  (or
+    (APPLY shen-cl.kernel-sysfunc? (LIST Symbol))
+    (IF (shen.lisp-prefixed? Symbol) 'true 'false)))
+
 (DEFUN shen.pvar? (X)
   (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
     'true

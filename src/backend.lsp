@@ -532,7 +532,8 @@
     (T (simple-error (cn "boolean expected: not ~A~%" X)))))
 
 (DEFUN shen.lisp-prefixed? (Symbol)
-  (AND (SYMBOLP Symbol)
+  (AND (NOT (NULL Symbol))
+       (SYMBOLP Symbol)
        (shen-cl.prefix? (str Symbol) "lisp.")))
 
 (DEFUN shen.lisp-function-name (Symbol)
