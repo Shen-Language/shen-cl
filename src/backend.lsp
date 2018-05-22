@@ -76,11 +76,11 @@
         (MAPCAR #'(LAMBDA (C) (shen.cond_code Locals C)) (CDR Expr))
         '((T (simple-error "No condition was true"))))))
 
-    ; _ [lisp. Code] -> (if (string? Code)
-    ;                       (protect (READ-FROM-STRING Code))
-    ;                       (simple-error "Argument to lisp. must be a literal string"))
+    ; _ [lisp. Code | More] -> (if (and (string? Code) (empty? More))
+    ;                              (protect (READ-FROM-STRING Code))
+    ;                              (simple-error "Argument to lisp. must be a literal string"))
     ((AND (CONSP Expr) (EQ 'lisp. (CAR Expr)))
-     (IF (STRINGP (CADR Expr))
+     (IF (AND (STRINGP (CADR Expr)) (NULL (CDDR Expr)))
          (READ-FROM-STRING (CADR Expr))
          (simple-error "Argument to lisp. must be a literal string")))
 
