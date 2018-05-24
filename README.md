@@ -16,6 +16,27 @@ This port acts as the standard implementation of the Shen language. It is also t
 
 Bug reports, fixes and enhancements are welcome. If you intend to port Shen to another variety of Common Lisp, consider doing so as a pull request to this repo.
 
+## Features
+
+`shen-cl` supports calling underlying Common Lisp functions by prefixing them with `lisp.`.
+
+```
+(lisp.sin 6.28)
+-0.0031853017931379904
+```
+
+Common Lisp code can also be injected inline using the `(lisp. "COMMON LISP SYNTAX")` syntax. The `lisp.` form takes a single string as its argument. Also keep in mind that shen-cl puts Common Lisp into case-sensitive mode where CL functions and symbols are upper-case so they don't conflict with symbols defined for Shen.
+
+```
+(lisp. "(SIN 6.28)")
+-0.0031853017931379904
+
+(lisp "(sin 6.28)")
+The function COMMON-LISP-USER::sin is undefined.
+```
+
+The function `shen-cl.exit` is included, which takes a single integer argument, terminates the process, returning the argument as the exit code.
+
 ## Prerequisites
 
 You will need to have recent versions of the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Installation is different depending on operating system.
