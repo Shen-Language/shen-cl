@@ -31,7 +31,7 @@ Common Lisp code can also be injected inline using the `(lisp. "COMMON LISP SYNT
 (lisp. "(SIN 6.28)")
 -0.0031853017931379904
 
-(lisp "(sin 6.28)")
+(lisp. "(sin 6.28)")
 The function COMMON-LISP-USER::sin is undefined.
 ```
 
