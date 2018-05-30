@@ -13,6 +13,7 @@ Updated to Shen Open Source Kernel 21.0.
 ### Added
 - `make release` command that creates os-specific archive of compiled binaries.
 - `dict.kl` to list of KL imports.
+- `lisp.` form to embed literal Common Lisp code.
 
 ### Changed
 - `cond` now raises an error when no condition is true, instead of returning `[]`.
