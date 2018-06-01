@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [2.3.0] - 2018-06-01
+
 Updated to Shen Open Source Kernel 21.0.
 
 ### Added
@@ -53,6 +55,7 @@ Updated to Shen Open Source Kernel 21.0.
 - Cleaned up `backend.lsp`, as `backend.shen` was removed.
 - Expanded README.
 
-[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/Shen-Language/shen-cl/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/Shen-Language/shen-cl/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/Shen-Language/shen-cl/compare/031d8f2a4bcdf95987dc074985875c24d6caa2f3...v2.1.0
