@@ -6,6 +6,19 @@ Support for Common Lisp implementations varies over different operating systems.
 
 Check the project page for any CL implementation to build from source if necessary.
 
+## BSD
+
+Below is a summary of currently supported implementations per BSD variant. As always, you should check for yourself the availability of these CLs with the package manager of the particular BSD you are running, e.g., `pkg search sbcl` or `pkg_info -Q sbcl`.
+
+|       | FreeBSD            | OpenBSD         | NetBSD                     |
+|:------|:-------------------|:----------------|:---------------------------|
+| CLisp | N/A                | `pkg_add clisp` | `pkg_add clisp`            |
+| CCL   | `pkg install ccl`  | N/A             | N/A                        |
+| ECL   | `pkg install ecl`  | `pkg_add ecl`   | `pkg_add ecl`              |
+| SBCL  | `pkg install sbcl` | `pkg_add sbcl`  | `pkg_add sbcl` (i386 Only) |
+
+Also, you will need to install GNU make. This repo's `Makefile` is a GNU make makefile and typing `make ...` is likely to invoke the system make (BSD make) and quit on you harshly, complaining about parsing errors. Hence, it is necessary to ensure that the `gmake` package/port is installed, and replace `make ...` in the instructions below with `gmake ...`.
+
 ## Linux
 
 CLisp, ECL and SBCL are available through `apt`. Just run `sudo apt install clisp ecl sbcl`.
@@ -19,19 +32,6 @@ If the version of SBCL available throught `apt` is too old, a sufficiently new v
 ## macOS
 
 CLisp, Clozure, ECL and SBCL can be acquired through Homebrew with `brew install clisp clozure-cl ecl sbcl`.
-
-## BSD
-
-Below is a summary of currently supported implementations per BSD variant. As always, you should check for yourself the availability of these CLs with the package manager of the particular BSD you are running, e.g., `pkg search sbcl` or `pkg_info -Q sbcl`.
-
-|       | FreeBSD            | OpenBSD         | NetBSD                     |
-|:------|:-------------------|:----------------|:---------------------------|
-| CLisp | N/A                | `pkg_add clisp` | `pkg_add clisp`            |
-| CCL   | `pkg install ccl`  | N/A             | N/A                        |
-| ECL   | `pkg install ecl`  | `pkg_add ecl`   | `pkg_add ecl`              |
-| SBCL  | `pkg install sbcl` | `pkg_add sbcl`  | `pkg_add sbcl` (i386 Only) |
-
-Also, you will need to install GNU make. This repo's `Makefile` is a GNU make makefile and typing `make ...` is likely to invoke the system make (BSD make) and quit on you harshly, complaining about parsing errors. Hence, it is necessary to ensure that the `gmake` package/port is installed, and replace `make ...` in the instructions below with `gmake ...`.
 
 ## Windows
 
