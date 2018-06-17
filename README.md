@@ -64,7 +64,7 @@ Startup scripts can be specified on the command line by preceding them with a `-
 
 When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l bootstrap.shen -flag"`.
 
-## Releases
+## Releasing
 
 Archives of pre-built binaries are created using the `make release` command. They will appear under `release/`, named with the operating system and current git tag or short commit hash.
 
