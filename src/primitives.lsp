@@ -160,7 +160,8 @@
 (DEFUN CF-VECTORS (X Y LX LY)
   (AND
     (= LX LY)
-    (CF-VECTORS-HELP X Y 0 (1- LX))))
+    (OR (ZEROP LX)
+        (CF-VECTORS-HELP X Y 0 (1- LX)))))
 
 (DEFUN CF-VECTORS-HELP (X Y COUNT MAX)
   (COND
