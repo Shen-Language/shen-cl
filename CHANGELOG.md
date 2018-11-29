@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- `CF-VECTORS` can now compare empty absvectors.
+
 ## [2.4.0] - 2018-10-08
 
 Updated to Shen Open Source Kernel 21.1.
