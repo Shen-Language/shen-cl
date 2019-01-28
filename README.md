@@ -69,6 +69,8 @@ T
 4
 ```
 
+Important to note is that `load-lisp` `load-inline-lisp` and `eval-inline-lisp` operate by default in the `:COMMON-LISP-USER` package, rather than the `:SHEN` package the rest of the language operates in.
+
 The function `shen-cl.exit` is included, which takes a single integer argument, terminates the process, returning the argument as the exit code.
 
 ## Prerequisites
