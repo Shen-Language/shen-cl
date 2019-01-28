@@ -35,6 +35,40 @@ Common Lisp code can also be injected inline using the `(lisp. "COMMON LISP SYNT
 The function COMMON-LISP-USER::sin is undefined.
 ```
 
+Similarly to `lisp.`, Common Lisp code can be used inline through
+`load-inline-lisp`, which loads the given lisp code as an input
+stream, or `eval-inline-lisp`, which evaluates the given string as a
+lisp form and returns the result.
+
+```
+(load-inline-lisp "(defun cl-add-one (x) (+ 1 x))")
+T
+
+(lisp.cl-plus-one 1)
+2
+
+(eval-inline-lisp "(sin 6.28)")
+ -0.003185092
+```
+
+Common Lisp code can be loaded from external files with `load-lisp`
+
+```
+(load-lisp "~/quicklisp/setup.lisp")
+T
+
+(load-inline-lisp "(ql:quickload :infix-math)")
+To load "infix-math":
+  Load 1 ASDF system:
+    infix-math
+; Loading "infix-math"
+.
+T
+
+(eval-inline-lisp "(infix-math:$ 2 + 2)")
+4
+```
+
 The function `shen-cl.exit` is included, which takes a single integer argument, terminates the process, returning the argument as the exit code.
 
 ## Prerequisites
