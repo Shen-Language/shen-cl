@@ -38,23 +38,23 @@ The function COMMON-LISP-USER::sin is undefined.
 Similarly to `lisp.`, Common Lisp code can be used inline through `load-inline-lisp`, which loads the given lisp code as an input stream, or `eval-inline-lisp`, which evaluates the given string as a lisp form and returns the result.
 
 ```
-(load-inline-lisp "(defun cl-add-one (x) (+ 1 x))")
+(shen-cl.load-inline-lisp "(defun cl-add-one (x) (+ 1 x))")
 T
 
 (lisp.cl-plus-one 1)
 2
 
-(eval-inline-lisp "(sin 6.28)")
+(shen-cl.eval-inline-lisp "(sin 6.28)")
  -0.003185092
 ```
 
 Common Lisp code can be loaded from external files with `load-lisp`
 
 ```
-(load-lisp "~/quicklisp/setup.lisp")
+(shen-cl.load-lisp "~/quicklisp/setup.lisp")
 T
 
-(load-inline-lisp "(ql:quickload :infix-math)")
+(shen-cl.load-inline-lisp "(ql:quickload :infix-math)")
 To load "infix-math":
   Load 1 ASDF system:
     infix-math
@@ -62,7 +62,7 @@ To load "infix-math":
 .
 T
 
-(eval-inline-lisp "(infix-math:$ 2 + 2)")
+(shen-cl.eval-inline-lisp "(infix-math:$ 2 + 2)")
 4
 ```
 
