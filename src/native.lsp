@@ -36,7 +36,8 @@
 
 (DEFUN load-lisp (FILESPEC &OPTIONAL (readtable-case :UPCASE))
   (shen-cl.with-temp-readcase readtable-case
-    (LOAD FILESPEC)))
+    (LET ((*PACKAGE* (FIND-PACKAGE :COMMON-LISP-USER)))
+      (LOAD FILESPEC))))
 
 (DEFUN load-inline-lisp (string)
   (load-lisp (MAKE-STRING-INPUT-STREAM string)))
