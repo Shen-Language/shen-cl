@@ -23,9 +23,23 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#-SBCL
+(DEFPACKAGE :SHEN
+  (:USE :COMMON-LISP))
+
+#+SBCL
+(DEFPACKAGE :SHEN
+  (:USE :COMMON-LISP
+   :SB-ALIEN))
+
+;; (DEFPACKAGE :SHEN-USER
+;;   (:USE :SHEN
+;;    :COMMON-LISP-USER))
+
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
-(IN-PACKAGE :CL-USER)
+(IN-PACKAGE :SHEN)
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
+
 (DEFCONSTANT KLAMBDA-PATH "./kernel/klambda/")
 (DEFCONSTANT SOURCE-PATH "./src/")
 
@@ -144,6 +158,7 @@
       :IF-EXISTS         :SUPERSEDE
       :IF-DOES-NOT-EXIST :CREATE)
     (FORMAT Out "~%")
+    (FORMAT Out "(IN-PACKAGE :SHEN)~%~%") ; Put all k lambda into the shen package
     (MAPC #'(LAMBDA (X) (FORMAT Out "~S~%~%" X)) Code)
     File))
 
@@ -176,6 +191,7 @@
 
 (import-lsp "primitives")
 (import-lsp "backend")
+(import-lsp "native")
 (import-kl "toplevel")
 (import-kl "core")
 (import-kl "sys")

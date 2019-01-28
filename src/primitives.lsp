@@ -23,6 +23,8 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+(IN-PACKAGE :SHEN)
+
 (DEFVAR *stinput* *STANDARD-INPUT*)
 (DEFVAR *stoutput* *STANDARD-OUTPUT*)
 (DEFVAR *sterror* *ERROR-OUTPUT*)
@@ -359,42 +361,42 @@
      T)))
 
 (DEFUN shen-cl.toplevel ()
+  (LET ((*PACKAGE* (FIND-PACKAGE :SHEN)))
+    #+CLISP
+    (HANDLER-BIND
+        ((WARNING #'MUFFLE-WARNING))
+      (WITH-OPEN-STREAM (*STANDARD-INPUT* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
+        (WITH-OPEN-STREAM (*STANDARD-OUTPUT* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
+          (SETQ *stoutput* *STANDARD-OUTPUT*)
+          (SETQ *stinput* *STANDARD-INPUT*)
+          (SETQ *sterror* *ERROR-OUTPUT*)
+          (LET ((Args EXT:*ARGS*))
+            (SETQ *argv* Args)
+            (IF (shen-cl.interpret-args Args)
+                (shen.shen)
+                (EXT:EXIT 0))))))
 
-  #+CLISP
-  (HANDLER-BIND
-    ((WARNING #'MUFFLE-WARNING))
-    (WITH-OPEN-STREAM (*STANDARD-INPUT* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
-      (WITH-OPEN-STREAM (*STANDARD-OUTPUT* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
-        (SETQ *stoutput* *STANDARD-OUTPUT*)
-        (SETQ *stinput* *STANDARD-INPUT*)
-        (SETQ *sterror* *ERROR-OUTPUT*)
-        (LET ((Args EXT:*ARGS*))
-          (SETQ *argv* Args)
-          (IF (shen-cl.interpret-args Args)
+    #+CCL
+    (HANDLER-BIND
+        ((WARNING #'MUFFLE-WARNING))
+      (LET ((Args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
+        (SETQ *argv* Args)
+        (IF (shen-cl.interpret-args Args)
             (shen.shen)
-            (EXT:EXIT 0))))))
+            (shen-cl.exit 0))))
 
-  #+CCL
-  (HANDLER-BIND
-    ((WARNING #'MUFFLE-WARNING))
-    (LET ((Args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
+    #+ECL
+    (LET ((Args (CDR (SI:COMMAND-ARGS))))
       (SETQ *argv* Args)
       (IF (shen-cl.interpret-args Args)
-        (shen.shen)
-        (shen-cl.exit 0))))
-
-  #+ECL
-  (LET ((Args (CDR (SI:COMMAND-ARGS))))
-    (SETQ *argv* Args)
-    (IF (shen-cl.interpret-args Args)
-      (shen.shen)
-      (shen-cl.exit 0)))
-
-  #+SBCL
-  (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
-    (SETQ *argv* Args)
-    (IF (shen-cl.interpret-args Args)
-      (HANDLER-CASE (shen.shen)
-        (SB-SYS:INTERACTIVE-INTERRUPT ()
+          (shen.shen)
           (shen-cl.exit 0)))
-      (shen-cl.exit 0))))
+
+    #+SBCL
+    (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
+      (SETQ *argv* Args)
+      (IF (shen-cl.interpret-args Args)
+          (HANDLER-CASE (shen.shen)
+            (SB-SYS:INTERACTIVE-INTERRUPT ()
+              (shen-cl.exit 0)))
+          (shen-cl.exit 0)))))
