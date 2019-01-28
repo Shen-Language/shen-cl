@@ -128,10 +128,6 @@
 (DEFUN shen-cl.exit (Code)
   (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
 
-;; For convenience. I will remove if not acceptable.
-(DEFUN exit ()
-  (shen-cl.exit 0))
-
 #+(OR CCL SBCL)
 (DEFUN shen.read-char-code (S)
   (LET ((C (READ-CHAR S NIL -1)))
