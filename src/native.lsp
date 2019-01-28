@@ -34,15 +34,15 @@
        (SETF (READTABLE-CASE *READTABLE*) ,old-read-case)
        ,result))))
 
-(DEFUN load-lisp (FILESPEC &OPTIONAL (readtable-case :UPCASE))
+(DEFUN shen-cl.load-lisp (FILESPEC &OPTIONAL (readtable-case :UPCASE))
   (shen-cl.with-temp-readcase readtable-case
     (LET ((*PACKAGE* (FIND-PACKAGE :COMMON-LISP-USER)))
       (LOAD FILESPEC))))
 
-(DEFUN load-inline-lisp (string)
+(DEFUN shen-cl.load-inline-lisp (string)
   (load-lisp (MAKE-STRING-INPUT-STREAM string)))
 
-(DEFUN eval-inline-lisp (string)
+(DEFUN shen-cl.eval-inline-lisp (string)
   (shen-cl.with-temp-readcase :UPCASE
     (LET ((*PACKAGE* (FIND-PACKAGE :COMMON-LISP-USER)))
      (EVAL (READ-FROM-STRING string)))))
