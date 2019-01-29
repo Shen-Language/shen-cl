@@ -35,35 +35,35 @@ Common Lisp code can also be injected inline using the `(lisp. "COMMON LISP SYNT
 The function COMMON-LISP-USER::sin is undefined.
 ```
 
-Similarly to `lisp.`, Common Lisp code can be used inline through `load-inline-lisp`, which loads the given lisp code as an input stream, or `eval-inline-lisp`, which evaluates the given string as a lisp form and returns the result.
+Similarly to `lisp.`, Common Lisp code can be used inline through `shen-cl.eval-inline-lisp`, which evaluates the given string as a lisp form and returns the result. Code evaluated this way exists in the `:COMMON-LISP-USER` package (rather than `:SHEN`) and with the reader in case insensitive mode, so it is ideal for accessing external lisp code.
 
 ```
-(shen-cl.load-inline-lisp "(defun cl-plus-one (x) (+ 1 x))")
-T
+(shen-cl.eval-inline-lisp "(defun cl-plus-one (x) (+ 1 x))")
+CL-PLUS-ONE
 
 (shen-cl.eval-inline-lisp "(cl-plus-one 1)")
 2
 ```
 
-Common Lisp code can be loaded from external files with `load-lisp`
+Common Lisp code can be loaded from external files with `shen-cl.load-lisp`
 
 ```
 (shen-cl.load-lisp "~/quicklisp/setup.lisp")
 T
 
-(shen-cl.load-inline-lisp "(ql:quickload :infix-math)")
+(shen-cl.eval-inline-lisp "(ql:quickload :infix-math)")
 To load "infix-math":
   Load 1 ASDF system:
     infix-math
 ; Loading "infix-math"
 .
-T
+[INFIX-MATH]
 
 (shen-cl.eval-inline-lisp "(infix-math:$ 2 + 2)")
 4
 ```
 
-Important to note is that `load-lisp` `load-inline-lisp` and `eval-inline-lisp` operate by default in the `:COMMON-LISP-USER` package, rather than the `:SHEN` package which `lisp.` operates in. Also, the reader is returned to case-insensitive mode for the duration of these functions.
+Like `shen-cl.eval-inline-lisp`, `shen-cl.load-lisp` also operates in the `:COMMON-LISP-USER` package and case insensitive mode.
 
 The function `shen-cl.exit` is included, which takes a single integer argument, terminates the process, returning the argument as the exit code.
 

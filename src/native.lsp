@@ -39,9 +39,6 @@
     (LET ((*PACKAGE* (FIND-PACKAGE :COMMON-LISP-USER)))
       (LOAD FILESPEC))))
 
-(DEFUN shen-cl.load-inline-lisp (string)
-  (shen-cl.load-lisp (MAKE-STRING-INPUT-STREAM string)))
-
 (DEFUN shen-cl.eval-inline-lisp (string)
   (shen-cl.with-temp-readcase :UPCASE
     (LET ((*PACKAGE* (FIND-PACKAGE :COMMON-LISP-USER)))
