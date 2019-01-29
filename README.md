@@ -38,7 +38,7 @@ The function COMMON-LISP-USER::sin is undefined.
 Similarly to `lisp.`, Common Lisp code can be used inline through `load-inline-lisp`, which loads the given lisp code as an input stream, or `eval-inline-lisp`, which evaluates the given string as a lisp form and returns the result.
 
 ```
-(shen-cl.load-inline-lisp "(defun cl-add-one (x) (+ 1 x))")
+(shen-cl.load-inline-lisp "(defun cl-plus-one (x) (+ 1 x))")
 T
 
 (lisp.cl-plus-one 1)
