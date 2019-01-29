@@ -23,25 +23,9 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#+CLISP
-(DEFPACKAGE :SHEN
-  (:USE :COMMON-LISP
-        :EXT))
-
-#+CCL
-(DEFPACKAGE :SHEN
-  (:USE :COMMON-LISP
-        :CCL))
-
-#+ECL
-(DEFPACKAGE :SHEN
-  (:USE :COMMON-LISP
-        :SI))
-
-#+SBCL
-(DEFPACKAGE :SHEN
-  (:USE :COMMON-LISP
-        :SB-ALIEN))
+(LOAD "src/package.lsp") ; Package code must be loaded before boot
+                         ; code so that boot.lisp can be in the SHEN
+                         ; package.
 
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
 (IN-PACKAGE :SHEN)
@@ -195,6 +179,7 @@
 
 (ENSURE-DIRECTORIES-EXIST BINARY-PATH)
 
+(import-lsp "package")
 (import-lsp "primitives")
 (import-lsp "backend")
 (import-lsp "native")
