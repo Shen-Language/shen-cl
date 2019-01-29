@@ -40,7 +40,7 @@
       (LOAD FILESPEC))))
 
 (DEFUN shen-cl.load-inline-lisp (string)
-  (load-lisp (MAKE-STRING-INPUT-STREAM string)))
+  (shen-cl.load-lisp (MAKE-STRING-INPUT-STREAM string)))
 
 (DEFUN shen-cl.eval-inline-lisp (string)
   (shen-cl.with-temp-readcase :UPCASE

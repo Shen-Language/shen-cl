@@ -41,11 +41,8 @@ Similarly to `lisp.`, Common Lisp code can be used inline through `load-inline-l
 (shen-cl.load-inline-lisp "(defun cl-plus-one (x) (+ 1 x))")
 T
 
-(lisp.cl-plus-one 1)
+(shen-cl.eval-inline-lisp "(cl-plus-one 1)")
 2
-
-(shen-cl.eval-inline-lisp "(sin 6.28)")
- -0.003185092
 ```
 
 Common Lisp code can be loaded from external files with `load-lisp`
@@ -66,7 +63,7 @@ T
 4
 ```
 
-Important to note is that `load-lisp` `load-inline-lisp` and `eval-inline-lisp` operate by default in the `:COMMON-LISP-USER` package, rather than the `:SHEN` package. Also, the reader is returned to case-insensitive mode for the duration of these functions.
+Important to note is that `load-lisp` `load-inline-lisp` and `eval-inline-lisp` operate by default in the `:COMMON-LISP-USER` package, rather than the `:SHEN` package which `lisp.` operates in. Also, the reader is returned to case-insensitive mode for the duration of these functions.
 
 The function `shen-cl.exit` is included, which takes a single integer argument, terminates the process, returning the argument as the exit code.
 
