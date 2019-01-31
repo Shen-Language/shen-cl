@@ -67,6 +67,8 @@ Like `shen-cl.eval-lisp`, `shen-cl.load-lisp` also operates in the `:COMMON-LISP
 
 The function `shen-cl.exit` is included, which takes a single integer argument, terminates the process, returning the argument as the exit code.
 
+The function `LOAD-SHEN` is exported from the `:SHEN-UTILS` package which allows the loading of Shen files from Common Lisp code.
+
 ## Prerequisites
 
 See [PREREQUISITES.md](PREREQUISITES.md) for information on what tools you will need installed to build and work on `shen-cl`.

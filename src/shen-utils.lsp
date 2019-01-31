@@ -26,8 +26,6 @@
 (IN-PACKAGE :SHEN-UTILS)
 
 ;; Re-export shen-cl.with-temp-readcase from :SHEN for use in common lisp.
-;; (DEFMACRO WITH-TEMP-READCASE (NEW-READ-CASE &BODY BODY)
-;;   (shen-cl.with-temp-readcase))
 (EVAL-WHEN (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
   (SETF (MACRO-FUNCTION 'WITH-TEMP-READCASE) (MACRO-FUNCTION 'shen-cl.with-temp-readcase)))
 
