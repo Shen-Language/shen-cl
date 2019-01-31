@@ -23,29 +23,19 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(DEFPACKAGE :SHEN
-  (:DOCUMENTATION "This is the package in which the Shen language operates.")
-  #+CLISP
-  (:USE :COMMON-LISP
-        :EXT)
-  #+CCL
-  (:USE :COMMON-LISP
-        :CCL)
-  #+ECL
-  (:USE :COMMON-LISP
-        :SI)
-  #+SBCL
-  (:USE :COMMON-LISP
-        :SB-ALIEN)
-  (:EXPORT :shen-cl.with-temp-readcase
-           :shen-cl.load-lisp
-           :shen-cl.eval-lisp
-           :load))
+(IN-PACKAGE :SHEN-UTILS)
 
-(DEFPACKAGE :SHEN-UTILS
-  (:DOCUMENTATION "This package exports functions for use in common lisp code which facilitate interoperation.")
-  (:USE :COMMON-LISP
-        :SHEN)
-  (:EXPORT :WITH-TEMP-READCASE
-           :IN-SHEN-ENVIRONMENT
-           :LOAD-SHEN))
+;; Re-export shen-cl.with-temp-readcase from :SHEN for use in common lisp.
+;; (DEFMACRO WITH-TEMP-READCASE (NEW-READ-CASE &BODY BODY)
+;;   (shen-cl.with-temp-readcase))
+(EVAL-WHEN (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
+  (SETF (MACRO-FUNCTION 'WITH-TEMP-READCASE) (MACRO-FUNCTION 'shen-cl.with-temp-readcase)))
+
+(DEFMACRO IN-SHEN-ENVIRONMENT (&BODY BODY)
+  `(WITH-TEMP-READCASE :PRESERVE
+     (LET ((*PACKAGE* (FIND-PACKAGE :SHEN)))
+       ,@BODY)))
+
+(DEFUN LOAD-SHEN (filename)
+  (IN-SHEN-ENVIRONMENT
+    (load filename)))

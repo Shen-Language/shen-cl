@@ -39,7 +39,7 @@
     (LET ((*PACKAGE* (FIND-PACKAGE :COMMON-LISP-USER)))
       (LOAD FILESPEC))))
 
-(DEFUN shen-cl.eval-inline-lisp (string)
-  (shen-cl.with-temp-readcase :UPCASE
-    (LET ((*PACKAGE* (FIND-PACKAGE :COMMON-LISP-USER)))
+(DEFUN shen-cl.eval-lisp (string &OPTIONAL (package :COMMON-LISP-USER) (readtable-case :UPCASE))
+  (shen-cl.with-temp-readcase readtable-case
+    (LET ((*PACKAGE* (FIND-PACKAGE package)))
      (EVAL (READ-FROM-STRING string)))))
