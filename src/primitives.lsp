@@ -374,7 +374,7 @@
             (SETQ *argv* Args)
             (IF (shen-cl.interpret-args Args)
                 (shen.shen)
-                (EXT:EXIT 0))))))
+                (shen-cl.exit 0))))))
 
     #+CCL
     (HANDLER-BIND
