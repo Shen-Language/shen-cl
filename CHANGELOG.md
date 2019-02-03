@@ -8,8 +8,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- `shen-cl.load-lisp`, `shen-cl.eval-lisp` that load and evals Lisp code in string form from Shen.
+- `LOAD-SHEN` that loads Shen code from Lisp.
+- `:SHEN` package where Shen code is defined by default.
+
 ### Changed
 - `CF-VECTORS` can now compare empty absvectors.
+- Shen code now gets defined in `:SHEN` package instead of `:COMMON-LISP` package.
 
 ## [2.4.0] - 2018-10-08
 
