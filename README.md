@@ -18,56 +18,9 @@ Bug reports, fixes and enhancements are welcome. If you intend to port Shen to a
 
 ## Features
 
-`shen-cl` supports calling underlying Common Lisp functions by prefixing them with `lisp.`.
+Documentation of native interop functions is in [INTEROP.md](INTEROP.md). These functions allow calling into Lisp from Shen and Shen from Lisp.
 
-```
-(lisp.sin 6.28)
--0.0031853017931379904
-```
-
-Common Lisp code can also be injected inline using the `(lisp. "COMMON LISP SYNTAX")` syntax. The `lisp.` form takes a single string as its argument. Also keep in mind that shen-cl puts Common Lisp into case-sensitive mode where CL functions and symbols are upper-case so they don't conflict with symbols defined for Shen.
-
-```
-(lisp. "(SIN 6.28)")
--0.0031853017931379904
-
-(lisp. "(sin 6.28)")
-The function COMMON-LISP-USER::sin is undefined.
-```
-
-Similarly to `lisp.`, Common Lisp code can be used inline through `shen-cl.eval-lisp`, which evaluates the given string as a lisp form and returns the result. Code evaluated this way exists in the `:COMMON-LISP-USER` package (rather than `:SHEN`) and with the reader in case insensitive mode, so it is ideal for accessing external lisp code.
-
-```
-(shen-cl.eval-lisp "(defun cl-plus-one (x) (+ 1 x))")
-CL-PLUS-ONE
-
-(shen-cl.eval-lisp "(cl-plus-one 1)")
-2
-```
-
-Common Lisp code can be loaded from external files with `shen-cl.load-lisp`
-
-```
-(shen-cl.load-lisp "~/quicklisp/setup.lisp")
-T
-
-(shen-cl.eval-lisp "(ql:quickload :infix-math)")
-To load "infix-math":
-  Load 1 ASDF system:
-    infix-math
-; Loading "infix-math"
-.
-[INFIX-MATH]
-
-(shen-cl.eval-lisp "(infix-math:$ 2 + 2)")
-4
-```
-
-Like `shen-cl.eval-lisp`, `shen-cl.load-lisp` also operates in the `:COMMON-LISP-USER` package and case insensitive mode.
-
-The function `shen-cl.exit` is included, which takes a single integer argument, terminates the process, returning the argument as the exit code.
-
-The function `LOAD-SHEN` is exported from the `:SHEN-UTILS` package which allows the loading of Shen files from Common Lisp code.
+Also included  is the function `shen-cl.exit`, which takes an exit code, terminates the process, returning the given exit code.
 
 ## Prerequisites
 
