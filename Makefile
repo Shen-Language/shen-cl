@@ -8,6 +8,7 @@ ifeq ($(OS),Windows_NT)
 	OSName=windows
 else ifeq ($(shell uname -s),Darwin)
 	OSName=macos
+	FetchCmd=curl -OL
 else ifeq ($(shell uname -s),FreeBSD)
 	OSName=freebsd
 	FetchCmd=/usr/bin/fetch
