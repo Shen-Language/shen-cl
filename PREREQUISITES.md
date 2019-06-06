@@ -1,5 +1,10 @@
 # Prerequisites
 
+  * for [BSD](#bsd)
+  * for [Linux](#linux)
+  * for [macOS](#macos)
+  * for [Windows](#windows)
+
 You will need to have recent versions of the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Installation is different depending on operating system.
 
 Support for Common Lisp implementations varies over different operating systems. By default, only implementations available in binary form are built with the `make all` command. Check the value of the `All` variable in the `Makefile` to see which are supported for your OS and architecture.
@@ -50,6 +55,6 @@ ECL needs to be [built from source](https://common-lisp.net/project/ecl/static/f
 
 SBCL has an msi package on its [download page](http://www.sbcl.org/platform-table.html).
 
-The `Makefile` might not be entirely Windows-friendly, so a toolset like [GOW](https://github.com/bmatzelle/gow) can fill the gap, or use [MGWIN](http://www.mingw.org/) or [Cygwin](https://www.cygwin.com/).
+The `Makefile` is not very Windows-friendly, so a toolset like [GOW](https://github.com/bmatzelle/gow) can fill the gap, or use [MGWIN](http://www.mingw.org/) or [Cygwin](https://www.cygwin.com/).
 
-The `Makefile` also requires Powershell at version 4 or higher ([Download most recent version here](https://www.microsoft.com/en-us/download/confirmation.aspx?id=54616)).
+The `Makefile` also requires [Powershell at version 4 or higher](https://www.microsoft.com/en-us/download/confirmation.aspx?id=54616)).
