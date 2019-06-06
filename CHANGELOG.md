@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 ### Changed
 - `CF-VECTORS` can now compare empty absvectors.
 - Shen code now gets defined in `:SHEN` package instead of `:COMMON-LISP` package.
+- Makefile uses `curl` instead of `wget` on macOS.
 
 ## [2.4.0] - 2018-10-08
 
