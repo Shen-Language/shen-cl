@@ -1,5 +1,10 @@
 # Interop
 
+  * How to [Converting Between Shen and Lisp Data Types](#converting-between-shen-and-lisp-data-types)
+  * How to [Qualifying Common Lisp Functions in Shen](#qualifying-common-lisp-functions-in-shen)
+  * How to [Evaluating and Loading Common Lisp Code from Shen](#evaluating-and-loading-common-lisp-code-from-shen)
+  * How to [Loading Shen Code from Common Lisp](https://github.com/Shen-Language/shen-cl/blob/master/INTEROP.md#loading-shen-code-from-common-lisp)
+
 ## Converting Between Shen and Lisp Data Types
 
 Shen programs can convert from a Shen boolean to a CL boolean with `shen-cl.true?`.
