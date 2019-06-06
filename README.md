@@ -26,6 +26,16 @@ Also included  is the function `shen-cl.exit`, which takes an exit code, termina
 
 See [PREREQUISITES.md](PREREQUISITES.md) for information on what tools you will need installed to build and work on `shen-cl`.
 
+## Downloading
+
+Pre-built binaries of the SBCL port are available on the [releases](https://github.com/Shen-Language/shen-cl/releases) page. Just make sure the executable is in your `PATH`.
+
+There is also a [Homebrew formula](https://github.com/Shen-Language/homebrew-shen/blob/master/Formula/shen-sbcl.rb) for the SBCL build. It can be run like so:
+
+```shell
+brew install Shen-Language/homebrew-shen/shen-sbcl
+```
+
 ## Building
 
 The `Makefile` automates all build and test operations.
