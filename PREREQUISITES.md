@@ -1,9 +1,9 @@
 # Prerequisites
 
-  * for [BSD](#bsd)
-  * for [Linux](#linux)
-  * for [macOS](#macos)
-  * for [Windows](#windows)
+  * For [BSD](#bsd)
+  * For [Linux](#linux)
+  * For [macOS](#macos)
+  * For [Windows](#windows)
 
 You will need to have recent versions of the Common Lisp implementations you want to work with installed and available as the `Makefile` requires. Installation is different depending on operating system.
 
