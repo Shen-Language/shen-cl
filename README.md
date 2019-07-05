@@ -3,6 +3,8 @@
 
 # Shen for Common Lisp
 
+<img src="https://raw.githubusercontent.com/Shen-Language/shen-cl/master/assets/logo.png" align="right">
+
 [Shen](http://www.shenlanguage.org) for Common Lisp by [Mark Tarver](http://marktarver.com/), with contributions by the [Shen Language Open Source Community](https://github.com/Shen-Language).
 
 This codebase currently supports the following implementations:
