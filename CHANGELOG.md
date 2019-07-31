@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - `shen-cl.load-lisp`, `shen-cl.eval-lisp` that load and evals Lisp code in string form from Shen.
 - `LOAD-SHEN` that loads Shen code from Lisp.
 - `:SHEN` package where Shen code is defined by default.
+- `-r`/`--repl` option to force running REPL even if other options would prevent REPL from running.
 
 ### Changed
 - `absvector?` no longer returns `true` for strings.
