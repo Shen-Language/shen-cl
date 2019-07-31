@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - `:SHEN` package where Shen code is defined by default.
 
 ### Changed
+- `absvector?` no longer returns `true` for strings.
 - `CF-VECTORS` can now compare empty absvectors.
 - Shen code now gets defined in `:SHEN` package instead of `:COMMON-LISP` package.
 - Makefile uses `curl` instead of `wget` on macOS.

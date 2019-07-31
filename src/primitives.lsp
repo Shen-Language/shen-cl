@@ -135,7 +135,7 @@
   (MAKE-ARRAY (LIST N)))
 
 (DEFUN absvector? (X)
-  (IF (ARRAYP X) 'true 'false))
+  (IF (AND (ARRAYP X) (NOT (STRINGP X))) 'true 'false))
 
 (DEFUN address-> (Vector N Value)
   (SETF (SVREF Vector N) Value) Vector)
