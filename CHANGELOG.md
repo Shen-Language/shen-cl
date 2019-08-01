@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - `LOAD-SHEN` that loads Shen code from Lisp.
 - `:SHEN` package where Shen code is defined by default.
 - `-r`/`--repl` option to force running REPL even if other options would prevent REPL from running.
-- `cl.exit` (c.f. `shen-cl.exit`) as it is CL-specific function and not shen-cl-specific function.
+- `cl.exit` (cf. `shen-cl.exit`) as it is CL-specific function and not shen-cl-specific function.
 
 ### Changed
 - `absvector?` no longer returns `true` for strings.

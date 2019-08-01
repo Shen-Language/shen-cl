@@ -384,7 +384,7 @@
             (shen-cl.interpret-args Args)
             (IF (shen-cl.start-repl? Args)
               (shen.shen)
-              (shen-cl.exit 0))))))
+              (cl.exit 0))))))
 
     #+CCL
     (HANDLER-BIND
@@ -394,7 +394,7 @@
         (shen-cl.interpret-args Args)
         (IF (shen-cl.start-repl? Args)
           (shen.shen)
-          (shen-cl.exit 0))))
+          (cl.exit 0))))
 
     #+ECL
     (LET ((Args (CDR (SI:COMMAND-ARGS))))
@@ -402,7 +402,7 @@
       (shen-cl.interpret-args Args)
       (IF (shen-cl.start-repl? Args)
         (shen.shen)
-        (shen-cl.exit 0)))
+        (cl.exit 0)))
 
     #+SBCL
     (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
@@ -411,5 +411,5 @@
       (IF (shen-cl.start-repl? Args)
         (HANDLER-CASE (shen.shen)
           (SB-SYS:INTERACTIVE-INTERRUPT ()
-            (shen-cl.exit 0)))
-        (shen-cl.exit 0)))))
+            (cl.exit 0)))
+        (cl.exit 0)))))
