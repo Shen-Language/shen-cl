@@ -110,23 +110,35 @@
   (FUNCALL F))
 
 #+CLISP
-(DEFUN shen-cl.exit (Code)
+(DEFUN cl.exit (Code)
   (EXT:EXIT Code))
 
 #+(AND CCL (NOT WINDOWS))
-(DEFUN shen-cl.exit (Code)
+(DEFUN cl.exit (Code)
   (CCL:QUIT Code))
 
 #+(AND CCL WINDOWS)
-(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN shen-cl.exit (Code) (#__exit Code))"))
+(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN cl.exit (Code) (#__exit Code))"))
 
 #+ECL
-(DEFUN shen-cl.exit (Code)
+(DEFUN cl.exit (Code)
   (SI:QUIT Code))
 
 #+SBCL
-(DEFUN shen-cl.exit (Code)
+(DEFUN cl.exit (Code)
   (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
+
+(DEFUN shen-cl.exit (Code)
+  (cl.exit Code))
+
+(put      'cl.exit 'arity 1 *property-vector*)
+(put 'shen-cl.exit 'arity 1 *property-vector*)
+
+(declare      'cl.exit (LIST 'number '--> 'unit))
+(declare 'shen-cl.exit (LIST 'number '--> 'unit))
+
+(eval (hd (read-from-string "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")))
+(eval (hd (read-from-string "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")))
 
 #+(OR CCL SBCL)
 (DEFUN shen.read-char-code (S)

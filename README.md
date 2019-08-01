@@ -22,7 +22,7 @@ Bug reports, fixes and enhancements are welcome. If you intend to port Shen to a
 
 Documentation of native interop functions is in [INTEROP.md](INTEROP.md). These functions allow calling into Lisp from Shen and Shen from Lisp.
 
-Also included  is the function `shen-cl.exit`, which takes an exit code, terminates the process, returning the given exit code.
+Also included is the function `cl.exit`, which takes an exit code, terminates the process, returning the given exit code.
 
 ## Prerequisites
 
@@ -57,9 +57,9 @@ The `Makefile` automates all build and test operations.
 
 An executable is generated for each platform in its platform-specific output directory under `bin/` (e.g. `bin/sbcl/shen.exe`). Per typical naming conventions, it is named `shen.exe` on Windows systems and just `shen` on Unix-based systems.
 
-Startup scripts can be specified on the command line by preceding them with a `-l` flag. If any startup scripts are specified this way, they will be loaded in order and then `(shen-cl.exit 0)` will be called. If none are, the Shen REPL will start as usual. Either way, all command line arguments will be accessible with `(value *argv*)`.
+Startup scripts can be specified on the command line by preceding them with a `-l` flag. If any startup scripts are specified this way, they will be loaded in order and then `(cl.exit 0)` will be called. If none are, the Shen REPL will start as usual. Either way, all command line arguments will be accessible with `(value *argv*)`.
 
-When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l bootstrap.shen -flag"`.
+When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l bootstrap.shen -e (run)"`.
 
 ## Releasing
 
