@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
   - `-v`, `-h` don't exit immediately after.
   - Unrecognized options cause exit with code `-1` instead of getting skipped.
   - REPL only starts by default if no command line options specified.
+  - Amended `shen.credits` to explain exit command.
   - Improved help (`-h`) message.
 
 ## [2.5.0] - 2019-08-01

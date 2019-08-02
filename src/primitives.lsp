@@ -312,17 +312,16 @@
 
 (DEFUN shen-cl.print-help ()
   (FORMAT T "Usage: shen [OPTION]...~%")
-  (FORMAT T "  -e, --eval <expr>       : Evaluates expr and prints result~%")
+  (FORMAT T "  -e, --eval <EXPR>       : Evaluates EXPR and prints result~%")
   (FORMAT T "  -h, --help              : Shows this help~%")
-  (FORMAT T "  -l, --load <file>       : Reads and evaluates file~%")
+  (FORMAT T "  -l, --load <FILE>       : Reads and evaluates FILE~%")
   (FORMAT T "  -q, --quiet             : Silences interactive output~%")
   (FORMAT T "  -r, --repl              : Runs the REPL~%")
-  (FORMAT T "  -s, --set <key> <value> : Evaluates key, value and sets as global~%")
+  (FORMAT T "  -s, --set <KEY> <VALUE> : Evaluates KEY, VALUE and sets as global~%")
   (FORMAT T "  -v, --version           : Prints Shen, shen-cl and ~A version numbers~%" *implementation*)
   (FORMAT T "~%")
   (FORMAT T "Evaluates options in left-to-right order~%")
-  (FORMAT T "Starts the REPL by default if no options specified~%")
-  (FORMAT T "The REPL can be exited by running (cl.exit)~%"))
+  (FORMAT T "Starts the REPL by default if no options specified~%"))
 
 (DEFUN shen-cl.repl ()
 
@@ -335,7 +334,7 @@
   (shen.shen))
 
 (DEFUN shen-cl.read-eval (Str)
-  (LAST (MAPC #'eval (read-from-string Str))))
+  (CAR (LAST (MAPC #'eval (read-from-string Str)))))
 
 (DEFUN shen-cl.match-arg? (Arg Options)
   (MEMBER Arg Options :TEST #'STRING-EQUAL))

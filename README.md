@@ -59,22 +59,19 @@ An executable is generated for each platform in its platform-specific output dir
 
 Running `shen -h` shows a full listing of command-line options:
 
-```
-Usage: shen [OPTION]...
-  -e, --eval <expr>       : Evaluates expr and prints result
-  -h, --help              : Shows this help
-  -l, --load <file>       : Reads and evaluates file
-  -q, --quiet             : Silences interactive output
-  -r, --repl              : Runs the REPL
-  -s, --set <key> <value> : Evaluates key, value and sets as global
-  -v, --version           : Prints Shen, shen-cl and SBCL version numbers
+| Option            | Argument(s)   | Effect                                       |
+|:------------------|:--------------|:---------------------------------------------|
+| `-e`, `--eval`    | `EXPR`        | Evaluates EXPR and prints result.            |
+| `-h`, `--help`    |               | Shows this help.                             |
+| `-l`, `--load`    | `FILE`        | Reads and evaluates FILE.                    |
+| `-q`, `--quiet`   |               | Silences interactive output.                 |
+| `-r`, `--repl`    |               | Runs the REPL.                               |
+| `-s`, `--set`     | `KEY` `VALUE` | Evaluates KEY, VALUE and sets as global.     |
+| `-v`, `--version` |               | Prints Shen, shen-cl and CL version numbers. |
 
-Evaluates options in left-to-right order
-Starts the REPL by default if no options specified
-The REPL can be exited by running (cl.exit)
-```
+Options are processed in left-to-right order. By combining options, the command line forms its own simple script which loads code, does environment initialisation and can then go into interactive mode by tacking `-r` on the end.
 
-By combining these options, the command line forms its own simple script which loads code, does environment initialisation and can then go into interactive mode by tacking `-r` on the end.
+If no options are specified the REPL is started.
 
 When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l init.shen -e (run)"`.
 

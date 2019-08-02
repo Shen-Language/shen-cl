@@ -153,3 +153,10 @@
   (WHEN (OR (EQ S *stoutput*) (EQ S *stinput*))
     (FORCE-OUTPUT S))
   X)
+
+; Amend the REPL credits message to explain exit command
+(SETF (SYMBOL-FUNCTION 'shen-cl.original-credits) #'shen.credits)
+
+(DEFUN shen.credits ()
+  (shen-cl.original-credits)
+  (FORMAT T "exit REPL with (cl.exit)"))
