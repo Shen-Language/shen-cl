@@ -75,7 +75,7 @@ RunCCL=$(ShenCCL)
 RunECL=$(ShenECL)
 RunSBCL=$(ShenSBCL)
 
-Tests=-e "(do (cd \"kernel/tests\") (load \"README.shen\") (load \"tests.shen\"))"
+Tests=-e "(cd \"kernel/tests\")" -l README.shen -l tests.shen
 
 ReleaseArchiveName=shen-cl-$(GitVersion)-$(OSName)-prebuilt$(ArchiveSuffix)
 

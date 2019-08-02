@@ -57,13 +57,26 @@ The `Makefile` automates all build and test operations.
 
 An executable is generated for each platform in its platform-specific output directory under `bin/` (e.g. `bin/sbcl/shen.exe`). Per typical naming conventions, it is named `shen.exe` on Windows systems and just `shen` on Unix-based systems.
 
-If the executable is called with no arguments, the Shen REPL is started. The REPL can be exited by running `(cl.exit)`.
+Running `shen -h` shows a full listing of command-line options:
 
-Startup scripts can be specified on the command line by preceding them with the `-l <file>` option and arbitrary expressions can be evaluated with the `-e <expr>` option. The REPL can be explicitly started with `-r`. By combining these options, the command line forms its own simple script which loads required code, does some environment initialisation and can then go into interactive mode by tacking `-r` on the end.
+```
+Usage: shen [OPTION]...
+  -e, --eval <expr>       : Evaluates expr and prints result
+  -h, --help              : Shows this help
+  -l, --load <file>       : Reads and evaluates file
+  -q, --quiet             : Silences interactive output
+  -r, --repl              : Runs the REPL
+  -s, --set <key> <value> : Evaluates key, value and sets as global
+  -v, --version           : Prints Shen, shen-cl and SBCL version numbers
 
-All command line arguments are accessible from Shen with `(value shen-cl.*argv*)`.
+Evaluates options in left-to-right order
+Starts the REPL by default if no options specified
+The REPL can be exited by running (cl.exit)
+```
 
-When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l bootstrap.shen -e (run)"`.
+By combining these options, the command line forms its own simple script which loads code, does environment initialisation and can then go into interactive mode by tacking `-r` on the end.
+
+When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l init.shen -e (run)"`.
 
 ## Releasing
 
