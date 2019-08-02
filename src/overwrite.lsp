@@ -137,8 +137,8 @@
 (declare      'cl.exit (LIST 'number '--> 'unit))
 (declare 'shen-cl.exit (LIST 'number '--> 'unit))
 
-(eval (hd (read-from-string "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")))
-(eval (hd (read-from-string "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")))
+(shen-cl.read-eval "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")
+(shen-cl.read-eval "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")
 
 #+(OR CCL SBCL)
 (DEFUN shen.read-char-code (S)
