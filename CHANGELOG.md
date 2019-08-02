@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- Command line options:
+  - `*argv*` has been renamed to `shen-cl.*argv*` as it is non-standard.
+  - `-r` gets run in left-to-right order like other options.
+  - `-v`, `-h` don't exit immediately after.
+  - Unrecognized options cause exit with code `-1` instead of getting skipped.
+  - REPL only starts by default if no command line options specified.
+
 ## [2.5.0] - 2019-08-01
 
 ### Added

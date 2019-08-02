@@ -305,9 +305,6 @@
 (DEFUN number? (N)
   (IF (NUMBERP N) 'true 'false))
 
-(DEFUN shen-cl.eval-print (X)
-  (print (eval X)))
-
 (DEFUN shen-cl.print-version ()
   (FORMAT T "~A~%" *version*)
   (FORMAT T "Shen-CL ~A~%" *port*)
@@ -315,101 +312,83 @@
 
 (DEFUN shen-cl.print-help ()
   (FORMAT T "Usage: shen [OPTIONS...]~%")
-  (FORMAT T "  -v, --version       : Prints Shen, shen-cl and CL implementation version numbers and exits~%")
-  (FORMAT T "  -h, --help          : Shows this help and exits~%")
-  (FORMAT T "  -e, --eval <expr>   : Evaluates expr and prints result (prevents repl)~%")
-  (FORMAT T "  -l, --load <file>   : Reads and evaluates file (prevents repl)~%")
+  (FORMAT T "  -v, --version       : Prints Shen, shen-cl and CL implementation version numbers~%")
+  (FORMAT T "  -h, --help          : Shows this help~%")
+  (FORMAT T "  -e, --eval <expr>   : Evaluates expr and prints result~%")
+  (FORMAT T "  -l, --load <file>   : Reads and evaluates file~%")
   (FORMAT T "  -q, --quiet         : Silences interactive output~%")
-  (FORMAT T "  -r, --repl          : Run the REPL even if other options would prevent it~%")
+  (FORMAT T "  -r, --repl          : Run the REPL~%")
   (FORMAT T "~%")
-  (FORMAT T "Evaluates options in order~%")
-  (FORMAT T "Starts the REPL if no eval/load options specified~%"))
+  (FORMAT T "Evaluates options in left-to-right order~%")
+  (FORMAT T "Starts the REPL by default if no options specified~%"))
 
-(DEFUN shen-cl.prefix-arg? (Args Options)
-  (AND (CONSP Args) (MEMBER (CAR Args) Options :TEST #'STRING-EQUAL)))
+(DEFUN shen-cl.repl ()
+
+  #+SBCL
+  (HANDLER-CASE (shen.shen)
+    (SB-SYS:INTERACTIVE-INTERRUPT ()
+      (cl.exit 0)))
+
+  #-SBCL
+  (shen.shen))
+
+(DEFUN shen-cl.match-arg? (Arg Options)
+  (MEMBER Arg Options :TEST #'STRING-EQUAL))
 
 (DEFUN shen-cl.interpret-args (Args)
-  (COND
-    ((shen-cl.prefix-arg? Args (LIST "-v" "--version"))
-     (shen-cl.print-version))
-    ((shen-cl.prefix-arg? Args (LIST "-h" "--help"))
-     (PROGN
-       (shen-cl.print-version)
-       (FORMAT T "~%")
-       (shen-cl.print-help)))
-    ((shen-cl.prefix-arg? Args (LIST "-e" "--eval"))
-     (PROGN
-       (LET ((Exprs (read-from-string (CADR Args))))
-         (MAPC #'shen-cl.eval-print Exprs))
-       (shen-cl.interpret-args (CDDR Args))))
-    ((shen-cl.prefix-arg? Args (LIST "-l" "--load"))
-     (PROGN
-       (load (CADR Args))
-       (shen-cl.interpret-args (CDDR Args))))
-    ((shen-cl.prefix-arg? Args (LIST "-q" "--quiet"))
-     (PROGN
-       (SETQ *hush* 'true)
-       (shen-cl.interpret-args (CDR Args))))
-    ((CONSP Args)
-     (shen-cl.interpret-args (CDR Args)))
-    (T
-     NIL)))
+  (WHEN (CONSP Args)
+    (LET ((Arg (CAR Args)))
+      (COND
+        ((shen-cl.match-arg? Arg (LIST "-v" "--version"))
+          (shen-cl.print-version)
+          (shen-cl.interpret-args (CDR Args)))
+        ((shen-cl.match-arg? Arg (LIST "-h" "--help"))
+          (shen-cl.print-version)
+          (FORMAT T "~%")
+          (shen-cl.print-help)
+          (shen-cl.interpret-args (CDR Args)))
+        ((shen-cl.match-arg? Arg (LIST "-e" "--eval"))
+          (MAPC
+            #'(LAMBDA (Expr) (print (eval Expr)) (FORMAT T "~%"))
+            (read-from-string (CADR Args)))
+          (shen-cl.interpret-args (CDDR Args)))
+        ((shen-cl.match-arg? Arg (LIST "-l" "--load"))
+          (load (CADR Args))
+          (shen-cl.interpret-args (CDDR Args)))
+        ((shen-cl.match-arg? Arg (LIST "-q" "--quiet"))
+          (SETQ *hush* 'true)
+          (shen-cl.interpret-args (CDR Args)))
+        ((shen-cl.match-arg? Arg (LIST "-r" "--repl"))
+          (shen-cl.repl)
+          (shen-cl.interpret-args (CDR Args)))
+        (T
+          (FORMAT T "~%unrecognized option: ~A~%" Arg)
+          (cl.exit -1))))))
 
-(DEFUN shen-cl.has-arg? (Args Arg)
-  (AND (CONSP Args) (MEMBER Arg Args :TEST #'STRING-EQUAL)))
-
-(DEFUN shen-cl.has-args-any-of? (Args Options)
-  (AND (CONSP Args) (SOME (FUNCTION (LAMBDA (Option) (shen-cl.has-arg? Args Option))) Options)))
-
-(DEFUN shen-cl.start-repl? (Args)
-  (LET ((ForceRepl   (LIST "-r" "--repl"))
-        (PreventRepl (LIST "-v" "--version" "-h" "--help" "-e" "--eval" "-l" "--load")))
-    (OR
-      (shen-cl.has-args-any-of? Args ForceRepl)
-      (NOT (shen-cl.has-args-any-of? Args PreventRepl)))))
+(DEFUN shen-cl.toplevel-interpret-args (Args)
+  (SETQ shen-cl.*argv* Args)
+  (IF (CONSP Args)
+    (shen-cl.interpret-args Args)
+    (shen-cl.repl))
+  (cl.exit 0))
 
 (DEFUN shen-cl.toplevel ()
   (LET ((*PACKAGE* (FIND-PACKAGE :SHEN)))
 
     #+CLISP
-    (HANDLER-BIND
-        ((WARNING #'MUFFLE-WARNING))
+    (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))
       (WITH-OPEN-STREAM (*STANDARD-INPUT* (EXT:MAKE-STREAM :INPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
         (WITH-OPEN-STREAM (*STANDARD-OUTPUT* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
           (SETQ *stoutput* *STANDARD-OUTPUT*)
           (SETQ *stinput* *STANDARD-INPUT*)
-          (SETQ *sterror* *ERROR-OUTPUT*)
-          (LET ((Args EXT:*ARGS*))
-            (SETQ *argv* Args)
-            (shen-cl.interpret-args Args)
-            (IF (shen-cl.start-repl? Args)
-              (shen.shen)
-              (cl.exit 0))))))
+          (shen-cl.toplevel-interpret-args EXT:*ARGS*))))
 
     #+CCL
-    (HANDLER-BIND
-        ((WARNING #'MUFFLE-WARNING))
-      (LET ((Args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
-        (SETQ *argv* Args)
-        (shen-cl.interpret-args Args)
-        (IF (shen-cl.start-repl? Args)
-          (shen.shen)
-          (cl.exit 0))))
+    (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))
+      (shen-cl.toplevel-interpret-args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
 
     #+ECL
-    (LET ((Args (CDR (SI:COMMAND-ARGS))))
-      (SETQ *argv* Args)
-      (shen-cl.interpret-args Args)
-      (IF (shen-cl.start-repl? Args)
-        (shen.shen)
-        (cl.exit 0)))
+    (shen-cl.toplevel-interpret-args (CDR (SI:COMMAND-ARGS)))
 
     #+SBCL
-    (LET ((Args (CDR SB-EXT:*POSIX-ARGV*)))
-      (SETQ *argv* Args)
-      (shen-cl.interpret-args Args)
-      (IF (shen-cl.start-repl? Args)
-        (HANDLER-CASE (shen.shen)
-          (SB-SYS:INTERACTIVE-INTERRUPT ()
-            (cl.exit 0)))
-        (cl.exit 0)))))
+    (shen-cl.toplevel-interpret-args (CDR SB-EXT:*POSIX-ARGV*))))

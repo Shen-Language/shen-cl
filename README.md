@@ -57,7 +57,11 @@ The `Makefile` automates all build and test operations.
 
 An executable is generated for each platform in its platform-specific output directory under `bin/` (e.g. `bin/sbcl/shen.exe`). Per typical naming conventions, it is named `shen.exe` on Windows systems and just `shen` on Unix-based systems.
 
-Startup scripts can be specified on the command line by preceding them with a `-l` flag. If any startup scripts are specified this way, they will be loaded in order and then `(cl.exit)` will be called. If none are, the Shen REPL will start as usual. Either way, all command line arguments will be accessible with `(value *argv*)`.
+If the executable is called with no arguments, the Shen REPL is started. The REPL can be exited by running `(cl.exit)`.
+
+Startup scripts can be specified on the command line by preceding them with the `-l <file>` option and arbitrary expressions can be evaluated with the `-e <expr>` option. The REPL can be explicitly started with `-r`. By combining these options, the command line forms its own simple script which loads required code, does some environment initialisation and can then go into interactive mode by tacking `-r` on the end.
+
+All command line arguments are accessible from Shen with `(value shen-cl.*argv*)`.
 
 When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l bootstrap.shen -e (run)"`.
 
