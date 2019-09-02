@@ -192,9 +192,12 @@ release:
 ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
 	$(PS) "Compress-Archive -Force -DestinationPath release\\$(ReleaseArchiveName) -LiteralPath $(ShenSBCL), LICENSE.txt"
-else
+else ifeq ($(OSName),linux)
 	mkdir -p release
 	tar -vczf release/$(ReleaseArchiveName) $(ShenSBCL) LICENSE.txt --transform 's?.*/??g'
+else
+	mkdir -p release
+	tar -vczf release/$(ReleaseArchiveName) -s '?.*/??g' $(ShenSBCL) LICENSE.txt
 endif
 
 #
