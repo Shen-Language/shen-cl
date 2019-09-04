@@ -8,8 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [2.6.0] - 2017-09-04
+
 ### Added
   - `-s`/`--set` sets global symbols, removing use case for `*argv*`.
+  - Automated binary builds for Linux, Windows and OSX through Travis.
 
 ### Changed
   - `*argv*` has been removed.
@@ -87,7 +90,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Cleaned up `backend.lsp`, as `backend.shen` was removed.
 - Expanded README.
 
-[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/Shen-Language/shen-cl/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/Shen-Language/shen-cl/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/Shen-Language/shen-cl/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/Shen-Language/shen-cl/compare/v2.2.0...v2.3.0
