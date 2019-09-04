@@ -2,17 +2,45 @@ notifications:
   email: false
 language: generic
 sudo: required
+matrix:
+  include:
+  - os: linux
+    env:
+      MAKE_BUILD_TARGET=all
+    install:
+      - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
+      - sudo dpkg -i clozure-cl_1.11_amd64.deb
+      - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
+      - sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
+  - os: osx
+    env:
+      - HOMEBREW_NO_AUTO_UPDATE=1
+      - MAKE_BUILD_TARGET=sbcl
+    before_install:
+      - test -f /usr/local/opt/sbcl/installed || { rmdir /usr/local/opt/sbcl; brew update; brew install sbcl; touch /usr/local/opt/sbcl/installed; }
+      - brew link sbcl
+    before_cache:
+      - brew cleanup
+    cache:
+      directories:
+        - $HOME/Library/Caches/Homebrew
+        - /usr/local/Cellar/sbcl
+        - /usr/local/opt/sbcl
+  - os: windows
+    language: shell
+    env:
+      - MAKE_BUILD_TARGET=sbcl
+      - SBCL_PATH="C:/Program Files/Steel Bank Common Lisp/1.4.14"
+    install:
+      - choco install make
+      - curl -L "https://netcologne.dl.sourceforge.net/project/sbcl/sbcl/1.4.14/sbcl-1.4.14-x86-64-windows-binary.msi" -o sbcl.msi
+      - powershell -Command "Start-Process msiexec.exe -Wait -ArgumentList '/i sbcl.msi /qn'"
 addons:
   apt:
     packages:
       - clisp
       - ecl
       - libffi-dev
-install:
-  - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
-  - sudo dpkg -i clozure-cl_1.11_amd64.deb
-  - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
-  - sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
 script:
   - make fetch
-  - make all
+  - make $MAKE_BUILD_TARGET

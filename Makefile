@@ -52,6 +52,15 @@ else
 	endif
 endif
 
+CCL=ccl
+CLISP=clisp
+ECL=ecl
+SBCL=sbcl
+
+ifeq ($(TRAVIS_OS_NAME),windows)
+	SBCL="$(SBCL_PATH)/sbcl.exe" --core "$(SBCL_PATH)/sbcl.core"
+endif
+
 #
 # Set shared variables
 #
@@ -129,19 +138,19 @@ endif
 
 .PHONY: build-clisp
 build-clisp:
-	clisp -i boot.lsp
+	$(CLISP) -i boot.lsp
 
 .PHONY: build-ccl
 build-ccl:
-	ccl -l boot.lsp
+	$(CCL) -l boot.lsp
 
 .PHONY: build-ecl
 build-ecl:
-	ecl -norc -load boot.lsp
+	$(ECL) -norc -load boot.lsp
 
 .PHONY: build-sbcl
 build-sbcl:
-	sbcl --load boot.lsp
+	$(SBCL) --load boot.lsp
 
 #
 # Test an implementation
