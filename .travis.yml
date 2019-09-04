@@ -6,7 +6,9 @@ matrix:
   include:
   - os: linux
     env:
-      MAKE_BUILD_TARGET=all
+      - OS_NAME=linux
+      - BUNDLE_EXT=tar.gz
+      - MAKE_BUILD_TARGET=all
     install:
       - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
       - sudo dpkg -i clozure-cl_1.11_amd64.deb
@@ -14,6 +16,8 @@ matrix:
       - sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
   - os: osx
     env:
+      - OS_NAME=macos
+      - BUNDLE_EXT=tar.gz
       - HOMEBREW_NO_AUTO_UPDATE=1
       - MAKE_BUILD_TARGET=sbcl
     before_install:
@@ -29,6 +33,8 @@ matrix:
   - os: windows
     language: shell
     env:
+      - OS_NAME=windows
+      - BUNDLE_EXT=zip
       - MAKE_BUILD_TARGET=sbcl
       - SBCL_PATH="C:/Program Files/Steel Bank Common Lisp/1.4.14"
     install:
@@ -44,3 +50,16 @@ addons:
 script:
   - make fetch
   - make $MAKE_BUILD_TARGET
+before_deploy:
+  - make release
+deploy:
+  provider: releases
+  api_key:
+    secure: "p0xW6qdzPg5JnoWX+FZ1kYzsYoryLuC8WDYkLwX2KcBYz4HwQ9cR/AqLg6AvHurTUWem8AkHvTBRaETDppCuPOgH/PS1JV3CruC80zgXFqPpSjgSECUm94qU6dprQDn9+Rhp1WKHAZwyYoT+7BN/DP/XJxndcX5WtrBigxmsP7Oe6Si0SFGEk7QdSyZsjnnHatExfRepjkDDx+nIOtEkmtyzZxhFVzFJyt7/O54gTADEV50K3DbPtcTsvqZYhBrh/YTzRnAlnyVUGUR+4aXfpEQv1b5YjpgS2qMCeBYIvxBNB3cT1UbOQVZP+s/zO5Ccox2QgTBnSd6qCdf2qzHc1onZ/hD0XehKlVFHu6mDg5d89B+efsy+ux3eZZctWsEdg2gOGLTCdfO9XMj66qMrqGBZ+m05NYs+g0/n9yuQbPCCrzSvbg96Wa00ydJj6NYgqKMMqXUS4/pTCveqFo+l7+wHFESc9iKmDZEXJXqfArN2XSq/xfDy9ShLgUBo9TIK/Q15MW4f7O7q9YzNmjv7CvhbQDKP9bgmB0cTorsobEeKPKC+cEoYZZLCc/I2HBb5gCmxdWmUyGxd2B08yReXmhkp+ZvT9u2SUqlvpGbdXPufgPOujC5tK/ZoY3pDcC7gDISkyLczVOp5C+GWgCUinnKGNBHwjYWk022wOaOYa7Q="
+  file:
+    - release/shen-cl-${TRAVIS_TAG}-${OS_NAME}-prebuilt.${BUNDLE_EXT}
+  skip_cleanup: true
+  draft: true
+  on:
+    tags: true
+    repo: Shen-Language/shen-cl
