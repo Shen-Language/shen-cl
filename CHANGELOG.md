@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+  - `*port*` is now a string with a `major.minor.patch` format.
+
 ## [2.6.0] - 2017-09-04
 
 ### Added
