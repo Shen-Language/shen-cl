@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Changed
   - `*port*` is now a string with a `major.minor.patch` format.
+  - Errors raised when evaluating `--load` and `--eval` arguments now print error and exit with code 1.
 
 ## [2.6.0] - 2017-09-04
 
