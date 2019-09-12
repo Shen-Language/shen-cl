@@ -373,10 +373,18 @@
           (cl.exit -1))))))
 
 (DEFUN shen-cl.toplevel-interpret-args (Args)
-  (IF (CONSP Args)
-    (shen-cl.interpret-args Args)
-    (shen-cl.repl))
-  (cl.exit 0))
+  (trap-error
+    (PROGN
+      (IF (CONSP Args)
+        (shen-cl.interpret-args Args)
+        (shen-cl.repl))
+      (cl.exit 0))
+    (lambda E
+      (PROGN
+        (FORMAT T "~%!!! FATAL ERROR: ")
+        (shen.toplevel-display-exception E)
+        (FORMAT T "~%Exiting Shen.~%")
+        (cl.exit 1)))))
 
 (DEFUN shen-cl.toplevel ()
   (LET ((*PACKAGE* (FIND-PACKAGE :SHEN)))
