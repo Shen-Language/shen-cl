@@ -383,7 +383,7 @@
       (PROGN
         (FORMAT T "~%!!! FATAL ERROR: ")
         (shen.toplevel-display-exception E)
-        (FORMAT T "Exiting Shen.~%")
+        (FORMAT T "~%Exiting Shen.~%")
         (cl.exit 1)))))
 
 (DEFUN shen-cl.toplevel ()
