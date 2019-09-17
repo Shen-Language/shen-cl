@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+**Updated to Shen Open Source Kernel 21.2**
+
 ### Changed
   - `*port*` is now a string with a `major.minor.patch` format.
   - Errors raised when evaluating `--load` and `--eval` arguments now print error and exit with code 1.
