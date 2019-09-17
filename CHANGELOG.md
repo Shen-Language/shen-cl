@@ -8,13 +8,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [2.6.1] - 2019-09-17
+
 **Updated to Shen Open Source Kernel 21.2**
 
 ### Changed
   - `*port*` is now a string with a `major.minor.patch` format.
   - Errors raised when evaluating `--load` and `--eval` arguments now print error and exit with code 1.
 
-## [2.6.0] - 2017-09-04
+## [2.6.0] - 2019-09-04
 
 ### Added
   - `-s`/`--set` sets global symbols, removing use case for `*argv*`.
@@ -96,7 +98,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Cleaned up `backend.lsp`, as `backend.shen` was removed.
 - Expanded README.
 
-[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v2.6.1...HEAD
+[2.6.1]: https://github.com/Shen-Language/shen-cl/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/Shen-Language/shen-cl/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/Shen-Language/shen-cl/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/Shen-Language/shen-cl/compare/v2.3.0...v2.4.0
