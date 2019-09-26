@@ -199,6 +199,10 @@
 (import-kl "declarations")
 (import-kl "types")
 (import-kl "t-star")
+(import-kl "init")
+
+(shen.initialise)
+
 (import-lsp "overwrite")
 
 (FMAKUNBOUND 'compile-lsp)

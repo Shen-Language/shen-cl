@@ -326,12 +326,12 @@
 (DEFUN shen-cl.repl ()
 
   #+SBCL
-  (HANDLER-CASE (shen.shen)
+  (HANDLER-CASE (shen.repl)
     (SB-SYS:INTERACTIVE-INTERRUPT ()
       (cl.exit 0)))
 
   #-SBCL
-  (shen.shen))
+  (shen.repl))
 
 (DEFUN shen-cl.read-eval (Str)
   (CAR (LAST (MAPC #'eval (read-from-string Str)))))
