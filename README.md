@@ -57,21 +57,32 @@ The `Makefile` automates all build and test operations.
 
 An executable is generated for each platform in its platform-specific output directory under `bin/` (e.g. `bin/sbcl/shen.exe`). Per typical naming conventions, it is named `shen.exe` on Windows systems and just `shen` on Unix-based systems.
 
-Running `shen -h` shows a full listing of command-line options:
+Running `shen --help` shows a full listing of command-line options:
 
-| Option            | Argument(s)   | Effect                                       |
-|:------------------|:--------------|:---------------------------------------------|
-| `-e`, `--eval`    | `EXPR`        | Evaluates EXPR and prints result.            |
-| `-h`, `--help`    |               | Shows this help.                             |
-| `-l`, `--load`    | `FILE`        | Reads and evaluates FILE.                    |
-| `-q`, `--quiet`   |               | Silences interactive output.                 |
-| `-r`, `--repl`    |               | Runs the REPL.                               |
-| `-s`, `--set`     | `KEY` `VALUE` | Evaluates KEY, VALUE and sets as global.     |
-| `-v`, `--version` |               | Prints Shen, shen-cl and CL version numbers. |
+```
+commands:
+    repl
+        Launches the interactive REPL.
+        Default action if no command is supplied.
 
-Options are processed in left-to-right order. By combining options, the command line forms its own simple script which loads code, does environment initialisation and can then go into interactive mode by tacking `-r` on the end.
+    script <FILE> [<ARGS>]
+        Runs the script in FILE. *argv* is set to [FILE | ARGS].
 
-If no options are specified the REPL is started.
+    eval <ARGS>
+        Evaluates expressions and files. ARGS are evaluated from
+        left to right and can be a combination of:
+            -e, --eval <EXPR>
+                Evaluates EXPR and prints result.
+            -l, --load <FILE>
+                Reads and evaluates FILE.
+            -q, --quiet
+                Silences interactive output.
+            -s, --set <KEY> <VALUE>
+                Evaluates KEY, VALUE and sets as global.
+            -r, --repl
+                Launches the interactive REPL after evaluating
+                all the previous expresions.
+```
 
 When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l init.shen -e (run)"`.
 
