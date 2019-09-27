@@ -59,32 +59,7 @@ An executable is generated for each platform in its platform-specific output dir
 
 Running `shen --help` shows a full listing of command-line options:
 
-```
-commands:
-    repl
-        Launches the interactive REPL.
-        Default action if no command is supplied.
-
-    script <FILE> [<ARGS>]
-        Runs the script in FILE. *argv* is set to [FILE | ARGS].
-
-    eval <ARGS>
-        Evaluates expressions and files. ARGS are evaluated from
-        left to right and can be a combination of:
-            -e, --eval <EXPR>
-                Evaluates EXPR and prints result.
-            -l, --load <FILE>
-                Reads and evaluates FILE.
-            -q, --quiet
-                Silences interactive output.
-            -s, --set <KEY> <VALUE>
-                Evaluates KEY, VALUE and sets as global.
-            -r, --repl
-                Launches the interactive REPL after evaluating
-                all the previous expresions.
-```
-
-When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="-l init.shen -e (run)"`.
+When starting Shen via `make`, command line arguments can be passed through like this: `make run-sbcl Args="eval -l init.shen -e (run)"`.
 
 ## Releasing
 
