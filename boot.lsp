@@ -200,10 +200,10 @@
 (import-kl "types")
 (import-kl "t-star")
 (import-kl "init")
+(import-lsp "overwrite")
 
 (shen.initialise)
-
-(import-lsp "overwrite")
+(shen-cl.initialise)
 
 (FMAKUNBOUND 'compile-lsp)
 (FMAKUNBOUND 'import-lsp)

@@ -131,14 +131,16 @@
 (DEFUN shen-cl.exit (Code)
   (cl.exit Code))
 
-(put      'cl.exit 'arity 1 *property-vector*)
-(put 'shen-cl.exit 'arity 1 *property-vector*)
+(DEFUN shen-cl.initialise ()
+  (PROGN
+    (put      'cl.exit 'arity 1 *property-vector*)
+    (put 'shen-cl.exit 'arity 1 *property-vector*)
 
-(declare      'cl.exit (LIST 'number '--> 'unit))
-(declare 'shen-cl.exit (LIST 'number '--> 'unit))
+    (declare      'cl.exit (LIST 'number '--> 'unit))
+    (declare 'shen-cl.exit (LIST 'number '--> 'unit))
 
-(shen-cl.read-eval "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")
-(shen-cl.read-eval "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")
+    (shen-cl.read-eval "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")
+    (shen-cl.read-eval "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")))
 
 #+(OR CCL SBCL)
 (DEFUN shen.read-char-code (S)
