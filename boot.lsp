@@ -200,10 +200,18 @@
 (import-kl "types")
 (import-kl "t-star")
 (import-kl "init")
+(import-kl "extension-features")
 (import-lsp "overwrite")
 
 (shen.initialise)
 (shen-cl.initialise)
+(shen.x.features.initialise '(
+  shen/cl
+  #+CLISP shen/cl.clisp
+  #+SBCL  shen/cl.sbcl
+  #+ECL   shen/cl.ecl
+  #+CCL   shen/cl.ccl
+))
 
 (FMAKUNBOUND 'compile-lsp)
 (FMAKUNBOUND 'import-lsp)
