@@ -201,6 +201,7 @@
 (import-kl "t-star")
 (import-kl "init")
 (import-kl "extension-features")
+(import-kl "extension-launcher")
 (import-lsp "overwrite")
 
 (shen.initialise)
