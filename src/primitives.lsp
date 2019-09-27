@@ -348,7 +348,7 @@
         (WITH-OPEN-STREAM (*STANDARD-OUTPUT* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
           (SETQ *stoutput* *STANDARD-OUTPUT*)
           (SETQ *stinput* *STANDARD-INPUT*)
-          (shen-cl.toplevel-interpret-args (EXT:ARGV)))))
+          (shen-cl.toplevel-interpret-args (COERCE (EXT:ARGV) 'list)))))
 
     #+CCL
     (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))
