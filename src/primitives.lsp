@@ -359,7 +359,11 @@
       (shen-cl.toplevel-interpret-args *COMMAND-LINE-ARGUMENT-LIST*))
 
     #+ECL
-    (shen-cl.toplevel-interpret-args (SI:COMMAND-ARGS))
+    (PROGN
+     (shen.initialise)
+     (shen-cl.initialise)
+     (shen.x.features.initialise '(shen/cl shen/cl.ecl))
+     (shen-cl.toplevel-interpret-args (SI:COMMAND-ARGS)))
 
     #+SBCL
     (shen-cl.toplevel-interpret-args SB-EXT:*POSIX-ARGV*)))

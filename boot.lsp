@@ -204,15 +204,16 @@
 (import-kl "extension-launcher")
 (import-lsp "overwrite")
 
-(shen.initialise)
-(shen-cl.initialise)
-(shen.x.features.initialise '(
-  shen/cl
-  #+CLISP shen/cl.clisp
-  #+SBCL  shen/cl.sbcl
-  #+ECL   shen/cl.ecl
-  #+CCL   shen/cl.ccl
-))
+#-ECL
+(PROGN
+ (shen.initialise)
+ (shen-cl.initialise)
+ (shen.x.features.initialise '(
+   shen/cl
+   #+CLISP shen/cl.clisp
+   #+SBCL  shen/cl.sbcl
+   #+CCL   shen/cl.ccl
+ )))
 
 (FMAKUNBOUND 'compile-lsp)
 (FMAKUNBOUND 'import-lsp)
