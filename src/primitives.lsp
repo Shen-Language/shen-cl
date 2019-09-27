@@ -331,7 +331,10 @@
          (PROGN
           (shen.x.launcher.default-handle-result Result)
           (cl.exit 1)))
-        (T (shen.x.launcher.default-handle-result Result))))
+        (T
+         (PROGN
+          (shen.x.launcher.default-handle-result Result)
+          (cl.exit 0)))))
     (lambda E
       (PROGN
         (FORMAT T "~%!!! FATAL ERROR: ")
