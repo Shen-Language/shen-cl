@@ -65,7 +65,7 @@ endif
 # Set shared variables
 #
 
-KernelVersion=21.2
+KernelVersion=22.0
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
 KernelTag=shen-$(KernelVersion)
@@ -84,7 +84,7 @@ RunCCL=$(ShenCCL)
 RunECL=$(ShenECL)
 RunSBCL=$(ShenSBCL)
 
-Tests=-e "(cd \"kernel/tests\")" -l README.shen -l tests.shen
+Tests=eval -e "(cd \"kernel/tests\")" -l README.shen -l tests.shen
 
 ReleaseArchiveName=shen-cl-$(GitVersion)-$(OSName)-prebuilt$(ArchiveSuffix)
 

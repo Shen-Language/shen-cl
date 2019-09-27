@@ -305,80 +305,36 @@
 (DEFUN number? (N)
   (IF (NUMBERP N) 'true 'false))
 
-(DEFUN shen-cl.print-version ()
-  (FORMAT T "~A~%" *version*)
-  (FORMAT T "Shen-CL ~A~%" *port*)
-  (FORMAT T "~A ~A~%" *implementation* *release*))
-
-(DEFUN shen-cl.print-help ()
-  (FORMAT T "Usage: shen [OPTION]...~%")
-  (FORMAT T "  -e, --eval <EXPR>       : Evaluates EXPR and prints result~%")
-  (FORMAT T "  -h, --help              : Shows this help~%")
-  (FORMAT T "  -l, --load <FILE>       : Reads and evaluates FILE~%")
-  (FORMAT T "  -q, --quiet             : Silences interactive output~%")
-  (FORMAT T "  -r, --repl              : Runs the REPL~%")
-  (FORMAT T "  -s, --set <KEY> <VALUE> : Evaluates KEY, VALUE and sets as global~%")
-  (FORMAT T "  -v, --version           : Prints Shen, shen-cl and ~A version numbers~%" *implementation*)
-  (FORMAT T "~%")
-  (FORMAT T "Evaluates options in left-to-right order~%")
-  (FORMAT T "Starts the REPL by default if no options specified~%"))
-
 (DEFUN shen-cl.repl ()
 
   #+SBCL
-  (HANDLER-CASE (shen.shen)
+  (HANDLER-CASE (shen.repl)
     (SB-SYS:INTERACTIVE-INTERRUPT ()
       (cl.exit 0)))
 
   #-SBCL
-  (shen.shen))
+  (shen.repl))
 
 (DEFUN shen-cl.read-eval (Str)
   (CAR (LAST (MAPC #'eval (read-from-string Str)))))
 
-(DEFUN shen-cl.match-arg? (Arg Options)
-  (MEMBER Arg Options :TEST #'STRING-EQUAL))
-
-(DEFUN shen-cl.interpret-args (Args)
-  (WHEN (CONSP Args)
-    (LET ((Arg (CAR Args)))
-      (COND
-        ((shen-cl.match-arg? Arg (LIST "-e" "--eval"))
-          (print (shen-cl.read-eval (CADR Args)))
-          (shen-cl.interpret-args (CDDR Args)))
-        ((shen-cl.match-arg? Arg (LIST "-h" "--help"))
-          (shen-cl.print-version)
-          (FORMAT T "~%")
-          (shen-cl.print-help)
-          (shen-cl.interpret-args (CDR Args)))
-        ((shen-cl.match-arg? Arg (LIST "-l" "--load"))
-          (load (CADR Args))
-          (shen-cl.interpret-args (CDDR Args)))
-        ((shen-cl.match-arg? Arg (LIST "-q" "--quiet"))
-          (set *hush* 'true)
-          (shen-cl.interpret-args (CDR Args)))
-        ((shen-cl.match-arg? Arg (LIST "-r" "--repl"))
-          (shen-cl.repl)
-          (shen-cl.interpret-args (CDR Args)))
-        ((shen-cl.match-arg? Arg (LIST "-s" "--set"))
-          (set
-            (shen-cl.read-eval (CADR Args))
-            (shen-cl.read-eval (CADDR Args)))
-          (shen-cl.interpret-args (CDDDR Args)))
-        ((shen-cl.match-arg? Arg (LIST "-v" "--version"))
-          (shen-cl.print-version)
-          (shen-cl.interpret-args (CDR Args)))
-        (T
-          (FORMAT T "~%unrecognized option: ~A~%" Arg)
-          (cl.exit -1))))))
 
 (DEFUN shen-cl.toplevel-interpret-args (Args)
   (trap-error
-    (PROGN
-      (IF (CONSP Args)
-        (shen-cl.interpret-args Args)
-        (shen-cl.repl))
-      (cl.exit 0))
+    (LET ((Result (shen.x.launcher.launch-shen Args)))
+      (COND
+        ((EQ 'error (CAR Result))
+         (PROGN
+          (shen.x.launcher.default-handle-result Result)
+          (cl.exit 1)))
+        ((EQ 'unknown-arguments (CAR Result))
+         (PROGN
+          (shen.x.launcher.default-handle-result Result)
+          (cl.exit 1)))
+        (T
+         (PROGN
+          (shen.x.launcher.default-handle-result Result)
+          (cl.exit 0)))))
     (lambda E
       (PROGN
         (FORMAT T "~%!!! FATAL ERROR: ")
@@ -395,14 +351,19 @@
         (WITH-OPEN-STREAM (*STANDARD-OUTPUT* (EXT:MAKE-STREAM :OUTPUT :ELEMENT-TYPE 'UNSIGNED-BYTE))
           (SETQ *stoutput* *STANDARD-OUTPUT*)
           (SETQ *stinput* *STANDARD-INPUT*)
-          (shen-cl.toplevel-interpret-args EXT:*ARGS*))))
+          (LET ((Args (CONS (CAR (COERCE (EXT:ARGV) 'LIST)) EXT:*ARGS*)))
+            (shen-cl.toplevel-interpret-args Args)))))
 
     #+CCL
     (HANDLER-BIND ((WARNING #'MUFFLE-WARNING))
-      (shen-cl.toplevel-interpret-args (CDR *COMMAND-LINE-ARGUMENT-LIST*)))
+      (shen-cl.toplevel-interpret-args *COMMAND-LINE-ARGUMENT-LIST*))
 
     #+ECL
-    (shen-cl.toplevel-interpret-args (CDR (SI:COMMAND-ARGS)))
+    (PROGN
+     (shen.initialise)
+     (shen-cl.initialise)
+     (shen.x.features.initialise '(shen/cl shen/cl.ecl))
+     (shen-cl.toplevel-interpret-args (SI:COMMAND-ARGS)))
 
     #+SBCL
-    (shen-cl.toplevel-interpret-args (CDR SB-EXT:*POSIX-ARGV*))))
+    (shen-cl.toplevel-interpret-args SB-EXT:*POSIX-ARGV*)))
