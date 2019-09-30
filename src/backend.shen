@@ -33,10 +33,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (define mk-kl
   File -> (let Shen (read-file File)
-               KL (protect (MAPCAR (function produce-kl) Shen))
+               KL (lisp.mapcar (/. X (produce-kl X)) Shen)
                KLString (code-string KL)
                WriteKL (write-to-file (cn File ".kl") KLString)
-               CL (protect (MAPCAR (/. X (shen.kl-to-lisp [] X)) KL))
+               CL (lisp.mapcar (/. X (shen.kl-to-lisp [] X)) KL)
                CLString (code-string CL)
                WriteCL (write-to-file (cn File ".lsp") CLString)
                ok))
@@ -50,19 +50,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   [KL | Code] -> (cn (make-string "~R ~%~%" KL) (code-string Code)))
 
 (define kl-to-lisp
-  Params Param -> Param    where (cons? ((protect MEMBER) Param Params))
+  Params Param -> Param    where (cons? (lisp.member Param Params))
   Params [type X _] -> (kl-to-lisp Params X)
   Params [lambda X Y]
   -> (let ChX (ch-T X)
-       (protect [FUNCTION [LAMBDA [ChX] (kl-to-lisp [ChX | Params] (SUBST ChX X Y))]]))
+       (protect [FUNCTION [LAMBDA [ChX] (kl-to-lisp [ChX | Params] (lisp.subst ChX X Y))]]))
   Params [let X Y Z] -> (let ChX (ch-T X)
                           (protect [LET [[ChX (kl-to-lisp Params Y)]]
-                                        (kl-to-lisp [ChX | Params] (SUBST ChX X Z))]))
+                                        (kl-to-lisp [ChX | Params] (lisp.subst ChX X Z))]))
   _ [defun F Params Code] -> (protect [DEFUN F Params (kl-to-lisp Params Code)])
-  Params [cond | Cond] -> (protect [COND | (MAPCAR (/. C (cond_code Params C)) Cond)])
-  Params [F | X] -> (let Arguments (protect (MAPCAR (/. Y (kl-to-lisp Params Y)) X))
+  Params [cond | Cond] -> (protect [COND | (lisp.mapcar (/. C (cond_code Params C)) Cond)])
+  Params [F | X] -> (let Arguments (lisp.mapcar (/. Y (kl-to-lisp Params Y)) X)
                       (optimise-application
-                       (cases (protect (cons? (MEMBER F Params)))
+                       (cases (cons? (lisp.member F Params))
                               [apply F [(protect LIST) | Arguments]]
                               (cons? F) [apply (kl-to-lisp Params F)
                                                [(protect LIST) | Arguments]]
@@ -79,7 +79,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (define apply
   F Arguments -> (let FSym (maplispsym F)
-                   (trap-error ((protect APPLY) FSym Arguments)
+                   (trap-error (lisp.apply FSym Arguments)
                                (/. E (analyse-application F FSym Arguments (error-to-string E))))))
 
 (define apply
@@ -88,9 +88,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                (/. E (analyse-application F FSym Arguments (error-to-string E))))))
 
 (define apply-help
-  FSym [] -> (protect (FUNCALL FSym))
-  FSym [Argument] -> (protect (FUNCALL FSym Argument))
-  FSym [Argument | Arguments] -> (apply-help (protect (FUNCALL FSym Argument)) Arguments))
+  FSym [] -> (lisp.funcall FSym)
+  FSym [Argument] -> (lisp.funcall FSym Argument)
+  FSym [Argument | Arguments] -> (apply-help (lisp.funcall FSym Argument) Arguments))
 
 \\ Very slow if higher-order partial application is used; but accurate.
 (define analyse-application
@@ -101,7 +101,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        (curried-apply Lambda Arguments)))
 
 (define build-up-lambda-expression
-  FSym F -> ((protect EVAL) (mk-lambda FSym (arity F))))
+  FSym F -> (lisp.eval (mk-lambda FSym (arity F))))
 
 (define lazyboolop?
   and -> true
@@ -109,8 +109,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   _ -> false)
 
 (define curried-apply
-  F [X] -> (protect (FUNCALL F X))
-  F [X | Y] -> (curried-apply (protect (FUNCALL F X)) Y)
+  F [X] -> (lisp.funcall F X)
+  F [X | Y] -> (curried-apply (lisp.funcall F X) Y)
   F _ -> (error "cannot apply ~A~%" F))
 
 (define partial-application?
@@ -136,7 +136,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   [+ 1 X] -> [(intern "1+") (optimise-application X)]
   [+ X 1] -> [(intern "1+") (optimise-application X)]
   [- X 1] -> [(intern "1-") (optimise-application X)]
-  [X | Y] -> ((protect MAPCAR) (function optimise-application) [X | Y])
+  [X | Y] -> (lisp.mapcar (/. App (optimise-application App)) [X | Y])
   X -> X)
 
 (define mk-lambda
@@ -160,7 +160,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (define lisp_test
   _ true -> (protect T)
   Params [and | Tests]
-  -> [(protect AND) | (protect (MAPCAR (/. X (wrap (kl-to-lisp Params X))) Tests))]
+  -> [(protect AND) | (lisp.mapcar (/. X (wrap (kl-to-lisp Params X))) Tests)]
   Params Test -> (wrap (kl-to-lisp Params Test)))
 
 (define wrap
@@ -205,6 +205,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - -> subtract
   / -> divide
   * -> multiply
-    F -> F)
+  F -> F)
 
 )
