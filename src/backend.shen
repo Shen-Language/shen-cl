@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                KL (lisp.mapcar (/. X (produce-kl X)) Shen)
                KLString (code-string KL)
                WriteKL (write-to-file (cn File ".kl") KLString)
-               CL (lisp.mapcar (/. X (shen.kl-to-lisp [] X)) KL)
+               CL (lisp.mapcar (/. X (kl-to-lisp [] X)) KL)
                CLString (code-string CL)
                WriteCL (write-to-file (cn File ".lsp") CLString)
                ok))
