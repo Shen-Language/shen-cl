@@ -170,8 +170,8 @@
 
 (DEFUN shen.partial-application? (F Args)
   (LET ((Arity (trap-error (arity F) #'(LAMBDA (E) -1))))
-    (IF (OR (shen.ABSEQUAL Arity -1)
-            (shen.ABSEQUAL Arity (length Args))
+    (IF (OR (shen.absequal Arity -1)
+            (shen.absequal Arity (length Args))
             (shen-cl.true? (shen.greater? (length Args) Arity)))
       'false
       'true)))
@@ -253,7 +253,7 @@
       (CONSP Expr)
       (EQ '+ (CAR Expr))
       (CONSP (CDR Expr))
-      (shen.ABSEQUAL 1 (CADR Expr))
+      (shen.absequal 1 (CADR Expr))
       (CONSP (CDDR Expr))
       (NULL (CDDDR Expr)))
      (LIST (intern "1+") (shen.optimise-application (CADDR Expr))))
@@ -264,7 +264,7 @@
       (EQ '+ (CAR Expr))
       (CONSP (CDR Expr))
       (CONSP (CDDR Expr))
-      (shen.ABSEQUAL 1 (CADDR Expr))
+      (shen.absequal 1 (CADDR Expr))
       (NULL (CDDDR Expr)))
      (LIST (intern "1+") (shen.optimise-application (CADR Expr))))
 
@@ -274,7 +274,7 @@
       (EQ '- (CAR Expr))
       (CONSP (CDR Expr))
       (CONSP (CDDR Expr))
-      (shen.ABSEQUAL 1 (CADDR Expr))
+      (shen.absequal 1 (CADDR Expr))
       (NULL (CDDDR Expr)))
      (LIST (intern "1-") (shen.optimise-application (CADR Expr))))
 
@@ -287,7 +287,7 @@
      Expr)))
 
 (DEFUN shen.mk-lambda (F Arity)
-  (IF (shen.ABSEQUAL 0 Arity)
+  (IF (shen.absequal 0 Arity)
     F
     (LET ((Var (gensym 'V)))
       (LIST 'lambda Var (shen.mk-lambda (shen.endcons F Var) (1- Arity))))))
@@ -486,14 +486,14 @@
       (NUMBERP (CADR Expr)))
      (LIST 'IF (CONS 'NUMBERP (CDDR Expr)) (LIST '= (CADDR Expr) (CADR Expr))))
 
-    ; [equal? X Y] -> [(protect shen.ABSEQUAL) X Y]
+    ; [equal? X Y] -> [(protect shen.absequal) X Y]
     ((AND
       (CONSP Expr)
       (EQ 'shen.equal? (CAR Expr))
       (CONSP (CDR Expr))
       (CONSP (CDDR Expr))
       (NULL (CDDDR Expr)))
-     (CONS 'shen.ABSEQUAL (CDR Expr)))
+     (CONS 'shen.absequal (CDR Expr)))
 
     ; [greater? X Y] -> [> X Y]
     ((AND
