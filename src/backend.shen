@@ -206,7 +206,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         (lisp.string-upcase
                          (lisp.substitute
                            (lisp. "#\:") (lisp. "#\.")
-                           (lisp.subseq (str Rest) 5)))))
+                           (lisp.subseq Rest 5)))))
 
 (define maplispsym
   = -> equal?
