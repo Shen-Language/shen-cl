@@ -183,7 +183,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   [equal? X S] -> [(protect EQUAL) X S]  where (string? S)
   [equal? X N] -> [(protect EQL) X N]    where (number? N)
   [equal? N X] -> [(protect EQL) X N]    where (number? N)
-  [equal? X Y] -> [(protect shen.ABSEQUAL) X Y]
+  [equal? X Y] -> [shen.absequal X Y]
   [greater? X Y] -> [> X Y]
   [greater-than-or-equal-to? X Y] -> [>= X Y]
   [less? X Y] -> [< X Y]
