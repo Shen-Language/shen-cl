@@ -172,9 +172,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   [equal? X []] -> [(protect NULL) X]
   [equal? [] X] -> [(protect NULL) X]
   [equal? X [Quote Y]] -> [(protect EQ) X [Quote Y]]
-  where (and (= ((protect SYMBOLP) Y) (protect T)) (= Quote (protect QUOTE)))
+      where (and (= ((protect SYMBOLP) Y) (protect T))
+                 (= Quote (protect QUOTE)))
   [equal? [Quote Y] X] -> [(protect EQ) [Quote Y] X]
-  where (and (= ((protect SYMBOLP) Y) (protect T)) (= Quote (protect QUOTE)))
+        where (and (= ((protect SYMBOLP) Y) (protect T))
+                   (= Quote (protect QUOTE)))
   [equal? [fail] X] -> [(protect EQ) [fail] X]
   [equal? X [fail]] -> [(protect EQ) X [fail]]
   [equal? S X] -> [(protect EQUAL) S X]  where (string? S)
