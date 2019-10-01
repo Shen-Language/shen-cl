@@ -254,6 +254,9 @@
       (>= (LENGTH Str) Prefix-Length)
       (STRING-EQUAL Str Prefix :END1 Prefix-Length))))
 
+(DEFUN shen-cl.true? (X)
+  (shen.true? X))
+
 (DEFUN shen.process-string (X)
   (COND
     ((STRING-EQUAL X "")                  X)

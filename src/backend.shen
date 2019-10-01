@@ -60,6 +60,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                         (kl-to-lisp [ChX | Params] (lisp.subst ChX X Z))]))
   _ [defun F Params Code] -> (protect [DEFUN F Params (kl-to-lisp Params Code)])
   Params [cond | Cond] -> (protect [COND | (lisp.mapcar (/. C (cond_code Params C)) Cond)])
+  _ [lisp. Code | More] -> (if (and (string? Code) (empty? More))
+                             (lisp.read-from-string Code)
+                             (simple-error "Argument to lisp. must be a literal string"))
   Params [F | X] -> (let Arguments (lisp.mapcar (/. Y (kl-to-lisp Params Y)) X)
                       (optimise-application
                        (cases (cons? (lisp.member F Params))
@@ -76,11 +79,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (define ch-T
   X -> (protect T1957)	where (= (protect T) X)
   X -> X)
-
-(define apply
-  F Arguments -> (let FSym (maplispsym F)
-                   (trap-error (lisp.apply FSym Arguments)
-                               (/. E (analyse-application F FSym Arguments (error-to-string E))))))
 
 (define apply
   F Arguments -> (let FSym (maplispsym F)
@@ -188,12 +186,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   [greater-than-or-equal-to? X Y] -> [>= X Y]
   [less? X Y] -> [< X Y]
   [less-than-or-equal-to? X Y] -> [<= X Y]
-  X -> [wrapper X])
+  X -> [true? X])
 
-(define wrapper
+(define true?
   true -> (protect T)
   false -> []
   X -> (error "boolean expected: not ~S~%" X))
+
+(define lisp-prefixed?
+  [] -> false
+  Sym -> (shen-cl.prefix? (str Sym) "lisp.") where (lisp.symbolp Sym)
+  _ -> false)
+
+(define lisp-function-name
+  Sym -> (lisp-function-name (str Sym)) where (symbol? Sym)
+  (@s "lisp." Rest) -> (intern
+                        (lisp.string-upcase
+                         (lisp.substitute
+                           (lisp. "#\:") (lisp. "#\.")
+                           (lisp.subseq (str Rest) 5)))))
 
 (define maplispsym
   = -> equal?
