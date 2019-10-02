@@ -168,13 +168,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   [greater-than-or-equal-to? X Y] -> [>= X Y]
   [less? X Y] -> [< X Y]
   [less-than-or-equal-to? X Y] -> [<= X Y]
-  X -> [shen-cl.true? X])
-
-(define lisp-prefixed?
-  [] -> false
-  Sym -> (shen-cl.lisp-bool (shen-cl.prefix? (str Sym) "lisp."))
-      where (shen-cl.lisp-bool (lisp.symbolp Sym))
-  _ -> false)
+  X -> [true? X])
 
 (define maplispsym
   = -> equal?
@@ -186,7 +180,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - -> subtract
   / -> divide
   * -> multiply
-  F -> (shen-cl.lisp-function-name F) where (lisp-prefixed? F)
+  F -> (lisp-function-name F) where (lisp-prefixed? F)
   F -> F)
 
 )
