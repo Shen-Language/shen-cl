@@ -27,27 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *\
 
-(package shen []
-
-(set *maximum-print-sequence-size* 1000)
-
-(define mk-kl
-  File -> (let Shen (read-file File)
-               KL (lisp.mapcar (/. X (produce-kl X)) Shen)
-               KLString (code-string KL)
-               WriteKL (write-to-file (cn File ".kl") KLString)
-               CL (lisp.mapcar (/. X (kl-to-lisp [] X)) KL)
-               CLString (code-string CL)
-               WriteCL (write-to-file (cn File ".lsp") CLString)
-               ok))
-
-(define produce-kl
-  [define F | Def] -> (shen.shen->kl F Def)
-  Shen -> Shen)
-
-(define code-string
-  [] -> ""
-  [KL | Code] -> (cn (make-string "~R ~%~%" KL) (code-string Code)))
+(package shen [shen-cl.lisp-function-name shen-cl.prefix? shen-cl.true? shen-cl.lisp-bool]
 
 (define kl-to-lisp
   Params Param -> Param    where (cons? (lisp.member Param Params))
