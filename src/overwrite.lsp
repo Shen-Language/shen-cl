@@ -30,7 +30,7 @@
 (DEFUN shen.sysfunc? (Symbol)
   (or
     (APPLY shen-cl.kernel-sysfunc? (LIST Symbol))
-    (IF (shen.lisp-prefixed? Symbol) 'true 'false)))
+    (shen.lisp-prefixed? Symbol)))
 
 (DEFUN shen.pvar? (X)
   (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
