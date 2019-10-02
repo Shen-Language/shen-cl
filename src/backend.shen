@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 *\
 
-(package shen [shen-cl.lisp-function-name shen-cl.prefix? shen-cl.true? shen-cl.lisp-bool]
+(package shen-cl []
 
 (define kl-to-lisp
   Params Param -> Param    where (cons? (lisp.member Param Params))
@@ -163,7 +163,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   [equal? X S] -> [(protect EQUAL) X S]  where (string? S)
   [equal? X N] -> [(protect EQL) X N]    where (number? N)
   [equal? N X] -> [(protect EQL) X N]    where (number? N)
-  [equal? X Y] -> [shen.absequal X Y]
+  [equal? X Y] -> [absequal X Y]
   [greater? X Y] -> [> X Y]
   [greater-than-or-equal-to? X Y] -> [>= X Y]
   [less? X Y] -> [< X Y]

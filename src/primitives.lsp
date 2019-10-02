@@ -60,7 +60,7 @@
   (DEFVAR *os* (OR #+WIN32 "Windows" #+LINUX "Linux" #+DARWIN "macOS" #+UNIX "Unix" "Unknown"))
   (DECLAIM (INLINE write-byte))
   (DECLAIM (INLINE read-byte))
-  (DECLAIM (INLINE shen.double-precision)))
+  (DECLAIM (INLINE shen-cl.double-precision)))
 
 (DEFMACRO if (X Y Z)
   `(LET ((*C* ,X))
@@ -105,19 +105,19 @@
   (IF (CONSP X) 'true 'false))
 
 (DEFUN intern (String)
-  (INTERN (shen.process-intern String)))
+  (INTERN (shen-cl.process-intern String)))
 
-(DEFUN shen.process-intern (S)
+(DEFUN shen-cl.process-intern (S)
   (COND
     ((STRING-EQUAL S "")          S)
-    ((STRING-EQUAL (pos S 0) "#") (cn "_hash1957" (shen.process-intern (tlstr S))))
-    ((STRING-EQUAL (pos S 0) "'") (cn "_quote1957" (shen.process-intern (tlstr S))))
-    ((STRING-EQUAL (pos S 0) "`") (cn "_backquote1957" (shen.process-intern (tlstr S))))
-    ((STRING-EQUAL (pos S 0) "|") (cn "bar!1957" (shen.process-intern (tlstr S))))
-    (T                            (cn (pos S 0) (shen.process-intern (tlstr S))))))
+    ((STRING-EQUAL (pos S 0) "#") (cn "_hash1957" (shen-cl.process-intern (tlstr S))))
+    ((STRING-EQUAL (pos S 0) "'") (cn "_quote1957" (shen-cl.process-intern (tlstr S))))
+    ((STRING-EQUAL (pos S 0) "`") (cn "_backquote1957" (shen-cl.process-intern (tlstr S))))
+    ((STRING-EQUAL (pos S 0) "|") (cn "bar!1957" (shen-cl.process-intern (tlstr S))))
+    (T                            (cn (pos S 0) (shen-cl.process-intern (tlstr S))))))
 
 (DEFUN eval-kl (X)
-  (LET ((E (EVAL (shen.kl-to-lisp NIL X))))
+  (LET ((E (EVAL (shen-cl.kl-to-lisp NIL X))))
     (IF (AND (CONSP X) (EQ (CAR X) 'defun))
       (COMPILE E)
       E)))
@@ -143,13 +143,13 @@
 (DEFUN <-address (Vector N)
   (SVREF Vector N))
 
-(DEFUN shen.equal? (X Y)
-  (IF (shen.absequal X Y) 'true 'false))
+(DEFUN shen-cl.equal? (X Y)
+  (IF (shen-cl.absequal X Y) 'true 'false))
 
-(DEFUN shen.absequal (X Y)
+(DEFUN shen-cl.absequal (X Y)
   (COND
-    ((AND (CONSP X) (CONSP Y) (shen.absequal (CAR X) (CAR Y)))
-     (shen.absequal (CDR X) (CDR Y)))
+    ((AND (CONSP X) (CONSP Y) (shen-cl.absequal (CAR X) (CAR Y)))
+     (shen-cl.absequal (CDR X) (CDR Y)))
     ((AND (STRINGP X) (STRINGP Y))
      (STRING= X Y))
     ((AND (NUMBERP X) (NUMBERP Y))
@@ -162,7 +162,7 @@
 ;; Needed because the output of older versions
 ;; when compiling Shen code is in uppercase
 ;; for thise function.
-(DEFUN shen.ABSEQUAL (X Y) (shen.absequal X Y))
+(DEFUN shen.ABSEQUAL (X Y) (shen-cl.absequal X Y))
 
 (DEFUN CF-VECTORS (X Y LX LY)
   (AND
@@ -173,8 +173,8 @@
 (DEFUN CF-VECTORS-HELP (X Y COUNT MAX)
   (COND
     ((= COUNT MAX)
-     (shen.absequal (AREF X MAX) (AREF Y MAX)))
-    ((shen.absequal (AREF X COUNT) (AREF Y COUNT))
+     (shen-cl.absequal (AREF X MAX) (AREF Y MAX)))
+    ((shen-cl.absequal (AREF X COUNT) (AREF Y COUNT))
      (CF-VECTORS-HELP X Y (1+ COUNT) MAX))
     (T
      NIL)))
@@ -237,21 +237,21 @@
 (DEFUN str (X)
   (COND
     ((NULL X)      (ERROR "[] is not an atom in Shen; str cannot convert it to a string.~%"))
-    ((SYMBOLP X)   (shen.process-string (SYMBOL-NAME X)))
-    ((NUMBERP X)   (shen.process-number (FORMAT NIL "~A" X)))
+    ((SYMBOLP X)   (shen-cl.process-string (SYMBOL-NAME X)))
+    ((NUMBERP X)   (shen-cl.process-number (FORMAT NIL "~A" X)))
     ((STRINGP X)   (FORMAT NIL "~S" X))
     ((STREAMP X)   (FORMAT NIL "~A" X))
     ((FUNCTIONP X) (FORMAT NIL "~A" X))
     (T             (ERROR "~S is not an atom, stream or closure; str cannot convert it to a string.~%" X))))
 
-(DEFUN shen.process-number (S)
+(DEFUN shen-cl.process-number (S)
   (COND
     ((STRING-EQUAL S "")
      "")
     ((STRING-EQUAL (pos S 0) "d")
      (IF (STRING-EQUAL (pos S 1) "0") "" (cn "e" (tlstr S))))
     (T
-     (cn (pos S 0) (shen.process-number (tlstr S))))))
+     (cn (pos S 0) (shen-cl.process-number (tlstr S))))))
 
 (DEFUN shen-cl.prefix? (Str Prefix)
   (LET ((Prefix-Length (LENGTH Prefix)))
@@ -273,14 +273,14 @@
          (LispName (STRING-UPCASE (SUBSTITUTE #\: #\. (SUBSEQ Str 5)))))
     (INTERN LispName)))
 
-(DEFUN shen.process-string (X)
+(DEFUN shen-cl.process-string (X)
   (COND
     ((STRING-EQUAL X "")                  X)
-    ((shen-cl.prefix? X "_hash1957")      (cn "#" (shen.process-string (SUBSEQ X 9))))
-    ((shen-cl.prefix? X "_quote1957")     (cn "'" (shen.process-string (SUBSEQ X 10))))
-    ((shen-cl.prefix? X "_backquote1957") (cn "`" (shen.process-string (SUBSEQ X 14))))
-    ((shen-cl.prefix? X "bar!1957")       (cn "|" (shen.process-string (SUBSEQ X 8))))
-    (T                                    (cn (pos X 0) (shen.process-string (tlstr X))))))
+    ((shen-cl.prefix? X "_hash1957")      (cn "#" (shen-cl.process-string (SUBSEQ X 9))))
+    ((shen-cl.prefix? X "_quote1957")     (cn "'" (shen-cl.process-string (SUBSEQ X 10))))
+    ((shen-cl.prefix? X "_backquote1957") (cn "`" (shen-cl.process-string (SUBSEQ X 14))))
+    ((shen-cl.prefix? X "bar!1957")       (cn "|" (shen-cl.process-string (SUBSEQ X 8))))
+    (T                                    (cn (pos X 0) (shen-cl.process-string (tlstr X))))))
 
 (DEFUN get-time (Time)
   (COND
@@ -288,37 +288,37 @@
     ((EQ Time 'unix) (- (GET-UNIVERSAL-TIME) 2208988800))
     (T               (ERROR "get-time does not understand the parameter ~A~%" Time))))
 
-(DEFUN shen.double-precision (X)
+(DEFUN shen-cl.double-precision (X)
   (IF (INTEGERP X) X (COERCE X 'DOUBLE-FLOAT)))
 
-(DEFUN shen.multiply (X Y)
+(DEFUN shen-cl.multiply (X Y)
   (IF (OR (ZEROP X) (ZEROP Y))
     0
-    (* (shen.double-precision X) (shen.double-precision Y))))
+    (* (shen-cl.double-precision X) (shen-cl.double-precision Y))))
 
-(DEFUN shen.add (X Y)
-  (+ (shen.double-precision X) (shen.double-precision Y)))
+(DEFUN shen-cl.add (X Y)
+  (+ (shen-cl.double-precision X) (shen-cl.double-precision Y)))
 
-(DEFUN shen.subtract (X Y)
-  (- (shen.double-precision X) (shen.double-precision Y)))
+(DEFUN shen-cl.subtract (X Y)
+  (- (shen-cl.double-precision X) (shen-cl.double-precision Y)))
 
-(DEFUN shen.divide (X Y)
-  (LET ((Div (/ (shen.double-precision X)
-                (shen.double-precision Y))))
+(DEFUN shen-cl.divide (X Y)
+  (LET ((Div (/ (shen-cl.double-precision X)
+                (shen-cl.double-precision Y))))
     (IF (INTEGERP Div)
       Div
       (* (COERCE 1.0 'DOUBLE-FLOAT) Div))))
 
-(DEFUN shen.greater? (X Y)
+(DEFUN shen-cl.greater? (X Y)
   (IF (> X Y) 'true 'false))
 
-(DEFUN shen.less? (X Y)
+(DEFUN shen-cl.less? (X Y)
   (IF (< X Y) 'true 'false))
 
-(DEFUN shen.greater-than-or-equal-to? (X Y)
+(DEFUN shen-cl.greater-than-or-equal-to? (X Y)
   (IF (>= X Y) 'true 'false))
 
-(DEFUN shen.less-than-or-equal-to? (X Y)
+(DEFUN shen-cl.less-than-or-equal-to? (X Y)
   (IF (<= X Y) 'true 'false))
 
 (DEFUN number? (N)

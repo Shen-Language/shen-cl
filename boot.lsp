@@ -139,7 +139,7 @@
         InsideQuote))))
 
 (DEFUN translate-kl (KlCode)
-  (MAPCAR #'(LAMBDA (X) (shen.kl-to-lisp NIL X)) KlCode))
+  (MAPCAR #'(LAMBDA (X) (shen-cl.kl-to-lisp NIL X)) KlCode))
 
 (DEFUN write-lsp-file (File Code)
   (WITH-OPEN-FILE
