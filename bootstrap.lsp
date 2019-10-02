@@ -35,7 +35,7 @@
 #+ECL
 (PROGN
  (shen.initialise)
- (shen-cl.initialise)
+ (shen-cl.initialise))
 
 (DEFUN produce-kl (Shen)
   (COND
