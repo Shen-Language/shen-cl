@@ -188,25 +188,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   [greater-than-or-equal-to? X Y] -> [>= X Y]
   [less? X Y] -> [< X Y]
   [less-than-or-equal-to? X Y] -> [<= X Y]
-  X -> [true? X])
-
-(define true?
-  true -> (protect T)
-  false -> []
-  X -> (error "boolean expected: not ~S~%" X))
+  X -> [shen-cl.true? X])
 
 (define lisp-prefixed?
   [] -> false
-  Sym -> (shen-cl.prefix? (str Sym) "lisp.") where (lisp.symbolp Sym)
+  Sym -> (shen-cl.lisp-bool (shen-cl.prefix? (str Sym) "lisp."))
+      where (shen-cl.lisp-bool (lisp.symbolp Sym))
   _ -> false)
-
-(define lisp-function-name
-  Sym -> (lisp-function-name (str Sym)) where (symbol? Sym)
-  (@s "lisp." Rest) -> (intern
-                        (lisp.string-upcase
-                         (lisp.substitute
-                           (lisp. "#\:") (lisp. "#\.")
-                           (lisp.subseq Rest 5)))))
 
 (define maplispsym
   = -> equal?
@@ -218,6 +206,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   - -> subtract
   / -> divide
   * -> multiply
+  F -> (shen-cl.lisp-function-name F) where (lisp-prefixed? F)
   F -> F)
 
 )

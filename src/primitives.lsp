@@ -255,7 +255,18 @@
       (STRING-EQUAL Str Prefix :END1 Prefix-Length))))
 
 (DEFUN shen-cl.true? (X)
-  (shen.true? X))
+  (COND
+    ((EQ 'true X)  'T)
+    ((EQ 'false X) ())
+    (T (simple-error (cn "boolean expected: not ~A~%" X)))))
+
+(DEFUN shen-cl.lisp-bool (X)
+  (IF X 'true 'false))
+
+(DEFUN shen-cl.lisp-function-name (Symbol)
+  (LET* ((Str (str Symbol))
+         (LispName (STRING-UPCASE (SUBSTITUTE #\: #\. (SUBSEQ Str 5)))))
+    (INTERN LispName)))
 
 (DEFUN shen.process-string (X)
   (COND
