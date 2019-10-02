@@ -181,7 +181,7 @@
 
 (import-lsp "package")
 (import-lsp "primitives")
-(import-lsp "backend")
+(import-lsp "backend-bootstrap")
 (import-lsp "native")
 (import-lsp "shen-utils")
 (import-kl "toplevel")
