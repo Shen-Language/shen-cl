@@ -52,12 +52,16 @@ script:
   - make $MAKE_BUILD_TARGET
 before_deploy:
   - make release
+  - if [[ "$TRAVIS_OS_NAME" == "linux" || "$TRAVIS_OS_NAME" == "windows" ]]; then
+      make source-release;
+    fi;
 deploy:
   provider: releases
   api_key:
     secure: "Sn723VHbd3S+e5Zu70R7K/Vjus0oIJLK3aJDz5gcToJxN7xPEIDo+MynKy1K9Fs4IxTTPrXoptuRxCiliblQwkma9ubw/u5Emb3j3MGM4qyLDQKZEUTUPkHHsOK+PwDGv8xmmsFV9W7/CX55shJFSPINDNW2wk/fg4lzgEKO6EUgURdvKg6m8LlvkSMtqo63VXCgZU/OABUhKnounrCBzE9r5arIchXwkEn0HOOEvfGZR7opMJrdWl3IbPGN6zQJJDay7s8UTjNG/951hSGxvFaBF0FTDchzzI4TQkF587w6Lb/Q9skXwkGGWsK36s+eUIUyrrMCaIDHwBNYPY57eLGRSxcOlIsyUQZTrE7OT/hYzSdBo3EhpXeXbdHQoVzmSQ4nu3nm35tb8jKZ8+VNzWqi+dLWnK1hU+RzU+6zYvxfOFsmxAgiz3LnWY9fyrrdxrlhckJuu2TKxEoNV0WfevpV3vVDLOb3mDNoVS7/DKLEo0OqBrSjTzHJf8xc2Yb1fthEbc2leMyTEZHZNc6vhTPPrUwCths2fzxiT5mMO3jYQOQ3zmhE+CkofRmgWJbGVoUHggUyMSk7rlXI+45CpTaSYqxSFJFAr1owkBNZefFFAE4/9f3JEPtol2PaYRgQ6Tv6qJwyjYjAB7jglpGc5Bv08P4XiFjALjw2rqQSPfI="
   file:
     - release/shen-cl-${TRAVIS_TAG}-${OS_NAME}-prebuilt.${BUNDLE_EXT}
+    - release/shen-cl-${TRAVIS_TAG}-sources.${BUNDLE_EXT}
   skip_cleanup: true
   draft: true
   on:
