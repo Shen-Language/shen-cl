@@ -133,7 +133,7 @@
 
 (DEFUN shen-cl.initialise ()
   (PROGN
-    (set shen-cl.*factorise* 'true)
+    (set 'shen-cl.*factorise* 'true)
 
     (put      'cl.exit 'arity 1 *property-vector*)
     (put 'shen-cl.exit 'arity 1 *property-vector*)
