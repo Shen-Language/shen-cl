@@ -201,6 +201,7 @@
 (import-kl "init")
 (import-kl "extension-features")
 (import-kl "extension-launcher")
+(import-kl "extension-factorise-defun")
 (import-lsp "overwrite")
 
 #-ECL
