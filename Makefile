@@ -218,7 +218,11 @@ endif
 source-release:
 ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
-	$(PS) "Compress-Archive -Force -DestinationPath release\\$(SourceReleaseName)$(ArchiveSuffix) -LiteralPath src, assets, Makefile, boot.lsp, bootstrap.lsp, build.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md"
+	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName), release\\$(SourceReleaseName)$(ArchiveSuffix) -Force -Recurse -ErrorAction Ignore"
+	$(PS) "New-Item -Path release\\$(SourceReleaseName) -Force -ItemType Directory"
+	$(PS) "Copy-Item -Path src, assets, Makefile, boot.lsp, bootstrap.lsp, build.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
+	$(PS) "cd release; Compress-Archive -Force -DestinationPath $(SourceReleaseName)$(ArchiveSuffix) -LiteralPath $(SourceReleaseName)"
+	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName) -Force -Recurse"
 else ifeq ($(OSName),linux)
 	mkdir -p release
 	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src assets Makefile boot.lsp bootstrap.lsp build.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?g"
