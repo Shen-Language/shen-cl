@@ -23,6 +23,10 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+(WHEN (PROBE-FILE "src/backend.lsp")
+  (FORMAT T "-- src/backend.lsp already exists, delete first to rebuild. Skipping...")
+  (QUIT))
+
 (LOAD "src/package.lsp") ; Package code must be loaded before boot
                          ; code so that boot.lisp can be in the SHEN
                          ; package.
