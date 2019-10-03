@@ -159,11 +159,6 @@
     (T
      (EQUAL X Y))))
 
-;; Needed because the output of older versions
-;; when compiling Shen code is in uppercase
-;; for thise function.
-(DEFUN shen.ABSEQUAL (X Y) (shen-cl.absequal X Y))
-
 (DEFUN CF-VECTORS (X Y LX LY)
   (AND
     (= LX LY)
