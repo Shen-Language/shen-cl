@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [2.6.1] - 2019-09-17
 
+**Updated to Shen Open Source Kernel 21.2**
 
 ### Changed
   - `*port*` is now a string with a `major.minor.patch` format.
