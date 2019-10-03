@@ -14,10 +14,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
   - Reintroduced backend written in Shen.
   - Moved everything in the compiler from the `shen` namespace to `shen-cl`.
   - Command-line handling has been replaced by the "launcher" kernel extension.
+  - `do` expressions now get compiled into `PROGN` expression, making them tail-call optimization friendly.
 
 ### Added
   - Integrated "features" kernel extension.
   - Integrated "launcher" kernel extension.
+  - Integrated "factorise-defun" kernel extension optimization.
   - Source release which includes a pre-compiled `backend.lsp` file.
   - `shen-cl.lisp-true?` to convert from CL to Shen booleans (counterpart to `shen-cl.true?`).
 
