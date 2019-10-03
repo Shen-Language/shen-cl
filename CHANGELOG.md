@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 ### Added
   - Integrated "features" kernel extension.
   - Source release which includes a pre-compiled `backend.lsp` file.
+  - `shen-cl.lisp-true?` to convert from CL to Shen booleans (counterpart to `shen-cl.true?`).
 
 ## [2.6.1] - 2019-09-17
 
