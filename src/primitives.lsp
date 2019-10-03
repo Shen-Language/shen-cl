@@ -260,7 +260,7 @@
     ((EQ 'false X) ())
     (T (simple-error (cn "boolean expected: not ~A~%" X)))))
 
-(DEFUN shen-cl.lisp-bool-to-shen (X)
+(DEFUN shen-cl.lisp-true? (X)
   (IF X 'true 'false))
 
 (DEFUN shen-cl.lisp-function-name (Symbol)
@@ -269,7 +269,7 @@
     (INTERN LispName)))
 
 (DEFUN shen-cl.lisp-prefixed? (Symbol)
-  (shen-cl.lisp-bool-to-shen
+  (shen-cl.lisp-true?
     (AND (NOT (NULL Symbol))
          (SYMBOLP Symbol)
          (shen-cl.prefix? (str Symbol) "lisp."))))
