@@ -23,10 +23,6 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(LOAD "src/package.lsp") ; Package code must be loaded before boot
-                         ; code so that boot.lisp can be in the SHEN
-                         ; package.
-
 (PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
 (IN-PACKAGE :SHEN)
 (SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
@@ -139,7 +135,7 @@
         InsideQuote))))
 
 (DEFUN translate-kl (KlCode)
-  (MAPCAR #'(LAMBDA (X) (shen.kl-to-lisp NIL X)) KlCode))
+  (MAPCAR #'(LAMBDA (X) (shen-cl.kl-to-lisp NIL X)) KlCode))
 
 (DEFUN write-lsp-file (File Code)
   (WITH-OPEN-FILE
@@ -181,7 +177,10 @@
 
 (import-lsp "package")
 (import-lsp "primitives")
-(import-lsp "backend")
+(COND
+  ((EQ 'BOOTSTRAP *BOOT-MODE*) (import-lsp "backend-bootstrap"))
+  ((EQ 'BUILD *BOOT-MODE*) (import-lsp "backend"))
+  (T (ERROR "Invalid *BOOT-MODE* value ~S" *BOOT-MODE*)))
 (import-lsp "native")
 (import-lsp "shen-utils")
 (import-kl "toplevel")
@@ -215,49 +214,13 @@
    #+CCL   shen/cl.ccl
  )))
 
-(FMAKUNBOUND 'compile-lsp)
-(FMAKUNBOUND 'import-lsp)
-(FMAKUNBOUND 'import-kl)
-(FMAKUNBOUND 'read-kl-file)
-(FMAKUNBOUND 'clean-kl)
-(FMAKUNBOUND 'translate-kl)
-(FMAKUNBOUND 'write-lsp-file)
-(FMAKUNBOUND 'copy-file)
-
-;
-; Implementation-Specific Executable Output
-;
-
-(DEFCONSTANT EXECUTABLE-PATH (FORMAT NIL "~A~A" BINARY-PATH EXECUTABLE-NAME))
-
-#+CLISP
-(PROGN
-  (EXT:SAVEINITMEM
-    EXECUTABLE-PATH
-    :EXECUTABLE 0
-    :QUIET T
-    :INIT-FUNCTION 'shen-cl.toplevel)
-  (QUIT))
-
-#+CCL
-(PROGN
-  (CCL:SAVE-APPLICATION
-    EXECUTABLE-PATH
-    :PREPEND-KERNEL T
-    :TOPLEVEL-FUNCTION 'shen-cl.toplevel)
-  (CCL:QUIT))
-
-#+ECL
-(PROGN
-  (C:BUILD-PROGRAM
-    EXECUTABLE-PATH
-    :LISP-FILES (REVERSE *object-files*)
-    :EPILOGUE-CODE '(shen-cl.toplevel))
-  (SI:QUIT))
-
-#+SBCL
-(SB-EXT:SAVE-LISP-AND-DIE
-  EXECUTABLE-PATH
-  :EXECUTABLE T
-  :SAVE-RUNTIME-OPTIONS T
-  :TOPLEVEL 'shen-cl.toplevel)
+(DEFUN cleanup-boot ()
+  (FMAKUNBOUND 'compile-lsp)
+  (FMAKUNBOUND 'import-lsp)
+  (FMAKUNBOUND 'import-kl)
+  (FMAKUNBOUND 'read-kl-file)
+  (FMAKUNBOUND 'clean-kl)
+  (FMAKUNBOUND 'translate-kl)
+  (FMAKUNBOUND 'write-lsp-file)
+  (FMAKUNBOUND 'copy-file)
+  (FMAKUNBOUND 'cleanup-boot))

@@ -17,6 +17,19 @@ T
 NIL
 ```
 
+CL booleans can be converted into Shen booleans with `shen-cl.lisp-true?`.
+
+```
+(shen-cl.lisp-true? NIL)
+false
+
+(shen-cl.lisp-true? [])
+false
+
+(shen-cl.lisp-true? 1)
+true
+```
+
 ## Qualifying Common Lisp Functions in Shen
 
 Underlying Common Lisp functions can be qualified by prefixing them with `lisp.`.

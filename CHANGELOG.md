@@ -8,14 +8,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
-**Updated to Shen Open Source Kernel 22.0**
+**Updated to Shen Open Source Kernel 22.1**
 
 ### Changed
+  - Reintroduced backend written in Shen.
+  - Moved everything in the compiler from the `shen` namespace to `shen-cl`.
   - Command-line handling has been replaced by the "launcher" kernel extension.
-  - Added "features" kernel extension.
+
+### Added
+  - Integrated "features" kernel extension.
+  - Integrated "launcher" kernel extension.
+  - Source release which includes a pre-compiled `backend.lsp` file.
+  - `shen-cl.lisp-true?` to convert from CL to Shen booleans (counterpart to `shen-cl.true?`).
 
 ## [2.6.1] - 2019-09-17
 
+**Updated to Shen Open Source Kernel 21.2**
 
 ### Changed
   - `*port*` is now a string with a `major.minor.patch` format.

@@ -87,6 +87,7 @@ RunSBCL=$(ShenSBCL)
 Tests=eval -e "(cd \"kernel/tests\")" -l README.shen -l tests.shen
 
 ReleaseArchiveName=shen-cl-$(GitVersion)-$(OSName)-prebuilt$(ArchiveSuffix)
+SourceReleaseName=shen-cl-$(GitVersion)-sources
 
 #
 # Aggregates and defaults
@@ -138,19 +139,23 @@ endif
 
 .PHONY: build-clisp
 build-clisp:
-	$(CLISP) -i boot.lsp
+	$(CLISP) -i bootstrap.lsp
+	$(CLISP) -i build.lsp
 
 .PHONY: build-ccl
 build-ccl:
-	$(CCL) -l boot.lsp
+	$(CCL) -l bootstrap.lsp
+	$(CCL) -l build.lsp
 
 .PHONY: build-ecl
 build-ecl:
-	$(ECL) -norc -load boot.lsp
+	$(ECL) -norc -load bootstrap.lsp
+	$(ECL) -norc -load build.lsp
 
 .PHONY: build-sbcl
 build-sbcl:
-	$(SBCL) --load boot.lsp
+	$(SBCL) --load bootstrap.lsp
+	$(SBCL) --load build.lsp
 
 #
 # Test an implementation
@@ -193,7 +198,7 @@ run-sbcl:
 	$(RunSBCL) $(Args)
 
 #
-# Packging
+# Packaging
 #
 
 .PHONY: release
@@ -207,6 +212,19 @@ else ifeq ($(OSName),linux)
 else
 	mkdir -p release
 	tar -vczf release/$(ReleaseArchiveName) -s '?.*/??g' $(ShenSBCL) LICENSE.txt
+endif
+
+.PHONY: source-release
+source-release:
+ifeq ($(OSName),windows)
+	$(PS) "New-Item -Path release -Force -ItemType Directory"
+	$(PS) "Compress-Archive -Force -DestinationPath release\\$(SourceReleaseName)$(ArchiveSuffix) -LiteralPath src, assets, Makefile, boot.lsp, bootstrap.lsp, build.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md"
+else ifeq ($(OSName),linux)
+	mkdir -p release
+	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src assets Makefile boot.lsp bootstrap.lsp build.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform --transform "s?^?$(SourceReleaseName)/?g"
+else
+	mkdir -p release
+	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?g" src assets Makefile boot.lsp bootstrap.lsp build.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
 endif
 
 #
