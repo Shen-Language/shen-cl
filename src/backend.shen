@@ -23,7 +23,9 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 
-(package shen-cl []
+(package shen-cl [%%let-label %%goto-label %%return]
+
+(set *factorise* false)
 
 (define kl-to-lisp
   Params Param -> Param    where (cons? (lisp.member Param Params))
@@ -34,8 +36,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
   Params [let X Y Z] -> (let ChX (ch-T X)
                           (protect [LET [[ChX (kl-to-lisp Params Y)]]
                                         (kl-to-lisp [ChX | Params] (lisp.subst ChX X Z))]))
-  _ [defun F Params Code] -> (protect [DEFUN F Params (kl-to-lisp Params Code)])
+  _ [defun F Params [cond | Cases]] -> (kl-to-lisp
+                                        []
+                                        (shen.x.factorise-defun.factorise-defun
+                                         [defun F Params [cond | Cases]]))
+      where (value *factorise*)
+  Params [%%return Exp] -> [(protect RETURN) (kl-to-lisp Params Exp)]
+  Params [%%goto-label Label | _] -> [(protect GO) Label]
+  Params [%%let-label [Label | _] LabelBody Body] -> [(protect TAGBODY) (kl-to-lisp Params Body)
+                                                      Label (kl-to-lisp Params LabelBody)]
+  _ [defun F Params Code] -> (protect [DEFUN F Params [BLOCK NIL (kl-to-lisp Params Code)]])
   Params [cond | Cond] -> (protect [COND | (lisp.mapcar (/. C (cond_code Params C)) Cond)])
+  Params [do Exp1 Exp2] -> [(protect PROGN) (kl-to-lisp Params Exp1) (kl-to-lisp Params Exp2)]
   _ [lisp. Code | More] -> (if (and (string? Code) (empty? More))
                              (lisp.read-from-string Code)
                              (simple-error "Argument to lisp. must be a literal string"))
