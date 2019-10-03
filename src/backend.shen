@@ -47,6 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
                                                       Label (kl-to-lisp Params LabelBody)]
   _ [defun F Params Code] -> (protect [DEFUN F Params [BLOCK NIL (kl-to-lisp Params Code)]])
   Params [cond | Cond] -> (protect [COND | (lisp.mapcar (/. C (cond_code Params C)) Cond)])
+  Params [do Exp1 Exp2] -> [(protect PROGN) (kl-to-lisp Params Exp1) (kl-to-lisp Params Exp2)]
   _ [lisp. Code | More] -> (if (and (string? Code) (empty? More))
                              (lisp.read-from-string Code)
                              (simple-error "Argument to lisp. must be a literal string"))
