@@ -218,9 +218,9 @@ endif
 source-release:
 ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
-	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName), release\\$(SourceReleaseName)$(ArchiveSuffix) -Force -Recurse"
+    $(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName), release\\$(SourceReleaseName)$(ArchiveSuffix) -Force -Recurse -ErrorAction Ignore"
 	$(PS) "New-Item -Path release\\$(SourceReleaseName) -Force -ItemType Directory"
-	$(PS) "Copy-Item -Path src, assets, Makefile, boot.lsp, bootstrap.lsp, build.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Destination release\\$(SourceReleaseName)"
+	$(PS) "Copy-Item -Path src, assets, Makefile, boot.lsp, bootstrap.lsp, build.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
 	$(PS) "cd release; Compress-Archive -Force -DestinationPath $(SourceReleaseName)$(ArchiveSuffix) -LiteralPath $(SourceReleaseName)"
 	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName) -Force -Recurse"
 else ifeq ($(OSName),linux)
