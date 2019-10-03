@@ -71,7 +71,7 @@ Each tagged release on the project downloads page should have a set of pre-built
 
 ```shell
 make pure
-git checkout v2.6.0
+git checkout v2.7.0
 make fetch
 make sbcl
 make release
