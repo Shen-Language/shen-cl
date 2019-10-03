@@ -206,6 +206,10 @@
 
 #-ECL
 (PROGN
+ ;; required during bootstrap so that
+ ;; the `set` in shen-cl.initialise works
+ ;; not sure why.
+ (SETQ shen-cl.*factorise* 'true)
  (shen.initialise)
  (shen-cl.initialise)
  (shen.x.features.initialise '(
