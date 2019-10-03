@@ -221,7 +221,7 @@ ifeq ($(OSName),windows)
 	$(PS) "Compress-Archive -Force -DestinationPath release\\$(SourceReleaseName)$(ArchiveSuffix) -LiteralPath src, assets, Makefile, boot.lsp, bootstrap.lsp, build.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md"
 else ifeq ($(OSName),linux)
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src assets Makefile boot.lsp bootstrap.lsp build.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform --transform "s?^?$(SourceReleaseName)/?g"
+	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src assets Makefile boot.lsp bootstrap.lsp build.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?g"
 else
 	mkdir -p release
 	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?g" src assets Makefile boot.lsp bootstrap.lsp build.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
