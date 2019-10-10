@@ -117,7 +117,7 @@
     (T                            (cn (pos S 0) (shen-cl.process-intern (tlstr S))))))
 
 (DEFUN eval-kl (X)
-  (LET ((E (EVAL (shen-cl.kl-to-lisp NIL X))))
+  (LET ((E (EVAL (shen-cl.kl->lisp X))))
     (IF (AND (CONSP X) (EQ (CAR X) 'defun))
       (COMPILE E)
       E)))
