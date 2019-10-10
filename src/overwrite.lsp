@@ -162,7 +162,7 @@
 
 (DEFUN shen-cl.initialise ()
   (PROGN
-    (set 'shen-cl.*factorise* 'true)
+    (shen-cl.initialise-compiler)
 
     (put      'cl.exit 'arity 1 *property-vector*)
     (put 'shen-cl.exit 'arity 1 *property-vector*)
