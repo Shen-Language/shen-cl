@@ -109,6 +109,35 @@
 (DEFUN thaw (F)
   (FUNCALL F))
 
+(DEFUN hash (Val Bound)
+  (MOD (SXHASH Val) Bound))
+
+(DEFUN shen.dict (Size)
+  (MAKE-HASH-TABLE :SIZE Size))
+
+(DEFUN shen.dict? (Dict)
+  (IF (HASH-TABLE-P Dict) 'true 'false))
+
+(DEFUN shen.dict-count (Dict)
+  (HASH-TABLE-COUNT Dict))
+
+(DEFUN shen.dict-> (Dict Key Value)
+ (SETF (GETHASH Key Dict) Value))
+
+(DEFUN shen.<-dict (Dict Key)
+  (MULTIPLE-VALUE-BIND (Result Found) (GETHASH Key Dict)
+    (IF Found
+        Result
+        (ERROR "value ~A not found in dict~%" Key))))
+
+(DEFUN shen.dict-rm (Dict Key)
+  (PROGN (REMHASH Key Dict) Key))
+
+(DEFUN shen.dict-fold (F Dict Init)
+  (LET ((Acc Init))
+    (MAPHASH #'(LAMBDA (K V) (SETF Acc (FUNCALL F K V Acc))) Dict)
+    Acc))
+
 #+CLISP
 (DEFUN cl.exit (Code)
   (EXT:EXIT Code))
