@@ -143,6 +143,33 @@
 (DEFUN <-address (Vector N)
   (SVREF Vector N))
 
+(DEFUN shen-cl.value/or (Var Default)
+  (IF (BOUNDP Var)
+      (SYMBOL-VALUE Var)
+      (FUNCALL Default)))
+
+(DEFUN shen-cl.get/or (Var Prop Dict Default)
+  (MULTIPLE-VALUE-BIND (Entry Found) (GETHASH Var Dict)
+    (IF Found
+        (LET ((Res (ASSOC Prop Entry :TEST #'EQ)))
+          (IF Res
+              (CDR Res)
+              (FUNCALL Default)))
+        (FUNCALL Default))))
+
+(DEFUN shen-cl.<-address/or (Vector N Default)
+  (IF (>= N (LENGTH Vector))
+      (thaw Default)
+      (SVREF Vector N)))
+
+(DEFUN shen-cl.<-vector/or (Vector N Default)
+  (IF (ZEROP N)
+      (thaw Default)
+      (let VectorElement (SVREF Vector N)
+        (IF (EQ VectorElement (fail))
+            (thaw Default)
+            VectorElement))))
+
 (DEFUN shen-cl.equal? (X Y)
   (IF (shen-cl.absequal X Y) 'true 'false))
 
