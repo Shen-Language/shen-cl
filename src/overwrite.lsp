@@ -164,3 +164,19 @@
 (DEFUN shen.credits ()
   (shen-cl.original-credits)
   (FORMAT T "exit REPL with (cl.exit)"))
+
+;; Compiler functions
+
+(DEFUN shen-cl.cl (Symbol)
+  (LET* ((Str (SYMBOL-NAME Symbol))
+         (LispName (STRING-UPCASE Str)))
+    (intern LispName)))
+
+(DEFUN shen-cl.lisp-prefixed? (Symbol)
+  (shen-cl.lisp-true?
+    (AND (NOT (NULL Symbol))
+         (SYMBOLP Symbol)
+         (shen-cl.prefix? (str Symbol) "lisp."))))
+
+(DEFUN shen-cl.remove-lisp-prefix (Symbol)
+  (intern (SUBSEQ (SYMBOL-NAME Symbol) 5)))
