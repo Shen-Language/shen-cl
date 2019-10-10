@@ -285,7 +285,7 @@
   (COND
     ((EQ 'true X)  'T)
     ((EQ 'false X) ())
-    (T (simple-error (cn "boolean expected: not ~A~%" X)))))
+    (T (simple-error (FORMAT NIL "boolean expected: not ~A~%" X)))))
 
 (DEFUN shen-cl.lisp-true? (X)
   (IF X 'true 'false))
