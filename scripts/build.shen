@@ -38,6 +38,7 @@
   F [X | Rest] -> (do (F X) (for-each F Rest)))
 
 (define sexp->string
+  [] -> "()"
   true -> "|true|"
   false -> "|false|"
   Comma -> "|,|" where (= Comma ,)
