@@ -143,6 +143,7 @@ ifndef SHEN
 	$(info Usage: make precompile SHEN=path/to/shen.exe)
 	$(error SHEN variable is not defined)
 else
+	mkdir -p compiled
 	$(SHEN) eval -l scripts/build.shen -e "(build)"
 endif
 
