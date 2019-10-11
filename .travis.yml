@@ -9,20 +9,27 @@ matrix:
       - OS_NAME=linux
       - BUNDLE_EXT=tar.gz
       - MAKE_BUILD_TARGET=all
+      - SHEN=./shen
     install:
       - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
       - sudo dpkg -i clozure-cl_1.11_amd64.deb
       - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
       - sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
+      - wget https://github.com/Shen-Language/shen-cl/releases/download/v2.7.0/shen-cl-v2.7.0-linux-prebuilt.tar.gz
+      - tar xzf shen-cl-v2.7.0-linux-prebuilt.tar.gz
   - os: osx
     env:
       - OS_NAME=macos
       - BUNDLE_EXT=tar.gz
       - HOMEBREW_NO_AUTO_UPDATE=1
       - MAKE_BUILD_TARGET=sbcl
+      - SHEN=./shen
     before_install:
       - test -f /usr/local/opt/sbcl/installed || { rmdir /usr/local/opt/sbcl; brew update; brew install sbcl; touch /usr/local/opt/sbcl/installed; }
       - brew link sbcl
+    install:
+      - wget https://github.com/Shen-Language/shen-cl/releases/download/v2.7.0/shen-cl-v2.7.0-macos-prebuilt.tar.gz
+      - tar xzf shen-cl-v2.7.0-macos-prebuilt.tar.gz
     before_cache:
       - brew cleanup
     cache:
@@ -37,10 +44,13 @@ matrix:
       - BUNDLE_EXT=zip
       - MAKE_BUILD_TARGET=sbcl
       - SBCL_PATH="C:/Program Files/Steel Bank Common Lisp/1.4.14"
+      - SHEN=./shen.exe
     install:
       - choco install make
       - curl -L "https://netcologne.dl.sourceforge.net/project/sbcl/sbcl/1.4.14/sbcl-1.4.14-x86-64-windows-binary.msi" -o sbcl.msi
       - powershell -Command "Start-Process msiexec.exe -Wait -ArgumentList '/i sbcl.msi /qn'"
+      - curl -L "https://github.com/Shen-Language/shen-cl/releases/download/v2.7.0/shen-cl-v2.7.0-windows-prebuilt.zip" -o shen-cl-v2.7.0-windows-prebuilt.zip
+      - 7z x shen-cl-v2.7.0-windows-prebuilt.zip
 addons:
   apt:
     packages:
@@ -49,6 +59,7 @@ addons:
       - libffi-dev
 script:
   - make fetch
+  - make precompile
   - make $MAKE_BUILD_TARGET
 before_deploy:
   - make release
