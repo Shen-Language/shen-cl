@@ -1,5 +1,6 @@
-*.md        text
-*.lsp       text
-*.txt       text
-*.yml       text
-Makefile    text
+*.md        text eol=lf
+*.lsp       text eol=lf
+*.shen      text eol=lf
+*.txt       text eol=lf
+*.yml       text eol=lf
+Makefile    text eol=lf
