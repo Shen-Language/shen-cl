@@ -344,10 +344,10 @@
 (DEFUN |shen-cl.less?| (X Y)
   (IF (< X Y) '|true| '|false|))
 
-(DEFUN shen-cl.greater-than-or-equal-to? (X Y)
+(DEFUN |shen-cl.greater-than-or-equal-to?| (X Y)
   (IF (>= X Y) '|true| '|false|))
 
-(DEFUN shen-cl.less-than-or-equal-to? (X Y)
+(DEFUN |shen-cl.less-than-or-equal-to?| (X Y)
   (IF (<= X Y) '|true| '|false|))
 
 (DEFUN |number?| (N)
