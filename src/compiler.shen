@@ -1,5 +1,5 @@
-\* Copyright (c) 2012-2019 Bruno Deferrari.  All rights reserved.    *\
-\* BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause *\
+\\ Copyright (c) 2012-2019 Bruno Deferrari.  All rights reserved.
+\\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
 (package shen-cl [progn quote null car cdr t nil
                   numberp stringp consp funcall
@@ -245,7 +245,7 @@ but not otherwise.
   N -> (- N 32) where (and (>= N 97) (<= N 122))
   N -> N)
 
-(define prefix-op
+(define qualify-op
   Sym -> (cl (remove-lisp-prefix Sym)) where (lisp-prefixed? Sym)
   Sym -> (kl Sym) where (symbol? Sym)
   NotSym -> NotSym)
@@ -300,7 +300,7 @@ but not otherwise.
                               [MappedOp | Args])))
   Op _ Params Scope -> (let Args (map (/. P (compile-expression P Scope))
                                       Params)
-                         [(prefix-op Op) | Args]))
+                         [(qualify-op Op) | Args]))
 
 (define emit-application*
   Op Arity Params Scope
@@ -348,7 +348,7 @@ but not otherwise.
                                         (factorise-defun
                                           [defun Name Args [cond | Cases]]))
       where (value *factorise-patterns*)
-  [defun Name Args Body] -> [(cl defun) (prefix-op Name) Args
+  [defun Name Args Body] -> [(cl defun) (qualify-op Name) Args
                               (compile-expression Body Args)]
   Exp -> (compile-expression Exp []))
 
