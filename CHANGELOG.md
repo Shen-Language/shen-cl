@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+  - New compiler imported from Shen/Scheme. Generates code that performs better and allocates less memory.
+  - Common Lisp's read-table case rules are not modified anymore.
+  - Bootstraping from scratch requires a working Shen implementation to precompile the compiler code and kernel.
+
 ## [2.7.0] - 2019-10-03
 
 **Updated to Shen Open Source Kernel 22.1**
