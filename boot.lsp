@@ -105,11 +105,11 @@
   (LET ((SrcFile (FORMAT NIL "~A~A.lsp" Location File))
         (LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
         (FasFile (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX)))
-    (copy-file SrcFile LspFile)
+    (|copy-file| SrcFile LspFile)
     (compile-lsp File)
     (LOAD FasFile)))
 
-(DEFUN copy-file (SrcFile DestFile)
+(DEFUN |copy-file| (SrcFile DestFile)
   (WITH-OPEN-FILE
     (In SrcFile
       :DIRECTION    :INPUT
@@ -127,7 +127,7 @@
 
 (COMPILE 'compile-lsp)
 (COMPILE 'import-lsp)
-(COMPILE 'copy-file)
+(COMPILE '|copy-file|)
 
 (ENSURE-DIRECTORIES-EXIST BINARY-PATH)
 
@@ -170,7 +170,7 @@
 
 (FMAKUNBOUND 'compile-lsp)
 (FMAKUNBOUND 'import-lsp)
-(FMAKUNBOUND 'copy-file)
+(FMAKUNBOUND '|copy-file|)
 
 ;
 ; Implementation-Specific Executable Output
