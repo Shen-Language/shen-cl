@@ -139,23 +139,19 @@ endif
 
 .PHONY: build-clisp
 build-clisp:
-	$(CLISP) -i bootstrap.lsp
-	$(CLISP) -i build.lsp
+	$(CLISP) -i boot.lsp
 
 .PHONY: build-ccl
 build-ccl:
-	$(CCL) -l bootstrap.lsp
-	$(CCL) -l build.lsp
+	$(CCL) -l boot.lsp
 
 .PHONY: build-ecl
 build-ecl:
-	$(ECL) -norc -load bootstrap.lsp
-	$(ECL) -norc -load build.lsp
+	$(ECL) -norc -load boot.lsp
 
 .PHONY: build-sbcl
 build-sbcl:
-	$(SBCL) --load bootstrap.lsp
-	$(SBCL) --load build.lsp
+	$(SBCL) --load boot.lsp
 
 #
 # Test an implementation
