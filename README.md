@@ -42,16 +42,19 @@ brew install Shen-Language/homebrew-shen/shen-sbcl
 
 The `Makefile` automates all build and test operations.
 
-| Target    | Operation                             |
-|:----------|:--------------------------------------|
-| `fetch`   | Download and extract Shen sources.    |
-| `build-X` | Build executable.                     |
-| `test-X`  | Run test suite.                       |
-| `X`       | Build and run test suite.             |
-| `run-X`   | Start Shen REPL.                      |
-| `release` | Creates archive of compiled binaries. |
+| Target       | Operation                                    |
+|:-------------|:---------------------------------------------|
+| `fetch`      | Download and extract Shen sources.           |
+| `precompile` | Precompile kernel and compiler to Lisp code. |
+| `build-X`    | Build executable.                            |
+| `test-X`     | Run test suite.                              |
+| `X`          | Build and run test suite.                    |
+| `run-X`      | Start Shen REPL.                             |
+| `release`    | Creates archive of compiled binaries.        |
 
 `X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
+
+`precompile` is only required when bootstraping Shen/CL from this repository, the source release includes the precompiled files. The `SHEN` variable has to be defined and point to a working Shen executable that will be used to precompile the kernel and compiler code.
 
 ## Running
 
@@ -73,6 +76,7 @@ Each tagged release on the project downloads page should have a set of pre-built
 make pure
 git checkout v2.7.0
 make fetch
+make precompile SHEN=shen-sbcl
 make sbcl
 make release
 ```

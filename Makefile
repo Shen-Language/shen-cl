@@ -134,6 +134,19 @@ else
 endif
 
 #
+# Precompilation into Lisp code
+#
+
+.PHONY: precompile
+precompile:
+ifndef SHEN
+	$(info Usage: make precompile SHEN=path/to/shen.exe)
+	$(error SHEN variable is not defined)
+else
+	$(SHEN) eval -l scripts/build.shen -e "(build)"
+endif
+
+#
 # Build an implementation
 #
 
