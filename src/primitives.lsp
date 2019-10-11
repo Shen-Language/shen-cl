@@ -31,7 +31,6 @@
 (DEFVAR |*language*| "Common Lisp")
 (DEFVAR |*port*| "2.7.0")
 (DEFVAR |*porters*| "Mark Tarver")
-(DEFVAR |*home-directory*| "")
 
 #+CLISP
 (PROGN
