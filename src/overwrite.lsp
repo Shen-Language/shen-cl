@@ -25,187 +25,187 @@
 
 (IN-PACKAGE :SHEN)
 
-(DEFVAR shen-cl.kernel-sysfunc? (FDEFINITION 'shen.sysfunc?))
+(DEFVAR |shen-cl.kernel-sysfunc?| (FDEFINITION '|shen.sysfunc?|))
 
-(DEFUN shen.sysfunc? (Symbol)
+(DEFUN |shen.sysfunc?| (Symbol)
   (or
-    (APPLY shen-cl.kernel-sysfunc? (LIST Symbol))
-    (shen-cl.lisp-prefixed? Symbol)))
+    (APPLY |shen-cl.kernel-sysfunc?| (LIST Symbol))
+    (|shen-cl.lisp-prefixed?| Symbol)))
 
 (DEFUN shen.pvar? (X)
-  (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
-    'true
-    'false))
+  (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) '|shen.pvar|))
+    '|true|
+    '|false|))
 
-(DEFUN shen.lazyderef (X ProcessN)
-  (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
-    (LET ((Value (shen.valvector X ProcessN)))
-      (IF (EQ Value 'shen.-null-)
+(DEFUN |shen.lazyderef| (X ProcessN)
+  (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) '|shen.pvar|))
+    (LET ((Value (|shen.valvector| X ProcessN)))
+      (IF (EQ Value '|shen.-null-|)
         X
-        (shen.lazyderef Value ProcessN)))
+        (|shen.lazyderef| Value ProcessN)))
     X))
 
-(DEFUN shen.valvector (Var ProcessN)
-  (SVREF (SVREF shen.*prologvectors* ProcessN) (SVREF Var 1)))
+(DEFUN |shen.valvector| (Var ProcessN)
+  (SVREF (SVREF |shen.*prologvectors*| ProcessN) (SVREF Var 1)))
 
-(DEFUN shen.unbindv (Var N)
-  (LET ((Vector (SVREF shen.*prologvectors* N)))
-    (SETF (SVREF Vector (SVREF Var 1)) 'shen.-null-)))
+(DEFUN |shen.unbindv| (Var N)
+  (LET ((Vector (SVREF |shen.*prologvectors*| N)))
+    (SETF (SVREF Vector (SVREF Var 1)) '|shen.-null-|)))
 
-(DEFUN shen.bindv (Var Val N)
-  (LET ((Vector (SVREF shen.*prologvectors* N)))
+(DEFUN |shen.bindv| (Var Val N)
+  (LET ((Vector (SVREF |shen.*prologvectors*| N)))
     (SETF (SVREF Vector (SVREF Var 1)) Val)))
 
-(DEFUN shen.copy-vector-stage-1 (Count Vector BigVector Max)
+(DEFUN |shen.copy-vector-stage-1| (Count Vector BigVector Max)
   (IF (= Max Count)
     BigVector
-    (shen.copy-vector-stage-1
+    (|shen.copy-vector-stage-1|
       (1+ Count)
       Vector
-      (address-> BigVector Count (<-address Vector Count))
+      (|address->| BigVector Count (|<-address| Vector Count))
       Max)))
 
-(DEFUN shen.copy-vector-stage-2 (Count Max Fill BigVector)
+(DEFUN |shen.copy-vector-stage-2| (Count Max Fill BigVector)
   (IF (= Max Count)
     BigVector
-    (shen.copy-vector-stage-2
+    (|shen.copy-vector-stage-2|
       (1+ Count)
       Max
       Fill
-      (address-> BigVector Count Fill))))
+      (|address->| BigVector Count Fill))))
 
-(DEFUN shen.newpv (N)
-  (LET ((Count+1 (1+ (THE INTEGER (SVREF shen.*varcounter* N))))
-        (Vector (SVREF shen.*prologvectors* N)))
-    (SETF (SVREF shen.*varcounter* N) Count+1)
-    (IF (= (THE INTEGER Count+1) (THE INTEGER (limit Vector)))
-      (shen.resizeprocessvector N Count+1)
-      'skip)
-    (shen.mk-pvar Count+1)))
+(DEFUN |shen.newpv| (N)
+  (LET ((Count+1 (1+ (THE INTEGER (SVREF |shen.*varcounter*| N))))
+        (Vector (SVREF |shen.*prologvectors*| N)))
+    (SETF (SVREF |shen.*varcounter*| N) Count+1)
+    (IF (= (THE INTEGER Count+1) (THE INTEGER (|limit| Vector)))
+      (|shen.resizeprocessvector| N Count+1)
+      '|skip|)
+    (|shen.mk-pvar| Count+1)))
 
-(DEFUN vector-> (Vector N X)
+(DEFUN |vector->| (Vector N X)
   (IF (ZEROP N)
     (ERROR "cannot access 0th element of a vector~%")
-    (address-> Vector N X)))
+    (|address->| Vector N X)))
 
-(DEFUN <-vector (Vector N)
+(DEFUN |<-vector| (Vector N)
   (IF (ZEROP N)
     (ERROR "cannot access 0th element of a vector~%")
-    (let VectorElement (SVREF Vector N)
-      (IF (EQ VectorElement (fail))
+    (|let| VectorElement (SVREF Vector N)
+      (IF (EQ VectorElement (|fail|))
         (ERROR "vector element not found~%")
         VectorElement))))
 
-(DEFUN variable? (X)
+(DEFUN |variable?| (X)
   (IF (AND (SYMBOLP X) (NOT (NULL X)) (UPPER-CASE-P (CHAR (SYMBOL-NAME X) 0)))
-    'true
-    'false))
+    '|true|
+    '|false|))
 
-(DEFUN shen.+string? (X)
+(DEFUN |shen.+string?| (X)
   (IF (AND (STRINGP X) (NOT (STRING-EQUAL X "")))
-    'true
-    'false))
+    '|true|
+    '|false|))
 
-(DEFUN thaw (F)
+(DEFUN |thaw| (F)
   (FUNCALL F))
 
-(DEFUN hash (Val Bound)
+(DEFUN |hash| (Val Bound)
   (MOD (SXHASH Val) Bound))
 
-(DEFUN shen.dict (Size)
+(DEFUN |shen.dict| (Size)
   (MAKE-HASH-TABLE :SIZE Size))
 
-(DEFUN shen.dict? (Dict)
-  (IF (HASH-TABLE-P Dict) 'true 'false))
+(DEFUN |shen.dict?| (Dict)
+  (IF (HASH-TABLE-P Dict) '|true| '|false|))
 
-(DEFUN shen.dict-count (Dict)
+(DEFUN |shen.dict-count| (Dict)
   (HASH-TABLE-COUNT Dict))
 
-(DEFUN shen.dict-> (Dict Key Value)
+(DEFUN |shen.dict->| (Dict Key Value)
  (SETF (GETHASH Key Dict) Value))
 
-(DEFUN shen.<-dict (Dict Key)
+(DEFUN |shen.<-dict| (Dict Key)
   (MULTIPLE-VALUE-BIND (Result Found) (GETHASH Key Dict)
     (IF Found
         Result
         (ERROR "value ~A not found in dict~%" Key))))
 
-(DEFUN shen.dict-rm (Dict Key)
+(DEFUN |shen.dict-rm| (Dict Key)
   (PROGN (REMHASH Key Dict) Key))
 
-(DEFUN shen.dict-fold (F Dict Init)
+(DEFUN |shen.dict-fold| (F Dict Init)
   (LET ((Acc Init))
     (MAPHASH #'(LAMBDA (K V) (SETF Acc (FUNCALL F K V Acc))) Dict)
     Acc))
 
 #+CLISP
-(DEFUN cl.exit (Code)
+(DEFUN |cl.exit| (Code)
   (EXT:EXIT Code))
 
 #+(AND CCL (NOT WINDOWS))
-(DEFUN cl.exit (Code)
+(DEFUN |cl.exit| (Code)
   (CCL:QUIT Code))
 
 #+(AND CCL WINDOWS)
-(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN cl.exit (Code) (#__exit Code))"))
+(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN |cl.exit| (Code) (#__exit Code))"))
 
 #+ECL
-(DEFUN cl.exit (Code)
+(DEFUN |cl.exit| (Code)
   (SI:QUIT Code))
 
 #+SBCL
-(DEFUN cl.exit (Code)
+(DEFUN |cl.exit| (Code)
   (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
 
-(DEFUN shen-cl.exit (Code)
-  (cl.exit Code))
+(DEFUN |shen-cl.exit| (Code)
+  (|cl.exit| Code))
 
-(DEFUN shen-cl.initialise ()
+(DEFUN |shen-cl.initialise| ()
   (PROGN
-    (shen-cl.initialise-compiler)
+    (|shen-cl.initialise-compiler|)
 
-    (put      'cl.exit 'arity 1 *property-vector*)
-    (put 'shen-cl.exit 'arity 1 *property-vector*)
+    (|put|      '|cl.exit| '|arity| 1 |*property-vector*|)
+    (|put| '|shen-cl.exit| '|arity| 1 |*property-vector*|)
 
-    (declare      'cl.exit (LIST 'number '--> 'unit))
-    (declare 'shen-cl.exit (LIST 'number '--> 'unit))
+    (|declare|      '|cl.exit| (LIST '|number| '--> '|unit|))
+    (|declare| '|shen-cl.exit| (LIST '|number| '--> '|unit|))
 
-    (shen-cl.read-eval "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")
-    (shen-cl.read-eval "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")))
+    (|shen-cl.read-eval| "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")
+    (|shen-cl.read-eval| "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")))
 
 #+(OR CCL SBCL)
-(DEFUN shen.read-char-code (S)
+(DEFUN |shen.read-char-code| (S)
   (LET ((C (READ-CHAR S NIL -1)))
     (IF (EQ C -1)
       -1
       (CHAR-INT C))))
 
 #+(OR CCL SBCL)
-(DEFUN pr (X S)
+(DEFUN |pr| (X S)
   (WRITE-STRING X S)
-  (WHEN (OR (EQ S *stoutput*) (EQ S *stinput*))
+  (WHEN (OR (EQ S |*stoutput*|) (EQ S |*stinput*|))
     (FORCE-OUTPUT S))
   X)
 
 ; Amend the REPL credits message to explain exit command
-(SETF (SYMBOL-FUNCTION 'shen-cl.original-credits) #'shen.credits)
+(SETF (SYMBOL-FUNCTION '|shen-cl.original-credits|) #'|shen.credits|)
 
-(DEFUN shen.credits ()
-  (shen-cl.original-credits)
+(DEFUN |shen.credits| ()
+  (|shen-cl.original-credits|)
   (FORMAT T "exit REPL with (cl.exit)"))
 
 ;; Compiler functions
 
-(DEFUN shen-cl.cl (Symbol)
+(DEFUN |shen-cl.cl| (Symbol)
   (LET* ((Str (SYMBOL-NAME Symbol))
          (LispName (STRING-UPCASE Str)))
-    (intern LispName)))
+    (|intern| LispName)))
 
-(DEFUN shen-cl.lisp-prefixed? (Symbol)
-  (shen-cl.lisp-true?
+(DEFUN |shen-cl.lisp-prefixed?| (Symbol)
+  (|shen-cl.lisp-true?|
     (AND (NOT (NULL Symbol))
          (SYMBOLP Symbol)
-         (shen-cl.prefix? (str Symbol) "lisp."))))
+         (|shen-cl.prefix?| (|str| Symbol) "lisp."))))
 
-(DEFUN shen-cl.remove-lisp-prefix (Symbol)
-  (intern (SUBSEQ (SYMBOL-NAME Symbol) 5)))
+(DEFUN |shen-cl.remove-lisp-prefix| (Symbol)
+  (|intern| (SUBSEQ (SYMBOL-NAME Symbol) 5)))

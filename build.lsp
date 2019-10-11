@@ -46,7 +46,7 @@
     EXECUTABLE-PATH
     :EXECUTABLE 0
     :QUIET T
-    :INIT-FUNCTION 'shen-cl.toplevel)
+    :INIT-FUNCTION '|shen-cl.toplevel|)
   (QUIT))
 
 #+CCL
@@ -54,7 +54,7 @@
   (CCL:SAVE-APPLICATION
     EXECUTABLE-PATH
     :PREPEND-KERNEL T
-    :TOPLEVEL-FUNCTION 'shen-cl.toplevel)
+    :TOPLEVEL-FUNCTION '|shen-cl.toplevel|)
   (CCL:QUIT))
 
 #+ECL
@@ -62,7 +62,7 @@
   (C:BUILD-PROGRAM
     EXECUTABLE-PATH
     :LISP-FILES (REVERSE *object-files*)
-    :EPILOGUE-CODE '(shen-cl.toplevel))
+    :EPILOGUE-CODE '(|shen-cl.toplevel|))
   (SI:QUIT))
 
 #+SBCL
@@ -70,4 +70,4 @@
   EXECUTABLE-PATH
   :EXECUTABLE T
   :SAVE-RUNTIME-OPTIONS T
-  :TOPLEVEL 'shen-cl.toplevel)
+  :TOPLEVEL '|shen-cl.toplevel|)

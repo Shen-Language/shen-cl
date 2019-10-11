@@ -37,10 +37,10 @@
   #+SBCL
   (:USE :COMMON-LISP
         :SB-ALIEN)
-  (:EXPORT :shen-cl.with-temp-readcase
-           :shen-cl.load-lisp
-           :shen-cl.eval-lisp
-           :load))
+  (:EXPORT :|shen-cl.with-temp-readcase|
+           :|shen-cl.load-lisp|
+           :|shen-cl.eval-lisp|
+           :|load|))
 
 (DEFPACKAGE :SHEN-UTILS
   (:DOCUMENTATION "This package exports functions for use in common lisp code which facilitate interoperation.")

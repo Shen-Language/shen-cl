@@ -25,7 +25,7 @@
 
 (IN-PACKAGE :SHEN)
 
-(DEFMACRO shen-cl.with-temp-readcase (new-read-case &BODY body)
+(DEFMACRO |shen-cl.with-temp-readcase| (new-read-case &BODY body)
   (LET ((old-read-case (READTABLE-CASE *READTABLE*))
         (result (GENSYM)))
   `(PROGN
@@ -34,12 +34,12 @@
        (SETF (READTABLE-CASE *READTABLE*) ,old-read-case)
        ,result))))
 
-(DEFUN shen-cl.load-lisp (FILESPEC &OPTIONAL (readtable-case :UPCASE))
-  (shen-cl.with-temp-readcase readtable-case
+(DEFUN |shen-cl.load-lisp| (FILESPEC &OPTIONAL (readtable-case :UPCASE))
+  (|shen-cl.with-temp-readcase| readtable-case
     (LET ((*PACKAGE* (FIND-PACKAGE :COMMON-LISP-USER)))
       (LOAD FILESPEC))))
 
-(DEFUN shen-cl.eval-lisp (string &OPTIONAL (package :COMMON-LISP-USER) (readtable-case :UPCASE))
-  (shen-cl.with-temp-readcase readtable-case
+(DEFUN |shen-cl.eval-lisp| (string &OPTIONAL (package :COMMON-LISP-USER) (readtable-case :UPCASE))
+  (|shen-cl.with-temp-readcase readtable-case|
     (LET ((*PACKAGE* (FIND-PACKAGE package)))
      (EVAL (READ-FROM-STRING string)))))
