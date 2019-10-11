@@ -16,7 +16,7 @@ matrix:
       - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
       - sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
       - wget https://github.com/Shen-Language/shen-cl/releases/download/v2.7.0/shen-cl-v2.7.0-linux-prebuilt.tar.gz
-      - tar xzf shen-cl-v2.7.0-linux-prebuilt.tar.gz
+      - tar xzf shen-cl-v2.7.0-linux-prebuilt.tar.gz shen
   - os: osx
     env:
       - OS_NAME=macos
@@ -29,7 +29,7 @@ matrix:
       - brew link sbcl
     install:
       - wget https://github.com/Shen-Language/shen-cl/releases/download/v2.7.0/shen-cl-v2.7.0-macos-prebuilt.tar.gz
-      - tar xzf shen-cl-v2.7.0-macos-prebuilt.tar.gz
+      - tar xzf shen-cl-v2.7.0-macos-prebuilt.tar.gz shen
     before_cache:
       - brew cleanup
     cache:
@@ -50,7 +50,7 @@ matrix:
       - curl -L "https://netcologne.dl.sourceforge.net/project/sbcl/sbcl/1.4.14/sbcl-1.4.14-x86-64-windows-binary.msi" -o sbcl.msi
       - powershell -Command "Start-Process msiexec.exe -Wait -ArgumentList '/i sbcl.msi /qn'"
       - curl -L "https://github.com/Shen-Language/shen-cl/releases/download/v2.7.0/shen-cl-v2.7.0-windows-prebuilt.zip" -o shen-cl-v2.7.0-windows-prebuilt.zip
-      - 7z x shen-cl-v2.7.0-windows-prebuilt.zip
+      - 7z e shen-cl-v2.7.0-windows-prebuilt.zip shen.exe
 addons:
   apt:
     packages:
