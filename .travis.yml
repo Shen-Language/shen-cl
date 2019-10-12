@@ -18,7 +18,7 @@ matrix:
       - sudo dpkg -i clozure-cl_1.11_amd64.deb
       - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
       - sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
-      - wget "hhttps://github.com/tizoc/shen-scheme/releases/download/0.22/shen-scheme-0.22-linux-bin.tar.gz"
+      - wget "https://github.com/tizoc/shen-scheme/releases/download/0.22/shen-scheme-0.22-linux-bin.tar.gz"
       - tar xzf "shen-scheme-0.22-linux-bin.tar.gz"
   - os: osx
     env:
@@ -47,7 +47,7 @@ matrix:
       - BUNDLE_EXT=zip
       - MAKE_BUILD_TARGET=sbcl
       - SBCL_PATH="C:/Program Files/Steel Bank Common Lisp/1.4.14"
-      - SHEN=./shen-scheme-0.22-osx-bin/bin/shen-scheme.exe
+      - SHEN=./shen-scheme-0.22-windows-bin/bin/shen-scheme.exe
     install:
       - choco install make
       - curl -L "https://netcologne.dl.sourceforge.net/project/sbcl/sbcl/1.4.14/sbcl-1.4.14-x86-64-windows-binary.msi" -o sbcl.msi
