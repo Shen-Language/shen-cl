@@ -108,20 +108,21 @@
   X X Body -> Body
   X Y Body -> (subst X Y Body))
 
-(define ch-T
+(define ch-T/NIL
   X -> (cl safe-t) where (= (protect T) X)
+  X -> (cl safe-nil) where (= (protect NIL) X)
   X -> X)
 
 (define emit-let
    Var Value Body Scope
-   -> (let ChVar (ch-T Var)
+   -> (let ChVar (ch-T/NIL Var)
            ChBody (subst* ChVar Var Body)
        [(cl let) [[ChVar (compile-expression Value Scope)]]
         (compile-expression ChBody [ChVar | Scope])]))
 
 (define emit-lambda
   Var Body Scope
-  -> (let ChVar (ch-T Var)
+  -> (let ChVar (ch-T/NIL Var)
           ChBody (subst* ChVar Var Body)
       [(kl lambda) ChVar
        (compile-expression ChBody [ChVar | Scope])]))
