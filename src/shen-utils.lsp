@@ -23,17 +23,17 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(IN-PACKAGE :SHEN-UTILS)
+(in-package :shen-utils)
 
 ;; Re-export shen-cl.with-temp-readcase from :SHEN for use in common lisp.
-(EVAL-WHEN (:COMPILE-TOPLEVEL :LOAD-TOPLEVEL :EXECUTE)
-  (SETF (MACRO-FUNCTION 'WITH-TEMP-READCASE) (MACRO-FUNCTION '|shen-cl.with-temp-readcase|)))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (setf (macro-function 'with-temp-readcase) (macro-function '|shen-cl.with-temp-readcase|)))
 
-(DEFMACRO IN-SHEN-ENVIRONMENT (&BODY BODY)
-  `(WITH-TEMP-READCASE :PRESERVE
-     (LET ((*PACKAGE* (FIND-PACKAGE :SHEN)))
-       ,@BODY)))
+(defmacro in-shen-environment (&body body)
+  `(with-temp-readcase :preserve
+     (let ((*package* (find-package :shen)))
+       ,@body)))
 
-(DEFUN LOAD-SHEN (filename)
-  (IN-SHEN-ENVIRONMENT
+(defun load-shen (filename)
+  (in-shen-environment
     (|load| filename)))
