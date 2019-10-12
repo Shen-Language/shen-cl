@@ -12,27 +12,27 @@ matrix:
       - OS_NAME=linux
       - BUNDLE_EXT=tar.gz
       - MAKE_BUILD_TARGET=all
-      - SHEN=./shen
+      - SHEN=./shen-scheme-0.22-linux-bin/bin/shen-scheme
     install:
       - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
       - sudo dpkg -i clozure-cl_1.11_amd64.deb
       - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
       - sudo dpkg -i sbcl_1.3.14-2+b1_amd64.deb
-      - wget "https://github.com/Shen-Language/shen-cl/releases/download/v${PREBUILT_SHEN_VERSION}/shen-cl-v${PREBUILT_SHEN_VERSION}-linux-prebuilt.tar.gz"
-      - tar xzf "shen-cl-v${PREBUILT_SHEN_VERSION}-linux-prebuilt.tar.gz" shen
+      - wget "hhttps://github.com/tizoc/shen-scheme/releases/download/0.22/shen-scheme-0.22-linux-bin.tar.gz"
+      - tar xzf "shen-scheme-0.22-linux-bin.tar.gz"
   - os: osx
     env:
       - OS_NAME=macos
       - BUNDLE_EXT=tar.gz
       - HOMEBREW_NO_AUTO_UPDATE=1
       - MAKE_BUILD_TARGET=sbcl
-      - SHEN=./shen
+      - SHEN=./shen-scheme-0.22-osx-bin/bin/shen-scheme
     before_install:
       - test -f /usr/local/opt/sbcl/installed || { rmdir /usr/local/opt/sbcl; brew update; brew install sbcl; touch /usr/local/opt/sbcl/installed; }
       - brew link sbcl
     install:
-      - wget "https://github.com/Shen-Language/shen-cl/releases/download/v${PREBUILT_SHEN_VERSION}/shen-cl-v${PREBUILT_SHEN_VERSION}-macos-prebuilt.tar.gz"
-      - tar xzf "shen-cl-v${PREBUILT_SHEN_VERSION}-macos-prebuilt.tar.gz" shen
+      - wget "https://github.com/tizoc/shen-scheme/releases/download/0.22/shen-scheme-0.22-osx-bin.tar.gz"
+      - tar xzf "shen-scheme-0.22-osx-bin.tar.gz"
     before_cache:
       - brew cleanup
     cache:
@@ -47,13 +47,13 @@ matrix:
       - BUNDLE_EXT=zip
       - MAKE_BUILD_TARGET=sbcl
       - SBCL_PATH="C:/Program Files/Steel Bank Common Lisp/1.4.14"
-      - SHEN=./shen.exe
+      - SHEN=./shen-scheme-0.22-osx-bin/bin/shen-scheme.exe
     install:
       - choco install make
       - curl -L "https://netcologne.dl.sourceforge.net/project/sbcl/sbcl/1.4.14/sbcl-1.4.14-x86-64-windows-binary.msi" -o sbcl.msi
       - powershell -Command "Start-Process msiexec.exe -Wait -ArgumentList '/i sbcl.msi /qn'"
-      - curl -L "https://github.com/Shen-Language/shen-cl/releases/download/v${PREBUILT_SHEN_VERSION}/shen-cl-v${PREBUILT_SHEN_VERSION}-windows-prebuilt.zip" -o "shen-cl-v${PREBUILT_SHEN_VERSION}-windows-prebuilt.zip"
-      - 7z e "shen-cl-v${PREBUILT_SHEN_VERSION}-windows-prebuilt.zip" shen.exe
+      - curl -L "https://github.com/tizoc/shen-scheme/releases/download/0.22/shen-scheme-0.22-windows-bin.zip" -o "shen-scheme-0.22-windows-bin.zip"
+      - 7z x "shen-scheme-0.22-windows-bin.zip"
 addons:
   apt:
     packages:
