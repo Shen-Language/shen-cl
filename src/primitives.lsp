@@ -132,13 +132,16 @@
   `(function (lambda () ,x)))
 
 (defun |absvector| (n)
-  (make-array (list n)))
+  (make-array n))
 
 (defun |absvector?| (x)
-  (if (and (arrayp x) (not (stringp x))) '|true| '|false|))
+  (if (and (arrayp x) (not (stringp x)))
+     '|true|
+     '|false|))
 
 (defun |address->| (vector n value)
-  (setf (svref vector n) value) vector)
+  (setf (svref vector n) value)
+  vector)
 
 (defun |<-address| (vector n)
   (svref vector n))
