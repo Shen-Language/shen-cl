@@ -29,7 +29,7 @@
 (defvar |*stoutput*| *standard-output*)
 (defvar |*sterror*| *error-output*)
 (defvar |*language*| "Common Lisp")
-(defvar |*port*| "2.7.0")
+(defvar |*port*| "3.0.0")
 (defvar |*porters*| "Mark Tarver, Robert Koeninger and Bruno Deferrari")
 
 #+clisp

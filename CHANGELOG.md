@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### [3.0.0] - 2019-10-12
+
 **Updated to Shen Open Source Kernel 22.2**
 
 ### Changed
@@ -122,7 +124,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Cleaned up `backend.lsp`, as `backend.shen` was removed.
 - Expanded README.
 
-[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v2.7.0...HEAD
+[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/Shen-Language/shen-cl/compare/v2.7.0...v3.0.0
 [2.7.0]: https://github.com/Shen-Language/shen-cl/compare/v2.6.1...v2.7.0
 [2.6.1]: https://github.com/Shen-Language/shen-cl/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/Shen-Language/shen-cl/compare/v2.5.0...v2.6.0
