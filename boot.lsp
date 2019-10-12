@@ -23,205 +23,189 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(PROCLAIM '(OPTIMIZE (DEBUG 0) (SPEED 3) (SAFETY 3)))
-(IN-PACKAGE :SHEN)
-(SETF (READTABLE-CASE *READTABLE*) :PRESERVE)
-(DEFCONSTANT KLAMBDA-PATH "./kernel/klambda/")
-(DEFCONSTANT SOURCE-PATH "./src/")
+(load "src/package.lsp") ; Package code must be loaded before boot
+                         ; code so that boot.lisp can be in the SHEN
+                         ; package.
+
+(proclaim '(optimize (debug 0) (speed 3) (safety 3)))
+(in-package :shen)
+(defconstant source-path "./src/")
+(defconstant compiled-path "./compiled/")
 
 ;
 ; Confirm Pre-Requisites
 ;
 
-(WHEN (NOT (PROBE-FILE (FORMAT NIL "~A~A" KLAMBDA-PATH "core.kl")))
-  (FORMAT T "~%")
-  (FORMAT T "Directory ~S not found.~%" KLAMBDA-PATH)
-  (FORMAT T "Run 'make fetch' to retrieve Shen Kernel sources.~%")
-  (QUIT))
+(when (not (probe-file (format nil "~A~A" compiled-path "compiler.lsp")))
+  (format t "~%")
+  (format t "Directory ~S not found.~%" compiled-path)
+  (format t "Run 'make precompile' to precompile the kernel and compiler.~%")
+  (quit))
 
 ;
 ; Implementation-Specific Declarations
 ;
 
-#+CLISP
-(PROGN
-  (DEFCONSTANT COMPILED-SUFFIX ".fas")
-  (DEFCONSTANT BINARY-PATH "./bin/clisp/")
-  (DEFCONSTANT EXECUTABLE-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
-  (SETQ CUSTOM:*COMPILE-WARNINGS* NIL)
-  (SETQ *COMPILE-VERBOSE* NIL))
+#+clisp
+(progn
+  (defconstant compiled-suffix ".fas")
+  (defconstant binary-path "./bin/clisp/")
+  (defconstant executable-name #+win32 "shen.exe" #-win32 "shen")
+  (setq custom:*compile-warnings* nil)
+  (setq *compile-verbose* nil))
 
-#+CCL
-(PROGN
-  (DEFCONSTANT COMPILED-SUFFIX (FORMAT NIL "~A" *.FASL-PATHNAME*))
-  (DEFCONSTANT BINARY-PATH "./bin/ccl/")
-  (DEFCONSTANT EXECUTABLE-NAME #+WINDOWS "shen.exe" #-WINDOWS "shen"))
+#+ccl
+(progn
+  (defconstant compiled-suffix (format nil "~a" *.fasl-pathname*))
+  (defconstant binary-path "./bin/ccl/")
+  (defconstant executable-name #+windows "shen.exe" #-windows "shen"))
 
-#+ECL
-(PROGN
-  (DEFVAR *object-files* NIL)
-  (DEFCONSTANT COMPILED-SUFFIX ".fas")
-  (DEFCONSTANT OBJECT-SUFFIX #+(OR :WIN32 :MINGW32) ".obj" #-(OR :WIN32 :MINGW32) ".o")
-  (DEFCONSTANT BINARY-PATH "./bin/ecl/")
-  (DEFCONSTANT EXECUTABLE-NAME #+(OR :WIN32 :MINGW32) "shen.exe" #-(OR :WIN32 :MINGW32) "shen")
-  (EXT:INSTALL-C-COMPILER)
-  (SETQ COMPILER::*COMPILE-VERBOSE* NIL)
-  (SETQ COMPILER::*SUPPRESS-COMPILER-MESSAGES* NIL))
+#+ecl
+(progn
+  (defvar *object-files* nil)
+  (defconstant compiled-suffix ".fas")
+  (defconstant object-suffix #+(or :win32 :mingw32) ".obj" #-(or :win32 :mingw32) ".o")
+  (defconstant binary-path "./bin/ecl/")
+  (defconstant executable-name #+(or :win32 :mingw32) "shen.exe" #-(or :win32 :mingw32) "shen")
+  (ext:install-c-compiler)
+  (setq compiler::*compile-verbose* nil)
+  (setq compiler::*suppress-compiler-messages* nil))
 
-#+SBCL
-(PROGN
-  (DEFCONSTANT COMPILED-SUFFIX ".fasl")
-  (DEFCONSTANT BINARY-PATH "./bin/sbcl/")
-  (DEFCONSTANT EXECUTABLE-NAME #+WIN32 "shen.exe" #-WIN32 "shen")
-  (DECLAIM (SB-EXT:MUFFLE-CONDITIONS SB-EXT:COMPILER-NOTE))
-  (SETF SB-EXT:*MUFFLED-WARNINGS* T))
+#+sbcl
+(progn
+  (defconstant compiled-suffix ".fasl")
+  (defconstant binary-path "./bin/sbcl/")
+  (defconstant executable-name #+win32 "shen.exe" #-win32 "shen")
+  (declaim (sb-ext:muffle-conditions sb-ext:compiler-note))
+  (setf sb-ext:*muffled-warnings* t))
 
 ;
 ; Implementation-Specific Loading Procedure
 ;
 
-#-ECL
-(DEFUN compile-lsp (File)
-  (LET ((LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File)))
-    (COMPILE-FILE LspFile)))
+#-ecl
+(defun compile-lsp (file)
+  (let ((lsp-file (format nil "~A~A.lsp" binary-path file)))
+    (compile-file lsp-file)))
 
-#+ECL
-(DEFUN compile-lsp (File)
-  (LET ((LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
-        (FasFile (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX))
-        (ObjFile (FORMAT NIL "~A~A~A" BINARY-PATH File OBJECT-SUFFIX)))
-    (COMPILE-FILE LspFile :OUTPUT-FILE ObjFile :SYSTEM-P T)
-    (PUSH ObjFile *object-files*)
-    (C:BUILD-FASL FasFile :LISP-FILES (LIST ObjFile))))
+#+ecl
+(defun compile-lsp (file)
+  (let ((lsp-file (format nil "~A~A.lsp" binary-path file))
+        (fas-file (format nil "~A~A~A" binary-path file compiled-suffix))
+        (obj-file (format nil "~A~A~A" binary-path file object-suffix)))
+    (compile-file lsp-file :output-file obj-file :system-p t)
+    (push obj-file *object-files*)
+    (c:build-fasl fas-file :lisp-files (list obj-file))))
 
 ;
 ; Shared Loading Procedure
 ;
 
-(DEFUN import-lsp (File)
-  (LET ((SrcFile (FORMAT NIL "~A~A.lsp" SOURCE-PATH File))
-        (LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
-        (FasFile (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX)))
-    (copy-file SrcFile LspFile)
-    (compile-lsp File)
-    (LOAD FasFile)))
+(defun import-lsp (location file)
+  (let ((src-file (format nil "~A~A.lsp" location file))
+        (lsp-file (format nil "~A~A.lsp" binary-path file))
+        (fas-file (format nil "~A~A~A" binary-path file compiled-suffix)))
+    (|copy-file| src-file lsp-file)
+    (compile-lsp file)
+    (load fas-file)))
 
-(DEFUN import-kl (File)
-  (LET ((KlFile  (FORMAT NIL "~A~A.kl" KLAMBDA-PATH File))
-        (LspFile (FORMAT NIL "~A~A.lsp" BINARY-PATH File))
-        (FasFile (FORMAT NIL "~A~A~A" BINARY-PATH File COMPILED-SUFFIX)))
-    (write-lsp-file LspFile (translate-kl (read-kl-file KlFile)))
-    (compile-lsp File)
-    (LOAD FasFile)))
+(defun |copy-file| (src-file dest-file)
+  (with-open-file
+    (in src-file
+      :direction    :input
+      :element-type '(unsigned-byte 8))
+    (with-open-file
+      (out dest-file
+        :direction         :output
+        :if-exists         :supersede
+        :if-does-not-exist :create
+        :element-type      '(unsigned-byte 8))
+      (let ((buf (make-array 4096 :element-type (stream-element-type in))))
+        (loop for pos = (read-sequence buf in)
+          while (plusp pos)
+          do (write-sequence buf out :end pos))))))
 
-(DEFUN read-kl-file (File)
-  (WITH-OPEN-FILE
-    (In File
-      :DIRECTION :INPUT)
-    (LET ((CleanedCode (clean-kl (READ-CHAR In NIL NIL) In NIL NIL)))
-      (READ-FROM-STRING (FORMAT NIL "(~A)" (COERCE CleanedCode 'STRING))))))
+(compile 'compile-lsp)
+(compile 'import-lsp)
+(compile '|copy-file|)
 
-(DEFUN clean-kl (Char In Chars InsideQuote)
-  (IF (NULL Char)
-    (REVERSE Chars)
-    (clean-kl
-      (READ-CHAR In NIL NIL)
-      In
-      (IF (AND (NOT InsideQuote) (MEMBER Char '(#\: #\; #\,) :TEST 'CHAR-EQUAL))
-        (LIST* #\| Char #\| Chars)
-        (CONS Char Chars))
-      (IF (CHAR-EQUAL Char #\")
-        (NOT InsideQuote)
-        InsideQuote))))
+(ensure-directories-exist binary-path)
 
-(DEFUN translate-kl (KlCode)
-  (MAPCAR #'(LAMBDA (X) (shen-cl.kl-to-lisp NIL X)) KlCode))
+(import-lsp source-path "package")
+(import-lsp source-path "primitives")
+(import-lsp source-path "native")
+(import-lsp source-path "shen-utils")
+(import-lsp compiled-path "compiler")
+(import-lsp compiled-path "toplevel")
+(import-lsp compiled-path "core")
+(import-lsp compiled-path "sys")
+(import-lsp compiled-path "dict")
+(import-lsp compiled-path "sequent")
+(import-lsp compiled-path "yacc")
+(import-lsp compiled-path "reader")
+(import-lsp compiled-path "prolog")
+(import-lsp compiled-path "track")
+(import-lsp compiled-path "load")
+(import-lsp compiled-path "writer")
+(import-lsp compiled-path "macros")
+(import-lsp compiled-path "declarations")
+(import-lsp compiled-path "types")
+(import-lsp compiled-path "t-star")
+(import-lsp compiled-path "init")
+(import-lsp compiled-path "extension-features")
+(import-lsp compiled-path "extension-launcher")
+(import-lsp compiled-path "extension-factorise-defun")
+(import-lsp source-path "overwrite")
 
-(DEFUN write-lsp-file (File Code)
-  (WITH-OPEN-FILE
-    (Out File
-      :DIRECTION         :OUTPUT
-      :IF-EXISTS         :SUPERSEDE
-      :IF-DOES-NOT-EXIST :CREATE)
-    (FORMAT Out "~%")
-    (FORMAT Out "(IN-PACKAGE :SHEN)~%~%") ; Put all k lambda into the shen package
-    (MAPC #'(LAMBDA (X) (FORMAT Out "~S~%~%" X)) Code)
-    File))
-
-(DEFUN copy-file (SrcFile DestFile)
-  (WITH-OPEN-FILE
-    (In SrcFile
-      :DIRECTION    :INPUT
-      :ELEMENT-TYPE '(UNSIGNED-BYTE 8))
-    (WITH-OPEN-FILE
-      (Out DestFile
-        :DIRECTION         :OUTPUT
-        :IF-EXISTS         :SUPERSEDE
-        :IF-DOES-NOT-EXIST :CREATE
-        :ELEMENT-TYPE      '(UNSIGNED-BYTE 8))
-      (LET ((Buf (MAKE-ARRAY 4096 :ELEMENT-TYPE (STREAM-ELEMENT-TYPE In))))
-        (LOOP FOR Pos = (READ-SEQUENCE Buf In)
-          WHILE (PLUSP Pos)
-          DO (WRITE-SEQUENCE Buf Out :END Pos))))))
-
-(COMPILE 'compile-lsp)
-(COMPILE 'import-lsp)
-(COMPILE 'import-kl)
-(COMPILE 'read-kl-file)
-(COMPILE 'clean-kl)
-(COMPILE 'translate-kl)
-(COMPILE 'write-lsp-file)
-(COMPILE 'copy-file)
-
-(ENSURE-DIRECTORIES-EXIST BINARY-PATH)
-
-(import-lsp "package")
-(import-lsp "primitives")
-(COND
-  ((EQ 'BOOTSTRAP *BOOT-MODE*) (import-lsp "backend-bootstrap"))
-  ((EQ 'BUILD *BOOT-MODE*) (import-lsp "backend"))
-  (T (ERROR "Invalid *BOOT-MODE* value ~S" *BOOT-MODE*)))
-(import-lsp "native")
-(import-lsp "shen-utils")
-(import-kl "toplevel")
-(import-kl "core")
-(import-kl "sys")
-(import-kl "dict")
-(import-kl "sequent")
-(import-kl "yacc")
-(import-kl "reader")
-(import-kl "prolog")
-(import-kl "track")
-(import-kl "load")
-(import-kl "writer")
-(import-kl "macros")
-(import-kl "declarations")
-(import-kl "types")
-(import-kl "t-star")
-(import-kl "init")
-(import-kl "extension-features")
-(import-kl "extension-launcher")
-(import-kl "extension-factorise-defun")
-(import-lsp "overwrite")
-
-#-ECL
-(PROGN
- (shen.initialise)
- (shen-cl.initialise)
- (shen.x.features.initialise '(
-   shen/cl
-   #+CLISP shen/cl.clisp
-   #+SBCL  shen/cl.sbcl
-   #+CCL   shen/cl.ccl
+#-ecl
+(progn
+ (|shen.initialise|)
+ (|shen-cl.initialise|)
+ (|shen.x.features.initialise| '(
+   |shen/cl|
+   #+clisp |shen/cl.clisp|
+   #+sbcl  |shen/cl.sbcl|
+   #+ccl   |shen/cl.ccl|
  )))
 
-(DEFUN cleanup-boot ()
-  (FMAKUNBOUND 'compile-lsp)
-  (FMAKUNBOUND 'import-lsp)
-  (FMAKUNBOUND 'import-kl)
-  (FMAKUNBOUND 'read-kl-file)
-  (FMAKUNBOUND 'clean-kl)
-  (FMAKUNBOUND 'translate-kl)
-  (FMAKUNBOUND 'write-lsp-file)
-  (FMAKUNBOUND 'copy-file)
-  (FMAKUNBOUND 'cleanup-boot))
+(fmakunbound 'compile-lsp)
+(fmakunbound 'import-lsp)
+(fmakunbound '|copy-file|)
+
+;
+; Implementation-Specific Executable Output
+;
+
+(defconstant executable-path (format nil "~A~A" binary-path executable-name))
+
+#+clisp
+(progn
+  (ext:saveinitmem
+    executable-path
+    :executable 0
+    :quiet t
+    :init-function '|shen-cl.toplevel|)
+  (quit))
+
+#+ccl
+(progn
+  (ccl:save-application
+    executable-path
+    :prepend-kernel t
+    :toplevel-function '|shen-cl.toplevel|)
+  (ccl:quit))
+
+#+ecl
+(progn
+  (c:build-program
+    executable-path
+    :lisp-files (reverse *object-files*)
+    :epilogue-code '(|shen-cl.toplevel|))
+  (si:quit))
+
+#+sbcl
+(sb-ext:save-lisp-and-die
+  executable-path
+  :executable t
+  :save-runtime-options t
+  :toplevel '|shen-cl.toplevel|)

@@ -65,7 +65,7 @@ endif
 # Set shared variables
 #
 
-KernelVersion=22.1
+KernelVersion=22.2
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
 KernelTag=shen-$(KernelVersion)
@@ -134,28 +134,38 @@ else
 endif
 
 #
+# Precompilation into Lisp code
+#
+
+.PHONY: precompile
+precompile:
+ifndef SHEN
+	$(info Usage: make precompile SHEN=path/to/shen.exe)
+	$(error SHEN variable is not defined)
+else
+	mkdir -p compiled
+	$(SHEN) eval -l scripts/build.shen -e "(build)"
+endif
+
+#
 # Build an implementation
 #
 
 .PHONY: build-clisp
 build-clisp:
-	$(CLISP) -i bootstrap.lsp
-	$(CLISP) -i build.lsp
+	$(CLISP) -i boot.lsp
 
 .PHONY: build-ccl
 build-ccl:
-	$(CCL) -l bootstrap.lsp
-	$(CCL) -l build.lsp
+	$(CCL) -l boot.lsp
 
 .PHONY: build-ecl
 build-ecl:
-	$(ECL) -norc -load bootstrap.lsp
-	$(ECL) -norc -load build.lsp
+	$(ECL) -norc -load boot.lsp
 
 .PHONY: build-sbcl
 build-sbcl:
-	$(SBCL) --load bootstrap.lsp
-	$(SBCL) --load build.lsp
+	$(SBCL) --load boot.lsp
 
 #
 # Test an implementation
@@ -220,15 +230,15 @@ ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
 	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName), release\\$(SourceReleaseName)$(ArchiveSuffix) -Force -Recurse -ErrorAction Ignore"
 	$(PS) "New-Item -Path release\\$(SourceReleaseName) -Force -ItemType Directory"
-	$(PS) "Copy-Item -Path src, assets, Makefile, boot.lsp, bootstrap.lsp, build.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
+	$(PS) "Copy-Item -Path compiled, src, scripts, tests, assets, Makefile, boot.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
 	$(PS) "cd release; Compress-Archive -Force -DestinationPath $(SourceReleaseName)$(ArchiveSuffix) -LiteralPath $(SourceReleaseName)"
 	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName) -Force -Recurse"
 else ifeq ($(OSName),linux)
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src assets Makefile boot.lsp bootstrap.lsp build.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?g"
+	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src scripts tests assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?g"
 else
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?g" src assets Makefile boot.lsp bootstrap.lsp build.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
+	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?g" src scripts tests assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
 endif
 
 #

@@ -23,29 +23,29 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(DEFPACKAGE :SHEN
-  (:DOCUMENTATION "This is the package in which the Shen language operates.")
-  #+CLISP
-  (:USE :COMMON-LISP
-        :EXT)
-  #+CCL
-  (:USE :COMMON-LISP
-        :CCL)
-  #+ECL
-  (:USE :COMMON-LISP
-        :SI)
-  #+SBCL
-  (:USE :COMMON-LISP
-        :SB-ALIEN)
-  (:EXPORT :shen-cl.with-temp-readcase
-           :shen-cl.load-lisp
-           :shen-cl.eval-lisp
-           :load))
+(defpackage :shen
+  (:documentation "This is the package in which the Shen language operates.")
+  #+clisp
+  (:use :common-lisp
+        :ext)
+  #+ccl
+  (:use :common-lisp
+        :ccl)
+  #+ecl
+  (:use :common-lisp
+        :si)
+  #+sbcl
+  (:use :common-lisp
+        :sb-alien)
+  (:export :|shen-cl.with-temp-readcase|
+           :|shen-cl.load-lisp|
+           :|shen-cl.eval-lisp|
+           :|load|))
 
-(DEFPACKAGE :SHEN-UTILS
-  (:DOCUMENTATION "This package exports functions for use in common lisp code which facilitate interoperation.")
-  (:USE :COMMON-LISP
-        :SHEN)
-  (:EXPORT :WITH-TEMP-READCASE
-           :IN-SHEN-ENVIRONMENT
-           :LOAD-SHEN))
+(defpackage :shen-utils
+  (:documentation "This package exports functions for use in common lisp code which facilitate interoperation.")
+  (:use :common-lisp
+        :shen)
+  (:export :with-temp-readcase
+           :in-shen-environment
+           :load-shen))

@@ -23,144 +23,189 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(IN-PACKAGE :SHEN)
+(in-package :shen)
 
-(DEFVAR shen-cl.kernel-sysfunc? (FDEFINITION 'shen.sysfunc?))
+(defvar |shen-cl.kernel-sysfunc?| (fdefinition '|shen.sysfunc?|))
 
-(DEFUN shen.sysfunc? (Symbol)
+(defun |shen.sysfunc?| (symbol)
   (or
-    (APPLY shen-cl.kernel-sysfunc? (LIST Symbol))
-    (shen-cl.lisp-prefixed? Symbol)))
+    (apply |shen-cl.kernel-sysfunc?| (list symbol))
+    (|shen-cl.lisp-prefixed?| symbol)))
 
-(DEFUN shen.pvar? (X)
-  (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
-    'true
-    'false))
+(defun shen.pvar? (x)
+  (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
+    '|true|
+    '|false|))
 
-(DEFUN shen.lazyderef (X ProcessN)
-  (IF (AND (ARRAYP X) (NOT (STRINGP X)) (EQ (SVREF X 0) 'shen.pvar))
-    (LET ((Value (shen.valvector X ProcessN)))
-      (IF (EQ Value 'shen.-null-)
-        X
-        (shen.lazyderef Value ProcessN)))
-    X))
+(defun |shen.lazyderef| (x process-n)
+  (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
+    (let ((value (|shen.valvector| x process-n)))
+      (if (eq value '|shen.-null-|)
+        x
+        (|shen.lazyderef| value process-n)))
+    x))
 
-(DEFUN shen.valvector (Var ProcessN)
-  (SVREF (SVREF shen.*prologvectors* ProcessN) (SVREF Var 1)))
+(defun |shen.valvector| (var process-n)
+  (svref (svref |shen.*prologvectors*| process-n) (svref var 1)))
 
-(DEFUN shen.unbindv (Var N)
-  (LET ((Vector (SVREF shen.*prologvectors* N)))
-    (SETF (SVREF Vector (SVREF Var 1)) 'shen.-null-)))
+(defun |shen.unbindv| (var n)
+  (let ((vector (svref |shen.*prologvectors*| n)))
+    (setf (svref vector (svref var 1)) '|shen.-null-|)))
 
-(DEFUN shen.bindv (Var Val N)
-  (LET ((Vector (SVREF shen.*prologvectors* N)))
-    (SETF (SVREF Vector (SVREF Var 1)) Val)))
+(defun |shen.bindv| (var val n)
+  (let ((vector (svref |shen.*prologvectors*| n)))
+    (setf (svref vector (svref var 1)) val)))
 
-(DEFUN shen.copy-vector-stage-1 (Count Vector BigVector Max)
-  (IF (= Max Count)
-    BigVector
-    (shen.copy-vector-stage-1
-      (1+ Count)
-      Vector
-      (address-> BigVector Count (<-address Vector Count))
-      Max)))
+(defun |shen.copy-vector-stage-1| (count vector big-vector max)
+  (if (= max count)
+      big-vector
+      (|shen.copy-vector-stage-1|
+        (1+ count)
+        vector
+        (|address->| big-vector count (|<-address| vector count))
+        max)))
 
-(DEFUN shen.copy-vector-stage-2 (Count Max Fill BigVector)
-  (IF (= Max Count)
-    BigVector
-    (shen.copy-vector-stage-2
-      (1+ Count)
-      Max
-      Fill
-      (address-> BigVector Count Fill))))
+(defun |shen.copy-vector-stage-2| (count max fill big-vector)
+  (if (= max count)
+      big-vector
+      (|shen.copy-vector-stage-2|
+        (1+ count)
+        max
+        fill
+        (|address->| big-vector count fill))))
 
-(DEFUN shen.newpv (N)
-  (LET ((Count+1 (1+ (THE INTEGER (SVREF shen.*varcounter* N))))
-        (Vector (SVREF shen.*prologvectors* N)))
-    (SETF (SVREF shen.*varcounter* N) Count+1)
-    (IF (= (THE INTEGER Count+1) (THE INTEGER (limit Vector)))
-      (shen.resizeprocessvector N Count+1)
-      'skip)
-    (shen.mk-pvar Count+1)))
+(defun |shen.newpv| (n)
+  (let ((count+1 (1+ (the integer (svref |shen.*varcounter*| n))))
+        (vector (svref |shen.*prologvectors*| n)))
+    (setf (svref |shen.*varcounter*| n) count+1)
+    (if (= (the integer count+1) (the integer (|limit| vector)))
+        (|shen.resizeprocessvector| n count+1)
+        '|skip|)
+    (|shen.mk-pvar| count+1)))
 
-(DEFUN vector-> (Vector N X)
-  (IF (ZEROP N)
-    (ERROR "cannot access 0th element of a vector~%")
-    (address-> Vector N X)))
+(defun |vector->| (vector n x)
+  (if (zerop n)
+      (error "cannot access 0th element of a vector~%")
+      (|address->| vector n x)))
 
-(DEFUN <-vector (Vector N)
-  (IF (ZEROP N)
-    (ERROR "cannot access 0th element of a vector~%")
-    (let VectorElement (SVREF Vector N)
-      (IF (EQ VectorElement (fail))
-        (ERROR "vector element not found~%")
-        VectorElement))))
+(defun |<-vector| (vector n)
+  (if (zerop n)
+    (error "cannot access 0th element of a vector~%")
+    (let ((vector-element (svref vector n)))
+      (if (eq vector-element (|fail|))
+          (error "vector element not found~%")
+          vector-element))))
 
-(DEFUN variable? (X)
-  (IF (AND (SYMBOLP X) (NOT (NULL X)) (UPPER-CASE-P (CHAR (SYMBOL-NAME X) 0)))
-    'true
-    'false))
+(defun |variable?| (x)
+  (if (and (symbolp x) (not (null x)) (upper-case-p (char (symbol-name x) 0)))
+      '|true|
+      '|false|))
 
-(DEFUN shen.+string? (X)
-  (IF (AND (STRINGP X) (NOT (STRING-EQUAL X "")))
-    'true
-    'false))
+(defun |shen.+string?| (x)
+  (if (and (stringp x) (not (string-equal x "")))
+      '|true|
+      '|false|))
 
-(DEFUN thaw (F)
-  (FUNCALL F))
+(defun |thaw| (f)
+  (funcall f))
 
-#+CLISP
-(DEFUN cl.exit (Code)
-  (EXT:EXIT Code))
+(defun |hash| (val bound)
+  (mod (sxhash val) bound))
 
-#+(AND CCL (NOT WINDOWS))
-(DEFUN cl.exit (Code)
-  (CCL:QUIT Code))
+(defun |shen.dict| (size)
+  (make-hash-table :size size))
 
-#+(AND CCL WINDOWS)
-(CCL::EVAL (CCL::READ-FROM-STRING "(DEFUN cl.exit (Code) (#__exit Code))"))
+(defun |shen.dict?| (dict)
+  (if (hash-table-p dict) '|true| '|false|))
 
-#+ECL
-(DEFUN cl.exit (Code)
-  (SI:QUIT Code))
+(defun |shen.dict-count| (dict)
+  (hash-table-count dict))
 
-#+SBCL
-(DEFUN cl.exit (Code)
-  (ALIEN-FUNCALL (EXTERN-ALIEN "exit" (FUNCTION VOID INT)) Code))
+(defun |shen.dict->| (dict key value)
+ (setf (gethash key dict) value))
 
-(DEFUN shen-cl.exit (Code)
-  (cl.exit Code))
+(defun |shen.<-dict| (dict key)
+  (multiple-value-bind (result found) (gethash key dict)
+    (if found
+        result
+        (error "value ~A not found in dict~%" key))))
 
-(DEFUN shen-cl.initialise ()
-  (PROGN
-    (set 'shen-cl.*factorise* 'true)
+(defun |shen.dict-rm| (dict key)
+  (progn (remhash key dict) key))
 
-    (put      'cl.exit 'arity 1 *property-vector*)
-    (put 'shen-cl.exit 'arity 1 *property-vector*)
+(defun |shen.dict-fold| (f dict init)
+  (let ((acc init))
+    (maphash #'(lambda (k v) (setf acc (funcall f k v acc))) dict)
+    acc))
 
-    (declare      'cl.exit (LIST 'number '--> 'unit))
-    (declare 'shen-cl.exit (LIST 'number '--> 'unit))
+#+clisp
+(defun |cl.exit| (code)
+  (ext:exit code))
 
-    (shen-cl.read-eval "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")
-    (shen-cl.read-eval "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")))
+#+(and ccl (not windows))
+(defun |cl.exit| (code)
+  (ccl:quit code))
 
-#+(OR CCL SBCL)
-(DEFUN shen.read-char-code (S)
-  (LET ((C (READ-CHAR S NIL -1)))
-    (IF (EQ C -1)
+#+(and ccl windows)
+(ccl::eval (ccl::read-from-string "(defun |cl.exit| (code) (#__exit code))"))
+
+#+ecl
+(defun |cl.exit| (code)
+  (si:quit code))
+
+#+sbcl
+(defun |cl.exit| (code)
+  (alien-funcall (extern-alien "exit" (function void int)) code))
+
+(defun |shen-cl.exit| (code)
+  (|cl.exit| code))
+
+(defun |shen-cl.initialise| ()
+  (progn
+    (|shen-cl.initialise-compiler|)
+
+    (|put|      '|cl.exit| '|arity| 1 |*property-vector*|)
+    (|put| '|shen-cl.exit| '|arity| 1 |*property-vector*|)
+
+    (|declare|      '|cl.exit| (list '|number| '--> '|unit|))
+    (|declare| '|shen-cl.exit| (list '|number| '--> '|unit|))
+
+    (|shen-cl.read-eval| "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")
+    (|shen-cl.read-eval| "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")))
+
+#+(or ccl sbcl)
+(defun |shen.read-char-code| (s)
+  (let ((c (read-char s nil -1)))
+    (if (eq c -1)
       -1
-      (CHAR-INT C))))
+      (char-int c))))
 
-#+(OR CCL SBCL)
-(DEFUN pr (X S)
-  (WRITE-STRING X S)
-  (WHEN (OR (EQ S *stoutput*) (EQ S *stinput*))
-    (FORCE-OUTPUT S))
-  X)
+#+(or ccl sbcl)
+(defun |pr| (x s)
+  (write-string x s)
+  (when (or (eq s |*stoutput*|) (eq s |*stinput*|))
+    (force-output s))
+  x)
 
 ; Amend the REPL credits message to explain exit command
-(SETF (SYMBOL-FUNCTION 'shen-cl.original-credits) #'shen.credits)
+(setf (symbol-function '|shen-cl.original-credits|) #'|shen.credits|)
 
-(DEFUN shen.credits ()
-  (shen-cl.original-credits)
-  (FORMAT T "exit REPL with (cl.exit)"))
+(defun |shen.credits| ()
+  (|shen-cl.original-credits|)
+  (format t "exit REPL with (cl.exit)"))
+
+;; Compiler functions
+
+(defun |shen-cl.cl| (symbol)
+  (let* ((str (symbol-name symbol))
+         (lispname (string-upcase str)))
+    (|intern| lispname)))
+
+(defun |shen-cl.lisp-prefixed?| (symbol)
+  (|shen-cl.lisp-true?|
+    (and (not (null symbol))
+         (symbolp symbol)
+         (|shen-cl.prefix?| (|str| symbol) "lisp."))))
+
+(defun |shen-cl.remove-lisp-prefix| (symbol)
+  (|intern| (subseq (symbol-name symbol) 5)))

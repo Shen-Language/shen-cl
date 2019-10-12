@@ -23,23 +23,23 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-(IN-PACKAGE :SHEN)
+(in-package :shen)
 
-(DEFMACRO shen-cl.with-temp-readcase (new-read-case &BODY body)
-  (LET ((old-read-case (READTABLE-CASE *READTABLE*))
-        (result (GENSYM)))
-  `(PROGN
-     (SETF (READTABLE-CASE *READTABLE*) ,new-read-case)
-     (LET ((,result ,@body))
-       (SETF (READTABLE-CASE *READTABLE*) ,old-read-case)
+(defmacro |shen-cl.with-temp-readcase| (new-read-case &body body)
+  (let ((old-read-case (readtable-case *readtable*))
+        (result (gensym)))
+  `(progn
+     (setf (readtable-case *readtable*) ,new-read-case)
+     (let ((,result ,@body))
+       (setf (readtable-case *readtable*) ,old-read-case)
        ,result))))
 
-(DEFUN shen-cl.load-lisp (FILESPEC &OPTIONAL (readtable-case :UPCASE))
-  (shen-cl.with-temp-readcase readtable-case
-    (LET ((*PACKAGE* (FIND-PACKAGE :COMMON-LISP-USER)))
-      (LOAD FILESPEC))))
+(defun |shen-cl.load-lisp| (filespec &optional (readtable-case :upcase))
+  (|shen-cl.with-temp-readcase| readtable-case
+    (let ((*package* (find-package :common-lisp-user)))
+      (load filespec))))
 
-(DEFUN shen-cl.eval-lisp (string &OPTIONAL (package :COMMON-LISP-USER) (readtable-case :UPCASE))
-  (shen-cl.with-temp-readcase readtable-case
-    (LET ((*PACKAGE* (FIND-PACKAGE package)))
-     (EVAL (READ-FROM-STRING string)))))
+(defun |shen-cl.eval-lisp| (string &optional (package :common-lisp-user) (readtable-case :upcase))
+  (|shen-cl.with-temp-readcase readtable-case|
+    (let ((*package* (find-package package)))
+     (eval (read-from-string string)))))
