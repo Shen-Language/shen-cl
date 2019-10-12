@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+  - `@p` and `vector` constructors are now overriden by better performing native implementations.
+  - `read-file-as-bytelist`, `shen.read-file-as-charlist` and `shen.read-file-as-charlist` are also overriden by native implementations.
+
 ### [3.0.0] - 2019-10-12
 
 **Updated to Shen Open Source Kernel 22.2**
