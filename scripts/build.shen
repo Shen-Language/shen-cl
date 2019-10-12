@@ -92,7 +92,8 @@
             (extract-license Contents [])))
 
 (define extract-license
-  [10 10 | Rest] Acc -> (bytes->string (reverse Acc) "")
+  [13 10 13 10 | _] Acc -> (bytes->string (reverse Acc) "") \\ CLRF on Windows
+  [10 10 | _] Acc -> (bytes->string (reverse Acc) "")
   [Byte | Rest] Acc -> (extract-license Rest [Byte | Acc]))
 
 (define bytes->string
