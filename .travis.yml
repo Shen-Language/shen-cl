@@ -3,7 +3,8 @@ notifications:
 language: generic
 sudo: required
 env:
-  - PREBUILT_SHEN_VERSION=3.0.0
+  global:
+    - PREBUILT_SHEN_VERSION=3.0.0
 matrix:
   include:
   - os: linux
