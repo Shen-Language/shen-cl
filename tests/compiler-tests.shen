@@ -32,7 +32,7 @@
  [(shen-cl.cl and) (shen-cl.cl t) (shen-cl.cl nil)])
 
 (assert-equal
- (shen-cl.prefix-op test)
+ (shen-cl.qualify-op test)
  (intern "test"))
 
 \\ compile-expression
@@ -79,11 +79,11 @@
 
 (assert-equal
  (shen-cl.compile-expression [and [some-func X] [= 1 2]] [X])
- [and [(shen-cl.prefix-op some-func) X] [(shen-cl.kl shen-cl.equal?) 1 2]])
+ [and [(shen-cl.qualify-op some-func) X] [(shen-cl.kl shen-cl.equal?) 1 2]])
 
 (assert-equal
  (shen-cl.compile-expression [or [some-func X] [= 1 2]] [X])
- [or [(shen-cl.prefix-op some-func) X] [(shen-cl.kl shen-cl.equal?) 1 2]])
+ [or [(shen-cl.qualify-op some-func) X] [(shen-cl.kl shen-cl.equal?) 1 2]])
 
 (assert-equal
  (shen-cl.kl->lisp [trap-error [+ 1 2] [lambda E 0]])
@@ -95,7 +95,7 @@
 (assert-equal
  (shen-cl.kl->lisp [trap-error [+ 1 2] [default 0]])
  [(shen-cl.kl trap-error) [(shen-cl.kl shen-cl.add) 1 2]
-   [(shen-cl.cl funcall) [(shen-cl.kl lambda) X [(shen-cl.kl lambda) Y [(shen-cl.prefix-op default) X Y]]] 0]])
+   [(shen-cl.cl funcall) [(shen-cl.kl lambda) X [(shen-cl.kl lambda) Y [(shen-cl.qualify-op default) X Y]]] 0]])
 
 (assert-equal
  (shen-cl.kl->lisp [do 1 2])
@@ -103,15 +103,15 @@
 
 (assert-equal
  (shen-cl.kl->lisp [freeze [print "hello"]])
- [(shen-cl.kl freeze) [(shen-cl.prefix-op print) "hello"]])
+ [(shen-cl.kl freeze) [(shen-cl.qualify-op print) "hello"]])
 
 (assert-equal
  (shen-cl.kl->lisp [fail])
- [(shen-cl.prefix-op fail)])
+ [(shen-cl.qualify-op fail)])
 
 (assert-equal
  (shen-cl.kl->lisp [blah 1 2])
- [(shen-cl.prefix-op blah) 1 2])
+ [(shen-cl.qualify-op blah) 1 2])
 
 (assert-equal
  (shen-cl.kl->lisp 1)
@@ -123,7 +123,7 @@
 
 (assert-equal
  (shen-cl.kl->lisp [defun some-name [A B C] [cons symbol [+ A B]]])
- [(shen-cl.cl defun) (shen-cl.prefix-op some-name) [A B C] [(shen-cl.cl cons) [(shen-cl.cl quote) symbol] [shen-cl.add A B]]])
+ [(shen-cl.cl defun) (shen-cl.qualify-op some-name) [A B C] [(shen-cl.cl cons) [(shen-cl.cl quote) symbol] [shen-cl.add A B]]])
 
 (assert-equal
  (shen-cl.compile-expression [F 1 2 3] [F])
@@ -140,27 +140,27 @@
 
 (assert-equal
  (shen-cl.compile-expression [takes-3-args A B] [A B])
- [(shen-cl.cl funcall) [(shen-cl.cl funcall) [(shen-cl.kl lambda) X [(shen-cl.kl lambda) Y [(shen-cl.kl lambda) Z [(shen-cl.prefix-op takes-3-args) X Y Z]]]] A] B])
+ [(shen-cl.cl funcall) [(shen-cl.cl funcall) [(shen-cl.kl lambda) X [(shen-cl.kl lambda) Y [(shen-cl.kl lambda) Z [(shen-cl.qualify-op takes-3-args) X Y Z]]]] A] B])
 
 (assert-equal
  (shen-cl.compile-expression [takes-3-args X Y Z symbol W] [X Y Z W])
- [(shen-cl.cl funcall) [(shen-cl.cl funcall) [(shen-cl.prefix-op takes-3-args) X Y Z] [(shen-cl.cl quote) symbol]] W])
+ [(shen-cl.cl funcall) [(shen-cl.cl funcall) [(shen-cl.qualify-op takes-3-args) X Y Z] [(shen-cl.cl quote) symbol]] W])
 
 (assert-equal
  (shen-cl.kl->lisp [takes-0-args])
- [(shen-cl.prefix-op takes-0-args)])
+ [(shen-cl.qualify-op takes-0-args)])
 
 (assert-equal
  (shen-cl.kl->lisp [takes-0-args 1])
- [(shen-cl.cl funcall) [(shen-cl.prefix-op takes-0-args)] 1])
+ [(shen-cl.cl funcall) [(shen-cl.qualify-op takes-0-args)] 1])
 
 (assert-equal
  (shen-cl.kl->lisp [takes-?-args])
- [(shen-cl.prefix-op takes-?-args)])
+ [(shen-cl.qualify-op takes-?-args)])
 
 (assert-equal
  (shen-cl.kl->lisp [takes-?-args 1 2 3])
- [(shen-cl.prefix-op takes-?-args) 1 2 3])
+ [(shen-cl.qualify-op takes-?-args) 1 2 3])
 
 (assert-equal
  (shen-cl.kl->lisp [if [= 1 2] 1 2])
@@ -208,9 +208,9 @@
 
       (assert-equal
         (shen-cl.kl->lisp [lisp. "symbol"])
-        symbol)
+        (shen-cl.cl symbol))
 
       (assert-equal
         (shen-cl.kl->lisp [lisp. "(lambda () 1)"])
-        [lambda [] 1]))
+        [(shen-cl.cl lambda) [] 1]))
     skip)
