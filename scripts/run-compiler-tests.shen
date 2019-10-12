@@ -33,5 +33,5 @@
 
 (set *hush* true)
 
-\\(load "src/compiler.shen")
+(load "src/compiler.shen")
 (load "tests/compiler-tests.shen")
