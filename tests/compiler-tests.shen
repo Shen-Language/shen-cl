@@ -4,31 +4,31 @@
 (shen-cl.initialise-compiler)
 
 (assert-equal
- (shen-cl.optimize-boolean-check [(shen-cl.cl quote) true])
+ (shen-cl.optimise-boolean-check [(shen-cl.cl quote) true])
  (shen-cl.cl t))
 
 (assert-equal
- (shen-cl.optimize-boolean-check [(shen-cl.cl quote) false])
+ (shen-cl.optimise-boolean-check [(shen-cl.cl quote) false])
  (shen-cl.cl nil))
 
 (assert-equal
- (shen-cl.optimize-boolean-check [number? 1])
+ (shen-cl.optimise-boolean-check [number? 1])
  [(shen-cl.cl numberp) 1])
 
 (assert-equal
- (shen-cl.optimize-boolean-check [+ 1 2])
+ (shen-cl.optimise-boolean-check [+ 1 2])
  [(shen-cl.kl shen-cl.true?) [+ 1 2]])
 
 (assert-equal
- (shen-cl.optimize-boolean-check [let X 1 [number? X]])
+ (shen-cl.optimise-boolean-check [let X 1 [number? X]])
  [(shen-cl.kl shen-cl.true?) [(shen-cl.kl let) X 1 [(shen-cl.kl number?) X]]])
 
 (assert-equal
- (shen-cl.optimize-boolean-check [let X 1 [+ X X]])
+ (shen-cl.optimise-boolean-check [let X 1 [+ X X]])
  [(shen-cl.kl shen-cl.true?) [(shen-cl.kl let) X 1 [+ X X]]])
 
 (assert-equal
- (shen-cl.optimize-boolean-check [(shen-cl.kl and) [(shen-cl.cl quote) true] [(shen-cl.cl quote) false]])
+ (shen-cl.optimise-boolean-check [(shen-cl.kl and) [(shen-cl.cl quote) true] [(shen-cl.cl quote) false]])
  [(shen-cl.cl and) (shen-cl.cl t) (shen-cl.cl nil)])
 
 (assert-equal

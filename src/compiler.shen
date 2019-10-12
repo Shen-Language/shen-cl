@@ -73,15 +73,15 @@
   X _ -> X                      \* literal *\
   )
 
-(define optimize-boolean-check
+(define optimise-boolean-check
   \\ TODO: let, do, etc
   [cons? X] -> [(cl consp) X]
   [string? X] -> [(cl stringp) X]
   [number? X] -> [(cl numberp) X]
   [empty? X] -> [(cl null) X]
-  [and P Q] -> [(cl and) (optimize-boolean-check P) (optimize-boolean-check Q)]
-  [or P Q] -> [(cl or) (optimize-boolean-check P) (optimize-boolean-check Q)]
-  [not P] -> [(cl not) (optimize-boolean-check P)]
+  [and P Q] -> [(cl and) (optimise-boolean-check P) (optimise-boolean-check Q)]
+  [or P Q] -> [(cl or) (optimise-boolean-check P) (optimise-boolean-check Q)]
+  [not P] -> [(cl not) (optimise-boolean-check P)]
   [equal? X [Quote []]] -> [(cl null) X] where (= Quote (cl quote))
   [equal? [Quote []] X] -> [(cl null) X] where (= Quote (cl quote))
   [equal? [fail] X] -> [(cl eq) [fail] X]
@@ -129,7 +129,7 @@
 
 (define emit-if
   Test Then Else Scope
-  -> [(cl if) (optimize-boolean-check (compile-expression Test Scope))
+  -> [(cl if) (optimise-boolean-check (compile-expression Test Scope))
               (compile-expression Then Scope)
               (compile-expression Else Scope)])
 
@@ -139,14 +139,14 @@
 (define emit-cond-clauses
   [] _ -> []
   [[Test Body] | Rest] Scope
-  -> (let CompiledTest (optimize-boolean-check (compile-expression Test Scope))
+  -> (let CompiledTest (optimise-boolean-check (compile-expression Test Scope))
           CompiledBody (compile-expression Body Scope)
           CompiledRest (emit-cond-clauses Rest Scope)
        [[CompiledTest CompiledBody]
         | CompiledRest]))
 
 (define emit-trap-error
-  [F | Rest] Handler Scope <- (emit-trap-error-optimize [F | Rest] Handler Scope)
+  [F | Rest] Handler Scope <- (emit-trap-error-optimise [F | Rest] Handler Scope)
       where (and (value *compiling-shen-sources*)
                  (element? F [value <-vector <-address get]))
 
@@ -164,7 +164,7 @@ otherwise the result is not semantically equivalent to the original code.
 For this reason it is only enabled when compiling the Shen Kernel sources
 but not otherwise.
 *\
-(define emit-trap-error-optimize
+(define emit-trap-error-optimise
   [value X] [lambda E Handler] Scope
   -> (compile-expression [shen-cl.value/or X [freeze Handler]] Scope)
   [<-vector X N] [lambda E Handler] Scope
@@ -195,7 +195,7 @@ but not otherwise.
   Xs 0 -> Xs
   [X | Xs] N -> (drop Xs (- N 1)))
 
-\* TODO: optimize cases where the args are static values *\
+\* TODO: optimise cases where the args are static values *\
 (define emit-partial-application
   Op Arity Params Scope
   -> (let Args (map (/. P (compile-expression P Scope)) Params)
