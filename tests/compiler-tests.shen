@@ -200,6 +200,10 @@
   (shen-cl.kl->lisp [let T 1 [+ T T]])
   [(shen-cl.cl let) [[SHEN-CL.SAFE-T 1]] [shen-cl.add SHEN-CL.SAFE-T SHEN-CL.SAFE-T]])
 
+(assert-equal
+  (shen-cl.kl->lisp [let NIL 1 [+ NIL NIL]])
+  [(shen-cl.cl let) [[SHEN-CL.SAFE-NIL 1]] [shen-cl.add SHEN-CL.SAFE-NIL SHEN-CL.SAFE-NIL]])
+
 (if (= (language) "Common Lisp")
     (do
       (assert-equal
