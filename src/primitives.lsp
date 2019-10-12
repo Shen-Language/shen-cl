@@ -93,19 +93,19 @@
       (error "~S is not an exception~%" e)))
 
 (defun |cons| (X Y)
-  (CONS X Y))
+  (cons X Y))
 
 (defun |hd| (X)
-  (CAR X))
+  (car X))
 
 (defun |tl| (X)
-  (CDR X))
+  (cdr X))
 
 (defun |cons?| (X)
-  (if (CONSP X) '|true| '|false|))
+  (if (consp X) '|true| '|false|))
 
 (defun |intern| (String)
-  (INTERN (|shen-cl.process-intern| String)))
+  (intern (|shen-cl.process-intern| String)))
 
 (defun |shen-cl.process-intern| (S)
   (cond
