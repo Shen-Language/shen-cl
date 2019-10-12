@@ -187,6 +187,35 @@
     (force-output s))
   x)
 
+;; file reading
+
+(defun |read-file-as-bytelist| (path)
+  (with-open-file (stream (format nil "~A~A" |*home-directory*| path) :direction :input :element-type 'unsigned-byte)
+    (let ((data (make-array (file-length stream) :element-type 'unsigned-byte :initial-element 0)))
+      (read-sequence data stream)
+      (coerce data 'list))))
+
+(defun |shen.read-file-as-charlist| (path)
+  (|read-file-as-bytelist| path))
+
+(defun |shen.read-file-as-string| (path)
+  (with-open-file (stream (format nil "~A~A" |*home-directory*| path) :direction :input)
+    (let ((data (make-string (file-length stream))))
+      (read-sequence data stream)
+      data)))
+
+;; tuples
+
+(defun |@p| (x y)
+  (vector '|shen.tuple| x y))
+
+;; vectors
+
+(defun |vector| (n)
+  (let ((vec (make-array (1+ n) :initial-element (|fail|))))
+    (setf (svref vec 0) n)
+    vec))
+
 ; Amend the REPL credits message to explain exit command
 (setf (symbol-function '|shen-cl.original-credits|) #'|shen.credits|)
 
