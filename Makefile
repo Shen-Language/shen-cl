@@ -230,15 +230,15 @@ ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
 	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName), release\\$(SourceReleaseName)$(ArchiveSuffix) -Force -Recurse -ErrorAction Ignore"
 	$(PS) "New-Item -Path release\\$(SourceReleaseName) -Force -ItemType Directory"
-	$(PS) "Copy-Item -Path compiled, src, assets, Makefile, boot.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
+	$(PS) "Copy-Item -Path compiled, src, scripts, tests, assets, Makefile, boot.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
 	$(PS) "cd release; Compress-Archive -Force -DestinationPath $(SourceReleaseName)$(ArchiveSuffix) -LiteralPath $(SourceReleaseName)"
 	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName) -Force -Recurse"
 else ifeq ($(OSName),linux)
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?g"
+	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src scripts tests assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?g"
 else
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?g" src assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
+	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?g" src scripts tests assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
 endif
 
 #
