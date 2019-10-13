@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### [3.0.2] - 2019-10-13
+
 ### Changed
   - Overrides for `symbol?` and `variable?`. This speeds up the time it takes for `eval` to compile expressions considerably.
 
@@ -133,7 +135,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Cleaned up `backend.lsp`, as `backend.shen` was removed.
 - Expanded README.
 
-[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.0.2...HEAD
+[3.0.1]: https://github.com/Shen-Language/shen-cl/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/Shen-Language/shen-cl/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/Shen-Language/shen-cl/compare/v2.7.0...v3.0.0
 [2.7.0]: https://github.com/Shen-Language/shen-cl/compare/v2.6.1...v2.7.0
