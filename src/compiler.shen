@@ -4,7 +4,7 @@
 (package shen-cl [progn quote null car cdr t nil
                   numberp stringp consp funcall
                   list eq eql equal let*
-                  lisp.defun lisp.lambda lisp.
+                  lisp.defun lisp.lambda lisp.block lisp.
                   %%return return %%goto-label go
                   %%let-label block tagbody]
 
@@ -62,6 +62,8 @@
   [lisp.lambda Vars Body] Scope -> [(cl lambda) Vars (compile-expression Body (append Vars Scope))]
   [lisp.defun Name Vars Body] _ -> [(cl defun) Name Vars (compile-expression Body Vars)]
   [lisp.block Name Body] Scope -> [(cl block) Name (compile-expression Body Scope)]
+  \\ NOTE: temporary fix for self-bootstrapping
+  [shen-cl.lisp.block Name Body] Scope -> [(cl block) Name (compile-expression Body Scope)]
   [lisp. Code] _ -> (if (string? Code)
                         ((protect READ-FROM-STRING) Code)
                         (error "lisp. excepts a string, not ~A" Code))
