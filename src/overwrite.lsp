@@ -66,7 +66,8 @@
            (not (eq t val))
            (not (eq val '|true|))
            (not (eq val '|false|))
-           (upper-case-p (char (symbol-name val) 0)))
+           (upper-case-p (char (symbol-name val) 0))
+           (every #'symbol-characterp (symbol-name val)))
       '|true|
       '|false|))
 
