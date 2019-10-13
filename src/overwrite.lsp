@@ -28,14 +28,50 @@
 (defvar |shen-cl.kernel-sysfunc?| (fdefinition '|shen.sysfunc?|))
 
 (defun |shen.sysfunc?| (symbol)
-  (or
-    (apply |shen-cl.kernel-sysfunc?| (list symbol))
-    (|shen-cl.lisp-prefixed?| symbol)))
+  (if (not (symbolp symbol))
+      '|false|
+      (|or|
+        (|shen-cl.lisp-prefixed?| symbol)
+        (apply |shen-cl.kernel-sysfunc?| (list symbol)))))
 
 (defun shen.pvar? (x)
   (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
-    '|true|
-    '|false|))
+      '|true|
+      '|false|))
+
+(defvar specials (coerce "=*/+-_?$!@~><&%{}:;`#'." 'list))
+
+(defun symbol-characterp (c)
+  (or (alphanumericp c)
+      (not (null (member c specials)))))
+
+(defun |shen.analyse-symbol?| (s)
+  (if (and (> (length s) 0)
+           (not (digit-char-p (char s 0)))
+           (symbol-characterp (char s 0))
+           (every #'symbol-characterp s))
+      '|true|
+      '|false|))
+
+(defun |symbol?| (val)
+  (if (and (symbolp val)
+           (not (null val))
+           (not (eq t val))
+           (not (eq val '|true|))
+           (not (eq val '|false|)))
+      (|shen.analyse-symbol?| (|str| val))
+      '|false|))
+
+(defun |variable?| (val)
+  (if (and (symbolp val)
+           (not (null val))
+           (not (eq t val))
+           (not (eq val '|true|))
+           (not (eq val '|false|))
+           (upper-case-p (char (symbol-name val) 0))
+           (every #'symbol-characterp (symbol-name val)))
+      '|true|
+      '|false|))
 
 (defun |shen.lazyderef| (x process-n)
   (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
@@ -234,7 +270,7 @@
   (|shen-cl.lisp-true?|
     (and (not (null symbol))
          (symbolp symbol)
-         (|shen-cl.prefix?| (|str| symbol) "lisp."))))
+         (|shen-cl.prefix?| (symbol-name symbol) "lisp."))))
 
 (defun |shen-cl.remove-lisp-prefix| (symbol)
   (|intern| (subseq (symbol-name symbol) 5)))

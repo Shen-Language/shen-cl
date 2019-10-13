@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+  - Overrides for `symbol?` and `variable?`. This speeds up the time it takes for `eval` to compile expressions considerably.
+
 ### [3.0.1] - 2019-10-13
 
 ### Changed

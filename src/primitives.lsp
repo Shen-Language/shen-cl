@@ -298,12 +298,6 @@
          (lispname (string-upcase (substitute #\: #\. (subseq str 5)))))
     (intern lispname)))
 
-(defun |shen-cl.lisp-prefixed?| (symbol)
-  (|shen-cl.lisp-true?|
-    (and (not (null symbol))
-         (symbolp symbol)
-         (|shen-cl.prefix?| (str symbol) "lisp."))))
-
 (defun |shen-cl.process-string| (x)
   (cond
     ((string-equal x "")                    x)
