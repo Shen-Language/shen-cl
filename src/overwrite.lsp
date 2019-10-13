@@ -28,9 +28,11 @@
 (defvar |shen-cl.kernel-sysfunc?| (fdefinition '|shen.sysfunc?|))
 
 (defun |shen.sysfunc?| (symbol)
-  (or
-    (apply |shen-cl.kernel-sysfunc?| (list symbol))
-    (|shen-cl.lisp-prefixed?| symbol)))
+  (if (not (symbolp symbol))
+      '|false|
+      (|or|
+        (|shen-cl.lisp-prefixed?| symbol)
+        (apply |shen-cl.kernel-sysfunc?| (list symbol)))))
 
 (defun shen.pvar? (x)
   (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
