@@ -34,8 +34,41 @@
 
 (defun shen.pvar? (x)
   (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
-    '|true|
-    '|false|))
+      '|true|
+      '|false|))
+
+(defvar specials (coerce "=*/+-_?$!@~><&%{}:;`#'." 'list))
+
+(defun symbol-characterp (c)
+  (or (alphanumericp c)
+      (not (null (member c specials)))))
+
+(defun |shen.analyse-symbol?| (s)
+  (if (and (> (length s) 0)
+           (not (digit-char-p (char s 0)))
+           (symbol-characterp (char s 0))
+           (every #'symbol-characterp s))
+      '|true|
+      '|false|))
+
+(defun |symbol?| (val)
+  (if (and (symbolp val)
+           (not (null val))
+           (not (eq t val))
+           (not (eq val '|true|))
+           (not (eq val '|false|)))
+      (|shen.analyse-symbol?| (|str| val))
+      '|false|))
+
+(defun |variable?| (val)
+  (if (and (symbolp val)
+           (not (null val))
+           (not (eq t val))
+           (not (eq val '|true|))
+           (not (eq val '|false|))
+           (upper-case-p (char (symbol-name val) 0)))
+      '|true|
+      '|false|))
 
 (defun |shen.lazyderef| (x process-n)
   (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
