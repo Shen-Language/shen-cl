@@ -136,7 +136,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Expanded README.
 
 [Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.0.2...HEAD
-[3.0.1]: https://github.com/Shen-Language/shen-cl/compare/v3.0.1...v3.0.2
+[3.0.2]: https://github.com/Shen-Language/shen-cl/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/Shen-Language/shen-cl/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/Shen-Language/shen-cl/compare/v2.7.0...v3.0.0
 [2.7.0]: https://github.com/Shen-Language/shen-cl/compare/v2.6.1...v2.7.0
