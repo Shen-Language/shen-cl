@@ -93,19 +93,19 @@
       (error "~S is not an exception~%" e)))
 
 (defun |cons| (X Y)
-  (CONS X Y))
+  (cons X Y))
 
 (defun |hd| (X)
-  (CAR X))
+  (car X))
 
 (defun |tl| (X)
-  (CDR X))
+  (cdr X))
 
 (defun |cons?| (X)
-  (if (CONSP X) '|true| '|false|))
+  (if (consp X) '|true| '|false|))
 
 (defun |intern| (String)
-  (INTERN (|shen-cl.process-intern| String)))
+  (intern (|shen-cl.process-intern| String)))
 
 (defun |shen-cl.process-intern| (S)
   (cond
@@ -132,13 +132,16 @@
   `(function (lambda () ,x)))
 
 (defun |absvector| (n)
-  (make-array (list n)))
+  (make-array n))
 
 (defun |absvector?| (x)
-  (if (and (arrayp x) (not (stringp x))) '|true| '|false|))
+  (if (and (arrayp x) (not (stringp x)))
+     '|true|
+     '|false|))
 
 (defun |address->| (vector n value)
-  (setf (svref vector n) value) vector)
+  (setf (svref vector n) value)
+  vector)
 
 (defun |<-address| (vector n)
   (svref vector n))
