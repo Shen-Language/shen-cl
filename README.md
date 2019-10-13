@@ -74,7 +74,7 @@ Each tagged release on the project downloads page should have a set of pre-built
 
 ```shell
 make pure
-git checkout v3.0.0
+git checkout v3.0.1
 make fetch
 make precompile SHEN=shen-sbcl
 make sbcl
