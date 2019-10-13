@@ -268,7 +268,7 @@
   (|shen-cl.lisp-true?|
     (and (not (null symbol))
          (symbolp symbol)
-         (|shen-cl.prefix?| (|str| symbol) "lisp."))))
+         (|shen-cl.prefix?| (symbol-name symbol) "lisp."))))
 
 (defun |shen-cl.remove-lisp-prefix| (symbol)
   (|intern| (subseq (symbol-name symbol) 5)))
