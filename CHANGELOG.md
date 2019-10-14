@@ -8,18 +8,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
-### [3.0.2] - 2019-10-13
+## [3.0.2] - 2019-10-13
 
 ### Changed
   - Overrides for `symbol?` and `variable?`. This speeds up the time it takes for `eval` to compile expressions considerably.
 
-### [3.0.1] - 2019-10-13
+## [3.0.1] - 2019-10-13
 
 ### Changed
   - `@p` and `vector` constructors are now overriden by better performing native implementations.
   - `read-file-as-bytelist`, `shen.read-file-as-charlist` and `shen.read-file-as-charlist` are also overriden by native implementations.
 
-### [3.0.0] - 2019-10-12
+## [3.0.0] - 2019-10-12
 
 **Updated to Shen Open Source Kernel 22.2**
 
