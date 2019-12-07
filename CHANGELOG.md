@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [3.0.3] - 2019-12-07
+
 ### Fixed
 - Fixed override for `shen.dict-fold` that was not properly calling the curried function, which also broke `shen.dict-keys` and `shen.dict-values`.
 
@@ -138,7 +140,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Cleaned up `backend.lsp`, as `backend.shen` was removed.
 - Expanded README.
 
-[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.0.2...HEAD
+[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.0.3...HEAD
+[3.0.3]: https://github.com/Shen-Language/shen-cl/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/Shen-Language/shen-cl/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/Shen-Language/shen-cl/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/Shen-Language/shen-cl/compare/v2.7.0...v3.0.0
