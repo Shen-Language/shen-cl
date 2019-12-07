@@ -171,7 +171,8 @@
 
 (defun |shen.dict-fold| (f dict init)
   (let ((acc init))
-    (maphash #'(lambda (k v) (setf acc (funcall f k v acc))) dict)
+    (maphash #'(lambda (k v)
+                 (setf acc (funcall (funcall (funcall f k) v) acc))) dict)
     acc))
 
 #+clisp
