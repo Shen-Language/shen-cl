@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+- Fixed override for `shen.dict-fold` that was not properly calling the curried function, which also broke `shen.dict-keys` and `shen.dict-values`.
+
 ## [3.0.2] - 2019-10-13
 
 ### Changed
