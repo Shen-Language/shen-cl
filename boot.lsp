@@ -159,6 +159,7 @@
 
 #-ecl
 (progn
+ (|shen.x.factorise-defun.initialise|)
  (|shen.initialise|)
  (|shen-cl.initialise|)
  (|shen.x.features.initialise| '(

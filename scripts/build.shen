@@ -1,7 +1,13 @@
 \\ Copyright (c) 2012-2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
+(set shen.x.factorise-defun.*selector-handlers* [])
+(set shen.x.factorise-defun.*selector-handlers-reg* [])
+
+(define shen.x.factorise-defun.apply-selector-handlers _ _ -> (fail))
+
 (load "kernel/klambda/extension-factorise-defun.kl")
+(shen.x.factorise-defun.initialise)
 (load "src/compiler.shen")
 
 (shen-cl.initialise-compiler)
