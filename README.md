@@ -56,6 +56,17 @@ The `Makefile` automates all build and test operations.
 
 `precompile` is only required when bootstraping Shen/CL from this repository, the source release includes the precompiled files. The `SHEN` variable has to be defined and point to a working Shen executable that will be used to precompile the kernel and compiler code.
 
+## Building from a precompiled sources release
+
+The precompiled source relases (`shen-cl-vX.Y.Z-sources.{tar.gz,zip}`) contain all the `.lsp` files required to build a working binary (precompiled from `.shen` sources). To build an executable, just execute the `build-X` make target:
+
+```shell
+# Produces an executable in bin/sbcl/shen
+make build-sbcl
+# Runs the created executable
+make run-sbcl
+```
+
 ## Running
 
 An executable is generated for each platform in its platform-specific output directory under `bin/` (e.g. `bin/sbcl/shen.exe`). Per typical naming conventions, it is named `shen.exe` on Windows systems and just `shen` on Unix-based systems.
