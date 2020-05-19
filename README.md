@@ -58,7 +58,7 @@ The `Makefile` automates all build and test operations.
 
 ## Building from a precompiled sources release
 
-The precompiled source relases (`shen-cl-vX.Y.Z-sources.{tar.gz,zip}`) contain all the `.lsp` files required to build a working binary (precompiled from `.shen` sources). To build an executable, just execute the `build-X` make target:
+The precompiled source relases (`shen-cl-vX.Y.Z-sources.{tar.gz,zip}`) contain all the `.lsp` files required to build a working Shen executable (precompiled from `.shen` sources). To do so, run the `build-X` make target:
 
 ```shell
 # Produces an executable in bin/sbcl/shen
