@@ -36,13 +36,13 @@ ifeq ($(OSName),windows)
 	Slash=\\\\
 	ArchiveSuffix=.zip
 	BinarySuffix=.exe
-	All=clisp ccl sbcl
+	All=abcl clisp ccl sbcl
 	PS=powershell.exe -Command
 else
 	Slash=/
 	ArchiveSuffix=.tar.gz
 	BinarySuffix=
-	All=clisp ccl ecl sbcl
+	All=abcl clisp ccl ecl sbcl
 	ifeq ($(OSName),freebsd)
 		All=ccl ecl sbcl
 	else ifeq ($(OSName),openbsd)
@@ -52,6 +52,7 @@ else
 	endif
 endif
 
+ABCL=abcl
 CCL=ccl
 CLISP=clisp
 ECL=ecl
@@ -74,6 +75,7 @@ KernelArchiveName=$(KernelFolderName)$(ArchiveSuffix)
 KernelArchiveUrl=$(UrlRoot)/$(KernelTag)/$(KernelArchiveName)
 BinaryName=shen$(BinarySuffix)
 
+ShenABCL=.$(Slash)bin$(Slash)abcl$(Slash)$(BinaryName)
 ShenCLisp=.$(Slash)bin$(Slash)clisp$(Slash)$(BinaryName)
 ShenCCL=.$(Slash)bin$(Slash)ccl$(Slash)$(BinaryName)
 ShenECL=.$(Slash)bin$(Slash)ecl$(Slash)$(BinaryName)
@@ -96,6 +98,9 @@ SourceReleaseName=shen-cl-$(GitVersion)-sources
 .DEFAULT: all
 .PHONY: all
 all: $(All)
+
+.PHONY: abcl
+abcl: build-abcl test-abcl
 
 .PHONY: clisp
 clisp: build-clisp test-clisp
@@ -151,6 +156,10 @@ endif
 # Build an implementation
 #
 
+.PHONY: build-abcl
+build-abcl:
+	$(ABCL) --load boot.lsp
+
 .PHONY: build-clisp
 build-clisp:
 	$(CLISP) -i boot.lsp
@@ -171,6 +180,10 @@ build-sbcl:
 # Test an implementation
 #
 
+.PHONY: test-abcl
+test-abcl:
+	$(RunABCL) $(Tests)
+
 .PHONY: test-clisp
 test-clisp:
 	$(RunCLisp) $(Tests)
@@ -190,6 +203,10 @@ test-sbcl:
 #
 # Run an implementation
 #
+
+.PHONY: run-abcl
+run-abcl:
+	$(RunABCL) $(Args)
 
 .PHONY: run-clisp
 run-clisp:

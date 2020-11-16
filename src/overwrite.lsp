@@ -175,6 +175,10 @@
                  (setf acc (funcall (funcall (funcall f k) v) acc))) dict)
     acc))
 
+#+abcl
+(defun |cl.exit| (code)
+  (ext:quit :status code))
+
 #+clisp
 (defun |cl.exit| (code)
   (ext:exit code))

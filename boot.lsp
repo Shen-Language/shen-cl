@@ -46,6 +46,12 @@
 ; Implementation-Specific Declarations
 ;
 
+#+abcl
+(progn
+  (defconstant compiled-suffix ".abcl")
+  (defconstant binary-path "./bin/abcl/")
+  (defconstant executable-name #+windows "shen.exe" #-windows "shen"))
+
 #+clisp
 (progn
   (defconstant compiled-suffix ".fas")
@@ -56,7 +62,7 @@
 
 #+ccl
 (progn
-  (defconstant compiled-suffix (format nil "~a" *.fasl-pathname*))
+  (defconstant compiled-suffix (format nil "~A" *.fasl-pathname*))
   (defconstant binary-path "./bin/ccl/")
   (defconstant executable-name #+windows "shen.exe" #-windows "shen"))
 
@@ -164,9 +170,10 @@
  (|shen-cl.initialise|)
  (|shen.x.features.initialise| '(
    |shen/cl|
+   #+abcl  |shen/cl.abcl|
    #+clisp |shen/cl.clisp|
-   #+sbcl  |shen/cl.sbcl|
    #+ccl   |shen/cl.ccl|
+   #+sbcl  |shen/cl.sbcl|
  )))
 
 (fmakunbound 'compile-lsp)
@@ -178,6 +185,12 @@
 ;
 
 (defconstant executable-path (format nil "~A~A" binary-path executable-name))
+
+#+abcl
+(progn
+  (format nil "~%~%TODO: how to emit executable for ABCL???~%~%")
+  (|shen-cl.toplevel|)
+  (ext:quit))
 
 #+clisp
 (progn
