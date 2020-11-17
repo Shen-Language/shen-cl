@@ -16,7 +16,6 @@ matrix:
     install:
       - wget https://abcl.org/releases/1.8.0/abcl-bin-1.8.0.tar.gz
       - tar xzf abcl-bin-1.8.0.tar.gz --strip-components=1 --wildcards *.jar
-      - alias abcl='java -jar abcl.jar'
       - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
       - sudo dpkg -i clozure-cl_1.11_amd64.deb
       - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
@@ -64,6 +63,7 @@ addons:
       - ecl
       - libffi-dev
 script:
+  - alias abcl="java -jar abcl.jar"
   - make fetch
   - make precompile
   - make $MAKE_BUILD_TARGET
