@@ -16,9 +16,9 @@ matrix:
     install:
       - wget https://abcl.org/releases/1.8.0/abcl-bin-1.8.0.tar.gz
       - tar xzf abcl-bin-1.8.0.tar.gz --strip-components=1 --wildcards *.jar
-      - sudo cp *.jar /usr/local/bin/
-      - sudo printf '#!/bin/bash\njava -jar ./abcl.jar $@' > /usr/local/bin/abcl
-      - sudo chmod a+x /usr/local/bin/acbl
+      - printf '#!/bin/bash\njava -jar ./abcl.jar $@' > abcl
+      - chmod a+x acbl
+      - PATH=$PATH:$(pwd)
       - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
       - sudo dpkg -i clozure-cl_1.11_amd64.deb
       - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb
