@@ -48,8 +48,10 @@
 
 #+abcl
 (progn
+  (defvar *compiled-files* nil)
   (defconstant compiled-suffix ".abcl")
   (defconstant binary-path "./bin/abcl/")
+  (defconstant concatenated-fasl-path (format nil "~Ashen~A" binary-path compiled-suffix))
   (defconstant executable-name #+windows "shen.exe" #-windows "shen"))
 
 #+clisp
@@ -91,8 +93,10 @@
 
 #-ecl
 (defun compile-lsp (file)
-  (let ((lsp-file (format nil "~A~A.lsp" binary-path file)))
-    (compile-file lsp-file)))
+  (let ((lsp-file (format nil "~A~A.lsp" binary-path file))
+        (fas-file (format nil "~A~A~A" binary-path file compiled-suffix)))
+    (compile-file lsp-file)
+    #+abcl (push fas-file *compiled-files*)))
 
 #+ecl
 (defun compile-lsp (file)
@@ -188,8 +192,7 @@
 
 #+abcl
 (progn
-  (format nil "~%~%TODO: how to emit executable for ABCL???~%~%")
-  (|shen-cl.toplevel|)
+  (system:concatenate-fasls (reverse *compiled-files*) concatenated-fasl-path)
   (ext:quit))
 
 #+clisp
