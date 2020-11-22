@@ -75,12 +75,13 @@ KernelArchiveName=$(KernelFolderName)$(ArchiveSuffix)
 KernelArchiveUrl=$(UrlRoot)/$(KernelTag)/$(KernelArchiveName)
 BinaryName=shen$(BinarySuffix)
 
-ShenABCL=.$(Slash)bin$(Slash)abcl$(Slash)$(BinaryName)
+ShenABCL=.$(Slash)bin$(Slash)abcl$(Slash)shen.jar
 ShenCLisp=.$(Slash)bin$(Slash)clisp$(Slash)$(BinaryName)
 ShenCCL=.$(Slash)bin$(Slash)ccl$(Slash)$(BinaryName)
 ShenECL=.$(Slash)bin$(Slash)ecl$(Slash)$(BinaryName)
 ShenSBCL=.$(Slash)bin$(Slash)sbcl$(Slash)$(BinaryName)
 
+RunABCL=java -jar $(ShenABCL) --
 RunCLisp=$(ShenCLisp) --clisp-m 10MB
 RunCCL=$(ShenCCL)
 RunECL=$(ShenECL)
@@ -159,6 +160,9 @@ endif
 .PHONY: build-abcl
 build-abcl:
 	$(ABCL) --load boot.lsp
+	javac -cp abcl.jar -d bin/abcl src/ShenABCL.java
+	cp src/ShenABCLManifest.txt bin/abcl
+	cd bin/abcl; jar cfm shen.jar ShenABCLManifest.txt ShenABCL.class shen.abcl
 
 .PHONY: build-clisp
 build-clisp:

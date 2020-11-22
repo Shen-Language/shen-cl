@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Sealed: true
+Class-Path: abcl.jar abcl-contrib.jar
+Main-Class: ShenABCL
