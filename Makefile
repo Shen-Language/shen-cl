@@ -160,9 +160,16 @@ endif
 .PHONY: build-abcl
 build-abcl:
 	$(ABCL) --load boot.lsp
-	javac -cp abcl.jar -d bin/abcl src/ShenABCL.java
-	cp src/ShenABCLManifest.txt bin/abcl
-	cd bin/abcl; jar cfm shen.jar ShenABCLManifest.txt ShenABCL.class shen.abcl
+# NOTE: this depends on CLASSPATH being set
+#       java is not finding classes from abcl.jar
+#       refer to https://abcl-dev.blogspot.com/2009/09/loading-fasls-from-jar-files.html
+
+#       can run with abcl... (load "bin/abcl/shen.abcl")... (IN-PACKAGE :SHEN)... (|shen-cl.toplevel|)
+#       but gets FATAL ERROR and exits
+
+#	javac -d bin/abcl src/ShenABCL.java
+#	cp src/ShenABCLManifest.txt bin/abcl
+#	cd bin/abcl; jar cfm shen.jar ShenABCLManifest.txt ShenABCL.class shen.abcl
 
 .PHONY: build-clisp
 build-clisp:
@@ -186,7 +193,9 @@ build-sbcl:
 
 .PHONY: test-abcl
 test-abcl:
-	$(RunABCL) $(Tests)
+# NOTE: test-abcl disabled since build is not working
+#	$(RunABCL) $(Tests)
+	echo 'test-abcl disabled'
 
 .PHONY: test-clisp
 test-clisp:
@@ -210,7 +219,9 @@ test-sbcl:
 
 .PHONY: run-abcl
 run-abcl:
-	$(RunABCL) $(Args)
+# NOTE: run-abcl disabled since build is not working
+#	$(RunABCL) $(Args)
+	echo 'run-abcl disabled'
 
 .PHONY: run-clisp
 run-clisp:
