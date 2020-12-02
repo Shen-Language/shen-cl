@@ -210,9 +210,20 @@
     (t
      nil)))
 
+#+abcl
+(defun |write-byte| (byte s)
+  (write-byte (code-char s) s))
+
+#+abcl
+(defun |read-byte| (s)
+  (let ((ch (read-char s nil -1)))
+    (if (eq -1 ch) ch (char-code ch))))
+
+#-abcl
 (defun |write-byte| (byte s)
   (write-byte byte s))
 
+#-abcl
 (defun |read-byte| (s)
   (read-byte s nil -1))
 
