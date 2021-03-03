@@ -277,9 +277,9 @@ but not otherwise.
   _               -> (fail))
 
 (define optimise-static-application
-  [+ 1 X] -> [(intern "1+") X]
-  [+ X 1] -> [(intern "1+") X]
-  [- X 1] -> [(intern "1-") X]
+  [add 1 X] -> [(cl (intern "1+")) X]
+  [add X 1] -> [(cl (intern "1+")) X]
+  [subtract X 1] -> [(cl (intern "1-")) X]
   [Cons Exp [Quote []]] -> [(cl list) Exp]
       where (and (= (cl cons) Cons)
                  (= (cl quote) Quote))
