@@ -1,0 +1,72 @@
+name: build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ${{ matrix.os }}-latest
+    env:
+      OS_NAME: ${{ matrix.os_name }}
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      WINDOWS_SBCL_PATH: "C:/Program Files/Steel Bank Common Lisp/1.4.14"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: ubuntu
+          os_name: linux
+          bundle_ext: tar.gz
+          make_build_target: all
+          shen_exe: ./shen
+          prebuilt_shen_version: 3.0.2
+        - os: macos
+          os_name: macos
+          bundle_ext: tar.gz
+          make_build_target: sbcl
+          shen_exe: ./shen
+          prebuilt_shen_version: 3.0.2
+        - os: windows
+          os_name: windows
+          bundle_ext: zip
+          make_build_target: sbcl
+          sbcl_path: "C:/Program Files/Steel Bank Common Lisp/1.4.14"
+          shen_exe: ./shen.exe
+          prebuilt_shen_version: 3.0.2
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup dependencies (Linux)
+        if: ${{ matrix.os == 'ubuntu' }}
+        run: |
+          sudo apt install -y sbcl ecl libffi-dev
+          wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
+          sudo dpkg -i clozure-cl_1.11_amd64.deb
+      - name: Setup dependencies (MacOS)
+        if: ${{ matrix.os == 'macos' }}
+        run: brew install sbcl
+      - name: Setup dependencies (Windows)
+        if: ${{ matrix.os == 'windows' }}
+        run: |
+          choco install make
+          curl -L "https://netcologne.dl.sourceforge.net/project/sbcl/sbcl/1.4.14/sbcl-1.4.14-x86-64-windows-binary.msi" -o sbcl.msi
+          powershell -Command "Start-Process msiexec.exe -Wait -ArgumentList '/i sbcl.msi /qn'"
+      - name: Fetch precompiled Shen (Linux and macOS)
+        if: ${{ matrix.os == 'ubuntu' || matrix.os == 'macos' }}
+        run: |
+          wget "https://github.com/Shen-Language/shen-cl/releases/download/v${{ matrix.prebuilt_shen_version }}/shen-cl-v${{ matrix.prebuilt_shen_version }}-${{ matrix.os_name }}-prebuilt.tar.gz"
+          tar xzf "shen-cl-v${{ matrix.prebuilt_shen_version }}-${{ matrix.os_name }}-prebuilt.tar.gz" shen
+      - name: Fetch precompiled Shen (Windoes)
+        if: ${{ matrix.os == 'windows' }}
+        run: |
+          curl -L "https://github.com/Shen-Language/shen-cl/releases/download/v${{ matrix.prebuilt_shen_version }}/shen-cl-v${{ matrix.prebuilt_shen_version }}-windows-prebuilt.zip" -o "shen-cl-v${{ matrix.prebuilt_shen_version }}-windows-prebuilt.zip"
+          7z e "shen-cl-v${{ matrix.prebuilt_shen_version }}-windows-prebuilt.zip" shen.exe
+      - name: Fetch kernel
+        run: make fetch
+      - name: Precompile code
+        run: make precompile SHEN=${{ matrix.shen_exe }}
+      - name: Build and test
+        run: make ${{ matrix.make_build_target }}

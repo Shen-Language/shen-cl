@@ -57,8 +57,8 @@ CLISP=clisp
 ECL=ecl
 SBCL=sbcl
 
-ifeq ($(TRAVIS_OS_NAME),windows)
-	SBCL="$(SBCL_PATH)/sbcl.exe" --core "$(SBCL_PATH)/sbcl.core"
+ifeq ($(OS_NAME),windows)
+	SBCL="$(WINDOWS_SBCL_PATH)/sbcl.exe" --core "$(WINDOWS_SBCL_PATH)/sbcl.core"
 endif
 
 #
