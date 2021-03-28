@@ -42,7 +42,7 @@ else
 	Slash=/
 	ArchiveSuffix=.tar.gz
 	BinarySuffix=
-	All=clisp ccl ecl sbcl
+	All=ccl ecl sbcl
 	ifeq ($(OSName),freebsd)
 		All=ccl ecl sbcl
 	else ifeq ($(OSName),openbsd)
