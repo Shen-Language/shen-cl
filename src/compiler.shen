@@ -3,7 +3,7 @@
 
 (package shen-cl [progn quote null car cdr t nil
                   numberp stringp consp funcall
-                  list eq eql equal let*
+                  list eq eql equal equalp let*
                   lisp.defun lisp.lambda lisp.block lisp.
                   %%return return %%goto-label go
                   %%let-label block tagbody]
@@ -90,14 +90,14 @@
   [equal? X [fail]] -> [(cl eq) X [fail]]
   [equal? S X] -> [(cl equal) S X]  where (string? S)
   [equal? X S] -> [(cl equal) X S]  where (string? S)
-  [equal? X N] -> [(cl eql) X N]    where (number? N)
-  [equal? N X] -> [(cl eql) X N]    where (number? N)
+  [equal? X N] -> [(cl equalp) X N]    where (number? N)
+  [equal? N X] -> [(cl equalp) X N]    where (number? N)
   [equal? X [Quote S]] -> [(cl eq) X [Quote S]]    where (= (cl quote) Quote)
   [equal? [Quote S] X] -> [(cl eq) X [Quote S]]    where (= (cl quote) Quote)
   [equal? X Y] -> [(kl absequal) X Y]
-  [greater? X Y] -> [(cl > )X Y]
+  [greater? X Y] -> [(cl >) X Y]
   [greater-than-or-equal-to? X Y] -> [(cl >=) X Y]
-  [less? X Y] -> [(cl < )X Y]
+  [less? X Y] -> [(cl <) X Y]
   [less-than-or-equal-to? X Y] -> [(cl <=) X Y]
   [Quote true] -> (cl t) where (= Quote (cl quote))
   [Quote false] -> (cl nil) where (= Quote (cl quote))

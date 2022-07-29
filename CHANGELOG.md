@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 ### Fixed
 
 - Fixed optimizations for addition and subtraction of 1.
+- Fixed code generation for number equality checks when one of the arguments is a known number.
 
 ## [3.0.3] - 2019-12-07
 
