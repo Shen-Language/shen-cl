@@ -1,3 +1,15 @@
+# Unmaintained
+
+This version of the Common Lisp port is currently unmaintained.
+
+Some alternatives:
+
+- [Windows binaries for the SBCL port](https://shenlanguage.org/download.html)
+- [Download the lastest sources](https://shenlanguage.org/download.html) and enter the following in an SBCL REPL: `(load "install.lsp")`
+- Use instead [Shen/Scheme](https://github.com/tizoc/shen-scheme).
+
+------
+
 [![Shen Version](https://img.shields.io/badge/shen-22.3-blue.svg)](https://github.com/Shen-Language)
 [![Build Status](https://travis-ci.org/Shen-Language/shen-cl.svg?branch=master)](https://travis-ci.org/Shen-Language/shen-cl)
 
