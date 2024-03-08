@@ -25,7 +25,7 @@
 
 (defpackage :shen
   (:documentation "This is the package in which the Shen language operates.")
-  #+clisp
+  #+(or abcl clisp)
   (:use :common-lisp
         :ext)
   #+ccl

@@ -32,6 +32,12 @@
 (defvar |*port*| "3.0.3")
 (defvar |*porters*| "Mark Tarver, Robert Koeninger and Bruno Deferrari")
 
+#+abcl
+(progn
+  (defvar |*implementation*| "ABCL")
+  (defvar |*release*| (lisp-implementation-version))
+  (defvar |*os*| (or #+windows "Windows" #+linux "Linux" #+darwin "macOS" #+unix "Unix" "Unknown")))
+
 #+clisp
 (progn
   (defvar |*implementation*| "GNU CLisp")
@@ -204,9 +210,20 @@
     (t
      nil)))
 
+#+abcl
+(defun |write-byte| (byte s)
+  (write-byte (code-char s) s))
+
+#+abcl
+(defun |read-byte| (s)
+  (let ((ch (read-char s nil -1)))
+    (if (eq -1 ch) ch (char-code ch))))
+
+#-abcl
 (defun |write-byte| (byte s)
   (write-byte byte s))
 
+#-abcl
 (defun |read-byte| (s)
   (read-byte s nil -1))
 
@@ -362,7 +379,6 @@
 (defun |shen-cl.read-eval| (str)
   (car (last (mapc #'|eval| (|read-from-string| str)))))
 
-
 (defun |shen-cl.toplevel-interpret-args| (args)
   (|trap-error|
     (let ((result (|shen.x.launcher.launch-shen| args)))
@@ -398,7 +414,7 @@
           (let ((args (cons (car (coerce (ext:argv) 'list)) ext:*args*)))
             (|shen-cl.toplevel-interpret-args| args)))))
 
-    #+ccl
+    #+(or abcl ccl)
     (handler-bind ((warning #'muffle-warning))
       (|shen-cl.toplevel-interpret-args| *command-line-argument-list*))
 

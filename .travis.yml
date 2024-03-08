@@ -1,6 +1,6 @@
 notifications:
   email: false
-language: generic
+language: java
 sudo: required
 env:
   global:
@@ -14,6 +14,11 @@ matrix:
       - MAKE_BUILD_TARGET=all
       - SHEN=./shen
     install:
+      - wget https://abcl.org/releases/1.8.0/abcl-bin-1.8.0.tar.gz
+      - tar xzf abcl-bin-1.8.0.tar.gz --strip-components=1 --wildcards *.jar
+      - printf '#!/bin/bash\njava -jar ./abcl.jar $@' > abcl
+      - chmod a+x abcl
+      - PATH=$PATH:$(pwd)
       - wget http://mr.gy/blog/clozure-cl_1.11_amd64.deb
       - sudo dpkg -i clozure-cl_1.11_amd64.deb
       - wget http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.3.14-2+b1_amd64.deb

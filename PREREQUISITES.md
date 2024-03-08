@@ -1,3 +1,5 @@
+# TODO: cover ABCL in this doc
+
 # Prerequisites
 
   * For [BSD](#bsd)
@@ -36,7 +38,7 @@ If the version of SBCL available throught `apt` is too old, a sufficiently new v
 
 ## macOS
 
-CLisp, Clozure, ECL and SBCL can be acquired through Homebrew with `brew install clisp clozure-cl ecl sbcl`.
+ABCL, CLisp, Clozure, ECL and SBCL can be acquired through Homebrew with `brew install abcl clisp clozure-cl ecl sbcl`.
 
 ## Windows
 

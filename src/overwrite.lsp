@@ -175,6 +175,10 @@
                  (setf acc (funcall (funcall (funcall f k) v) acc))) dict)
     acc))
 
+#+abcl
+(defun |cl.exit| (code)
+  (ext:quit :status code))
+
 #+clisp
 (defun |cl.exit| (code)
   (ext:exit code))
@@ -254,8 +258,10 @@
     vec))
 
 ; Amend the REPL credits message to explain exit command
+#-abcl
 (setf (symbol-function '|shen-cl.original-credits|) #'|shen.credits|)
 
+#-abcl
 (defun |shen.credits| ()
   (|shen-cl.original-credits|)
   (format t "exit REPL with (cl.exit)"))

@@ -46,6 +46,14 @@
 ; Implementation-Specific Declarations
 ;
 
+#+abcl
+(progn
+  (defvar *compiled-files* nil)
+  (defconstant compiled-suffix ".abcl")
+  (defconstant binary-path "./bin/abcl/")
+  (defconstant concatenated-fasl-path (format nil "~Ashen~A" binary-path compiled-suffix))
+  (defconstant executable-name #+windows "shen.exe" #-windows "shen"))
+
 #+clisp
 (progn
   (defconstant compiled-suffix ".fas")
@@ -56,7 +64,7 @@
 
 #+ccl
 (progn
-  (defconstant compiled-suffix (format nil "~a" *.fasl-pathname*))
+  (defconstant compiled-suffix (format nil "~A" *.fasl-pathname*))
   (defconstant binary-path "./bin/ccl/")
   (defconstant executable-name #+windows "shen.exe" #-windows "shen"))
 
@@ -85,8 +93,10 @@
 
 #-ecl
 (defun compile-lsp (file)
-  (let ((lsp-file (format nil "~A~A.lsp" binary-path file)))
-    (compile-file lsp-file)))
+  (let ((lsp-file (format nil "~A~A.lsp" binary-path file))
+        (fas-file (format nil "~A~A~A" binary-path file compiled-suffix)))
+    (compile-file lsp-file)
+    #+abcl (push fas-file *compiled-files*)))
 
 #+ecl
 (defun compile-lsp (file)
@@ -164,9 +174,10 @@
  (|shen-cl.initialise|)
  (|shen.x.features.initialise| '(
    |shen/cl|
+   #+abcl  |shen/cl.abcl|
    #+clisp |shen/cl.clisp|
-   #+sbcl  |shen/cl.sbcl|
    #+ccl   |shen/cl.ccl|
+   #+sbcl  |shen/cl.sbcl|
  )))
 
 (fmakunbound 'compile-lsp)
@@ -178,6 +189,11 @@
 ;
 
 (defconstant executable-path (format nil "~A~A" binary-path executable-name))
+
+#+abcl
+(progn
+  (system:concatenate-fasls (reverse *compiled-files*) concatenated-fasl-path)
+  (ext:quit))
 
 #+clisp
 (progn

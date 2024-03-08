@@ -21,6 +21,7 @@ Some alternatives:
 
 This codebase currently supports the following implementations:
 
+  * [Armed Bear Common Lisp](https://abcl.org/)
   * [GNU CLisp](http://www.clisp.org/)
   * [Clozure Common Lisp](http://ccl.clozure.com/)
   * [Embeddable Common Lisp](https://common-lisp.net/project/ecl/)
@@ -64,7 +65,7 @@ The `Makefile` automates all build and test operations.
 | `run-X`      | Start Shen REPL.                             |
 | `release`    | Creates archive of compiled binaries.        |
 
-`X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
+`X` can be `abcl`, `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
 
 `precompile` is only required when bootstraping Shen/CL from this repository, the source release includes the precompiled files. The `SHEN` variable has to be defined and point to a working Shen executable that will be used to precompile the kernel and compiler code.
 
