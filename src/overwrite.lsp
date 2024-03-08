@@ -210,14 +210,14 @@
     (|shen-cl.read-eval| "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")
     (|shen-cl.read-eval| "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")))
 
-#+(or ccl sbcl)
+#+(or ccl clisp sbcl)
 (defun |shen.read-char-code| (s)
   (let ((c (read-char s nil -1)))
     (if (eq c -1)
       -1
       (char-int c))))
 
-#+(or ccl sbcl)
+#+(or ccl clisp sbcl)
 (defun |pr| (x s)
   (write-string x s)
   (when (or (eq s |*stoutput*|) (eq s |*stinput*|))

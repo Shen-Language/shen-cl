@@ -391,12 +391,8 @@
 
     #+clisp
     (handler-bind ((warning #'muffle-warning))
-      (with-open-stream (*standard-input* (ext:make-stream :input :element-type 'unsigned-byte))
-        (with-open-stream (*standard-output* (ext:make-stream :output :element-type 'unsigned-byte))
-          (setq |*stoutput*| *standard-output*)
-          (setq |*stinput*| *standard-input*)
-          (let ((args (cons (car (coerce (ext:argv) 'list)) ext:*args*)))
-            (|shen-cl.toplevel-interpret-args| args)))))
+      (let ((args (cons (car (coerce (ext:argv) 'list)) ext:*args*)))
+        (|shen-cl.toplevel-interpret-args| args)))
 
     #+ccl
     (handler-bind ((warning #'muffle-warning))
