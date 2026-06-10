@@ -2,3 +2,4 @@ bin/
 kernel/
 release/
 .DS_Store
+.claude/

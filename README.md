@@ -1,17 +1,5 @@
-# Unmaintained
-
-This version of the Common Lisp port is currently unmaintained.
-
-Some alternatives:
-
-- [Windows binaries for the SBCL port](https://shenlanguage.org/download.html)
-- [Download the lastest sources](https://shenlanguage.org/download.html) and enter the following in an SBCL REPL: `(load "install.lsp")`
-- Use instead [Shen/Scheme](https://github.com/tizoc/shen-scheme).
-
-------
-
 [![Shen Version](https://img.shields.io/badge/shen-41.1-blue.svg)](https://github.com/Shen-Language)
-[![Build Status](https://travis-ci.org/Shen-Language/shen-cl.svg?branch=master)](https://travis-ci.org/Shen-Language/shen-cl)
+[![Build Status](https://github.com/Shen-Language/shen-cl/actions/workflows/release.yml/badge.svg)](https://github.com/Shen-Language/shen-cl/actions/workflows/release.yml)
 
 # Shen for Common Lisp
 
@@ -89,11 +77,11 @@ When starting Shen via `make`, command line arguments can be passed through like
 
 ## Releasing
 
-Archives of pre-built binaries are created using the `make release` command. They will appear under `release/`, named with the operating system and current git tag or short commit hash.
+Tagged releases are built and published automatically by the [`Release` GitHub Actions workflow](.github/workflows/release.yml). Pushing a `vX.Y.Z` tag builds the SBCL port for Linux (`x86_64`, `aarch64`) and macOS (`arm64`, plus a best-effort `x86_64`), then attaches the prebuilt archives to the GitHub [releases](https://github.com/Shen-Language/shen-cl/releases) page.
 
-Currently, only the license file and the SBCL build are included (named `shen[.exe]`).
+Archives can also be produced locally with the `make release` command. They appear under `release/`, named with the operating system and current git tag or short commit hash. Currently, only the license file and the SBCL build are included (named `shen[.exe]`).
 
-Each tagged release on the project downloads page should have a set of pre-built archives. Be sure to archive the build of that specific commit, like this:
+To reproduce a release archive locally, build the exact tagged commit:
 
 ```shell
 make pure
