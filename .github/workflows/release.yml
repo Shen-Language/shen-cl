@@ -13,6 +13,14 @@ on:
 permissions:
   contents: write
 
+env:
+  # shen-cl is self-hosting: building it requires an existing Shen kernel-41.1
+  # executable to precompile the kernel and compiler down to Lisp (`make
+  # precompile`). We bootstrap from a previously released prebuilt binary for
+  # the same platform. Repoint these at an upstream release once one exists.
+  BOOTSTRAP_REPO: pyrex41/shen-cl
+  BOOTSTRAP_TAG: v3.0.4
+
 jobs:
   build:
     name: Build ${{ matrix.platform }}
@@ -38,26 +46,26 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install sbcl
 
-      - name: Install Quicklisp + BT + USOCKET
-        shell: bash
-        run: |
-          curl -fsSL -o /tmp/quicklisp.lisp https://beta.quicklisp.org/quicklisp.lisp
-          sbcl --non-interactive --load /tmp/quicklisp.lisp \
-               --eval '(quicklisp-quickstart:install)' \
-               --eval "(let ((ql-util::*do-not-prompt* t)) (ql:add-to-init-file))" \
-               --eval '(ql:quickload (list :bordeaux-threads :usocket))'
-
       - name: Fetch ShenOSKernel
         run: make fetch
 
-      - name: Build shen-cl (BT + USOCKET pre-loaded)
+      - name: Download bootstrap Shen
         shell: bash
         run: |
-          sbcl --non-interactive \
-               --load "$HOME/quicklisp/setup.lisp" \
-               --eval '(require :sb-posix)' \
-               --eval '(ql:quickload (list :bordeaux-threads :usocket))' \
-               --load boot.lsp
+          mkdir -p bootstrap
+          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-cl-${BOOTSTRAP_TAG}-${{ matrix.platform }}-prebuilt.tar.gz"
+          echo "Bootstrapping from $URL"
+          curl -fsSL -o bootstrap/boot.tar.gz "$URL"
+          tar xzf bootstrap/boot.tar.gz -C bootstrap
+          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen -type f | head -n1)"
+          chmod +x "$BOOT_SHEN"
+          echo "BOOT_SHEN=$BOOT_SHEN" >> "$GITHUB_ENV"
+
+      - name: Precompile kernel + compiler
+        run: make precompile SHEN="$BOOT_SHEN"
+
+      - name: Build shen-cl
+        run: make build-sbcl
 
       - name: Test
         run: make test-sbcl
@@ -119,64 +127,3 @@ jobs:
               --title "${GITHUB_REF_NAME}" \
               --generate-notes
           fi
-
-  # Best-effort macos-x86_64 build. Runs on macos-13 which is chronically
-  # backlogged on free public-repo tiers — can queue for hours or 24h. Runs
-  # in parallel with `release` so a slow macos-13 runner never blocks the
-  # release going live. Uploads its asset to the already-published release
-  # whenever it finishes; if the runner never picks it up, GitHub auto-cancels
-  # at 24h and the release simply lacks an Intel-mac binary.
-  build-macos-x86_64:
-    name: Build macos-x86_64 (best-effort)
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: release
-    runs-on: macos-13
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install SBCL
-        run: brew install sbcl
-
-      - name: Install Quicklisp + BT + USOCKET
-        shell: bash
-        run: |
-          curl -fsSL -o /tmp/quicklisp.lisp https://beta.quicklisp.org/quicklisp.lisp
-          sbcl --non-interactive --load /tmp/quicklisp.lisp \
-               --eval '(quicklisp-quickstart:install)' \
-               --eval "(let ((ql-util::*do-not-prompt* t)) (ql:add-to-init-file))" \
-               --eval '(ql:quickload (list :bordeaux-threads :usocket))'
-
-      - name: Fetch ShenOSKernel
-        run: make fetch
-
-      - name: Build shen-cl (BT + USOCKET pre-loaded)
-        shell: bash
-        run: |
-          sbcl --non-interactive \
-               --load "$HOME/quicklisp/setup.lisp" \
-               --eval '(require :sb-posix)' \
-               --eval '(ql:quickload (list :bordeaux-threads :usocket))' \
-               --load boot.lsp
-
-      - name: Test
-        run: make test-sbcl
-
-      - name: Package
-        shell: bash
-        run: |
-          mkdir -p release
-          VERSION="${GITHUB_REF_NAME:-$(git rev-parse --short HEAD)}"
-          STAGE_PARENT="$(mktemp -d)"
-          STAGE_NAME="shen-cl-${VERSION}-macos-x86_64"
-          STAGE="$STAGE_PARENT/$STAGE_NAME"
-          mkdir -p "$STAGE"
-          cp bin/sbcl/shen "$STAGE/"
-          cp LICENSE.txt "$STAGE/"
-          ARCHIVE="shen-cl-${VERSION}-macos-x86_64-prebuilt.tar.gz"
-          tar -czf "release/$ARCHIVE" -C "$STAGE_PARENT" "$STAGE_NAME"
-
-      - name: Upload to release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${GITHUB_REF_NAME}" release/*.tar.gz --clobber --repo "${GITHUB_REPOSITORY}"

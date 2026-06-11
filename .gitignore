@@ -1,5 +1,6 @@
 bin/
-kernel/
+kernel
 release/
 .DS_Store
 .claude/
+compiled/
