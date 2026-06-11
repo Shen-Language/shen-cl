@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Fixed optimizations for addition and subtraction of 1.
 - Fixed code generation for number equality checks when one of the arguments is a known number.
 - `atom?` now recognizes Common Lisp `T` (used for the Shen variable `T`), fixing the Prolog `<hterm>` parser and the `montague.shen` type-checker test.
+- CLisp support restored: `shen-cl.process-number` used a non-conforming `LOOP` (`for` clause after `while`) that indexed past the end of the string on CLISP; added the `shen.char-stoutput?` and `shen.write-string` stream primitives needed by the kernel's `pr` on implementations without the native `pr` override; on macOS the image is saved with `:executable t :script nil` (the `:executable 0` format fails Apple Silicon code-signature checks and is killed at exec).
+- ECL support restored: startup no longer calls the removed `factorise-defun` extension; and every function `overwrite.lsp` redefines is proclaimed `NOTINLINE` before the kernel compiles, since ECL emits direct C calls for intra-file references, which silently bypassed the overrides (e.g. prolog's `atom?`, breaking datatypes mentioning the variable `T`).
 
 ### Performance
 

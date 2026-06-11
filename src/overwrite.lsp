@@ -33,6 +33,19 @@
       '|true|
       '|false|))
 
+(defun |shen.char-stoutput?| (stream)
+  (if (subtypep (stream-element-type stream) 'character)
+      '|true|
+      '|false|))
+
+;; The kernel's pr calls this on character output streams. On SBCL/CCL the
+;; native |pr| override below bypasses it; other implementations (CLisp,
+;; ECL) run the kernel's KL pr and need it defined.
+(defun |shen.write-string| (string stream)
+  (write-string string stream)
+  (force-output stream)
+  string)
+
 (defun |shen.read-unit-string| (stream)
   (let ((c (read-char stream nil nil)))
     (if c (string c) "")))

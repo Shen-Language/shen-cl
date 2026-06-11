@@ -435,9 +435,11 @@
     (handler-bind ((warning #'muffle-warning))
       (|shen-cl.toplevel-interpret-args| *command-line-argument-list*))
 
+    ;; The factorise-defun kernel extension was dropped (its optimization
+    ;; is implemented natively in overwrite.lsp), so unlike older releases
+    ;; there is no extension initialise call here.
     #+ecl
     (progn
-     (|shen.x.factorise-defun.initialise|)
      (|shen.initialise|)
      (|shen-cl.initialise|)
      (|shen.x.features.initialise| '(|shen/cl| |shen/cl.ecl|))
