@@ -174,6 +174,22 @@
      [[(shen-cl.cl null) [(shen-cl.cl quote) val]] 0]
      [(shen-cl.cl t) 3]])
 
+\\ Constant-test folding: an `if` with a literal true/false test collapses
+\\ to the taken branch (ported from Shen/Scheme's emit-if).
+(assert-equal
+ (shen-cl.kl->lisp [if true 1 2])
+ 1)
+
+(assert-equal
+ (shen-cl.kl->lisp [if false 1 2])
+ 2)
+
+\\ In a cond, a literal-false clause is dropped and a literal-true clause is
+\\ emitted as the CL `t` fallthrough, dropping any (dead) trailing clauses.
+(assert-equal
+ (shen-cl.kl->lisp [cond [false 1] [true 2] [[> 1 2] 3]])
+ [(shen-cl.cl cond) [(shen-cl.cl t) 2]])
+
 (set shen-cl.*compiling-shen-sources* true)
 
 (assert-equal

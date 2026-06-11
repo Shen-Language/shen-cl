@@ -130,7 +130,9 @@
        (compile-expression ChBody [ChVar | Scope])]))
 
 (define emit-if
-  Test Then Else Scope
+  true  Then _    Scope -> (compile-expression Then Scope)
+  false _    Else Scope -> (compile-expression Else Scope)
+  Test  Then Else Scope
   -> [(cl if) (optimise-boolean-check (compile-expression Test Scope))
               (compile-expression Then Scope)
               (compile-expression Else Scope)])
@@ -140,6 +142,10 @@
 
 (define emit-cond-clauses
   [] _ -> []
+  \\ A literal-false test never fires: drop the clause.
+  [[false _] | Rest] Scope -> (emit-cond-clauses Rest Scope)
+  \\ A literal-true test always fires: emit it and drop the dead tail.
+  [[true Body] | _] Scope -> [[(cl t) (compile-expression Body Scope)]]
   [[Test Body] | Rest] Scope
   -> (let CompiledTest (optimise-boolean-check (compile-expression Test Scope))
           CompiledBody (compile-expression Body Scope)
