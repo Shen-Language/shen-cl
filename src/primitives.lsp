@@ -280,19 +280,22 @@
   (let ((len (length S)))
     (if (zerop len)
         ""
+        ;; A `for` clause after `while` is non-conforming LOOP syntax:
+        ;; CLisp steps the binding before testing `while`, indexing past
+        ;; the end. Read the char inside the body instead.
         (with-output-to-string (out)
           (loop with i = 0
                 while (< i len)
-                for c = (char S i)
-                do (cond
-                     ((char= c #\d)
-                      (if (and (< (1+ i) len) (char= (char S (1+ i)) #\0))
-                          (return "")
-                          (progn (write-char #\e out)
-                                 (loop for j from (1+ i) below len
-                                       do (write-char (char S j) out))
-                                 (return))))
-                     (t (write-char c out) (incf i))))))))
+                do (let ((c (char S i)))
+                     (cond
+                       ((char= c #\d)
+                        (if (and (< (1+ i) len) (char= (char S (1+ i)) #\0))
+                            (return "")
+                            (progn (write-char #\e out)
+                                   (loop for j from (1+ i) below len
+                                         do (write-char (char S j) out))
+                                   (return))))
+                       (t (write-char c out) (incf i)))))))))
 
 (defun |shen-cl.prefix?| (str prefix)
   (let ((prefix-length (length prefix)))
