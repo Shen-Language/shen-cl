@@ -65,7 +65,7 @@ endif
 # Set shared variables
 #
 
-KernelVersion=41.1
+KernelVersion=41.2
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
 KernelTag=shen-$(KernelVersion)
