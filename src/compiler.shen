@@ -1,7 +1,7 @@
 \\ Copyright (c) 2012-2019 Bruno Deferrari.  All rights reserved.
 \\ BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
-(package shen-cl [progn quote null car cdr t nil
+(package shen-cl [progn quote null car cdr list-length t nil
                   numberp stringp consp funcall
                   list eq eql equal equalp let*
                   lisp.defun lisp.lambda lisp.block lisp.
@@ -299,6 +299,7 @@ but not otherwise.
 (define unary-op-mapping
   hd              -> (cl car)
   tl              -> (cl cdr)
+  length          -> (cl list-length)
   _               -> (fail))
 
 (define optimise-static-application
