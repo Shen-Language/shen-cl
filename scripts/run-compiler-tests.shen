@@ -15,9 +15,12 @@
 
   _ Y -> Y)
 
+(set *compiler-test-failures* 0)
+
 (define assert-equal-h
   Exp X X -> (pr (make-string "[OK]    ~A = ~R ~%" Exp X))
-  Exp X Y -> (pr (make-string "[ERROR] ~A = ~R ~%  got ~R~%" Exp Y X)))
+  Exp X Y -> (do (set *compiler-test-failures* (+ 1 (value *compiler-test-failures*)))
+                 (pr (make-string "[ERROR] ~A = ~R ~%  got ~R~%" Exp Y X))))
 
 (define assert-equal
   Exp X Y -> (assert-equal-h Exp X (subst-vars X Y)))
@@ -35,3 +38,8 @@
 
 (load "src/compiler.shen")
 (load "tests/compiler-tests.shen")
+
+(let Failures (value *compiler-test-failures*)
+  (if (= Failures 0)
+      (do (output "~%All compiler tests passed.~%") (cl.exit 0))
+      (do (output "~%~A compiler test(s) FAILED.~%" Failures) (cl.exit 1))))

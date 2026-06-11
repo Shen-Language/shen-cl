@@ -188,6 +188,17 @@ test-sbcl:
 	$(RunSBCL) $(Tests)
 
 #
+# Compiler unit tests (golden KL->Lisp output; implementation-independent).
+# Exits non-zero on any failure. Runs on the SBCL build (the reference impl).
+#
+
+CompilerTests=eval -l scripts/run-compiler-tests.shen
+
+.PHONY: test-compiler
+test-compiler:
+	$(RunSBCL) $(CompilerTests)
+
+#
 # Run an implementation
 #
 
