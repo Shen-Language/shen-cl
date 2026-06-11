@@ -137,8 +137,12 @@
 (defmacro |freeze| (x)
   `(function (lambda () ,x)))
 
+;; Elements start as the fail sentinel so that reading an unset slot via
+;; <-vector signals "not found", matching the official S41.1 port and
+;; Shen/Scheme. (|fail|) is kernel-defined and only called at runtime,
+;; after the kernel has loaded.
 (defun |absvector| (n)
-  (make-array n))
+  (make-array n :initial-element (|fail|)))
 
 (defun |absvector?| (x)
   (if (and (arrayp x) (not (stringp x)))
@@ -247,10 +251,17 @@
   nil)
 
 (defun |pos| (x n)
-  (coerce (list (char x n)) 'string))
+  (cond
+    ((not (stringp x))
+     (error "~A is not a string~%" x))
+    ((or (not (integerp n)) (minusp n) (>= n (length x)))
+     (error "~A is not a natural number less than the length of the string~%" n))
+    (t (string (char x n)))))
 
 (defun |tlstr| (x)
-  (subseq x 1))
+  (if (and (stringp x) (plusp (length x)))
+      (subseq x 1)
+      (error "~S is not a non-empty string~%" x)))
 
 (defun |cn| (str1 str2)
   (declare (type string str1) (type string str2))
@@ -260,10 +271,15 @@
   (if (stringp s) '|true| '|false|))
 
 (defun |n->string| (n)
-  (format nil "~C" (code-char n)))
+  (let ((c (and (integerp n) (not (minusp n)) (< n char-code-limit) (code-char n))))
+    (if c
+        (string c)
+        (error "~A is not a natural number~%" n))))
 
 (defun |string->n| (s)
-  (char-code (car (coerce s 'list))))
+  (if (and (stringp s) (= 1 (length s)))
+      (char-code (char s 0))
+      (error "~S is not a unit string~%" s)))
 
 (defun |str| (x)
   (cond
