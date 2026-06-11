@@ -111,7 +111,23 @@
 
 (define subst*
   X X Body -> Body
+  \\ The Shen variable NIL is represented as the empty list, which is also
+  \\ every list's spine terminator. The kernel `subst` can't tell the two
+  \\ apart, so it would clobber terminators into an improper list. Replace
+  \\ position-aware instead: only `[]` in element positions becomes the var.
+  X [] Body -> (subst-nil-element X Body)
   X Y Body -> (subst X Y Body))
+
+\\ Walk a list spine, substituting `[]` elements with V but preserving the
+\\ terminating `[]` (mutually recursive with subst-nil-element).
+(define subst-nil-spine
+  _ [] -> []
+  V [Hd | Tl] -> [(subst-nil-element V Hd) | (subst-nil-spine V Tl)])
+
+(define subst-nil-element
+  V [] -> V
+  V [Hd | Tl] -> (subst-nil-spine V [Hd | Tl])
+  _ X -> X)
 
 (define ch-T/NIL
   X -> (cl safe-t) where (= (protect T) X)
