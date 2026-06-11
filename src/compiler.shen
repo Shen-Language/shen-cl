@@ -57,6 +57,9 @@
                           (compile-expression E1 Scope)
                           (compile-expression E2 Scope)])
   [= A B] Scope -> (emit-equality-check A B Scope)
+  \\ (thaw Exp) is a zero-arg application of the thunk: call it directly
+  \\ rather than routing through the `thaw` function (ported from Shen/Scheme).
+  [thaw Exp] Scope -> [(cl funcall) (compile-expression Exp Scope)]
   [intern S] _ -> [(cl quote) (intern S)] where (string? S)
   [type Exp _] Scope -> (compile-expression Exp Scope)
   [lisp.lambda Vars Body] Scope -> [(cl lambda) Vars (compile-expression Body (append Vars Scope))]

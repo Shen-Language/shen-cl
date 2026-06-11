@@ -190,6 +190,18 @@
  (shen-cl.kl->lisp [cond [false 1] [true 2] [[> 1 2] 3]])
  [(shen-cl.cl cond) [(shen-cl.cl t) 2]])
 
+\\ (thaw Exp) compiles to a direct funcall of the thunk, not a call through
+\\ the `thaw` function (ported from Shen/Scheme).
+(assert-equal
+ (shen-cl.kl->lisp [thaw F])
+ [(shen-cl.cl funcall) [(shen-cl.cl quote) F]])
+
+\\ A chain of `cons` calls forming a proper list collapses to a single
+\\ `list` call (already done by optimise-static-application; locked in here).
+(assert-equal
+ (shen-cl.kl->lisp [cons 1 [cons 2 []]])
+ [(shen-cl.cl list) 1 2])
+
 (set shen-cl.*compiling-shen-sources* true)
 
 (assert-equal
