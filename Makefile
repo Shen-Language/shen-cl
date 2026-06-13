@@ -199,6 +199,34 @@ test-compiler:
 	$(RunSBCL) $(CompilerTests)
 
 #
+# Port-authored test suites (ADDITIVE; distinct from the canonical kernel
+# certification suite run by test-{clisp,ccl,ecl,sbcl} and from the KL->Lisp
+# compiler-output tests run by test-compiler -- none of which this touches).
+#
+#   test-port : runtime regression suite (tests/*-tests.shen) on the reference
+#               SBCL build. Mirrors shen-go's kl/*_test.go categories
+#               (primitives, io, error catchability, reader, library).
+#   test-cli  : CLI/launcher parity (scripts/test-cli.sh) -- drives the built
+#               shen binary across sbcl/clisp/ecl for multi-impl parity,
+#               skipping any impl whose binary is absent. Mirrors shen-go's
+#               cmd/shen/main_test.go.
+#   test-all  : the canonical SBCL suite + compiler tests + the two above.
+#
+
+PortTests=eval -l scripts/run-port-tests.shen
+
+.PHONY: test-port
+test-port:
+	$(RunSBCL) $(PortTests)
+
+.PHONY: test-cli
+test-cli:
+	bash scripts/test-cli.sh
+
+.PHONY: test-all
+test-all: test-sbcl test-compiler test-port test-cli
+
+#
 # Run an implementation
 #
 

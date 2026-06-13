@@ -1,0 +1,63 @@
+name: Port Tests
+
+# Port-authored test suites (ADDITIVE; distinct from the canonical kernel
+# certification suite). Builds shen-cl on SBCL, then runs:
+#   - make test-compiler : existing KL->Lisp compiler-output golden tests
+#   - make test-port     : tests/*-tests.shen runtime regression suite
+#   - make test-cli      : scripts/test-cli.sh CLI/launcher parity (SBCL here;
+#                          locally it also exercises clisp + ecl when built)
+# It does NOT run the canonical kernel suite (that lives in the release CI's
+# `make test-sbcl`) and does NOT modify any canonical target.
+
+on:
+  push:
+    branches: [ main, 'kernel-*' ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # shen-cl is self-hosting; building it requires an existing Shen kernel
+  # executable to precompile the kernel + compiler down to Lisp. We bootstrap
+  # from a previously released prebuilt binary, matching release.yml.
+  BOOTSTRAP_REPO: pyrex41/shen-cl
+  BOOTSTRAP_TAG: v3.0.4
+
+jobs:
+  port-tests:
+    name: Port tests (SBCL)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SBCL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends sbcl curl
+
+      - name: Fetch ShenOSKernel
+        run: make fetch
+
+      - name: Download bootstrap Shen
+        shell: bash
+        run: |
+          mkdir -p bootstrap
+          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-cl-${BOOTSTRAP_TAG}-linux-x86_64-prebuilt.tar.gz"
+          echo "Bootstrapping from $URL"
+          curl -fsSL -o bootstrap/boot.tar.gz "$URL"
+          tar xzf bootstrap/boot.tar.gz -C bootstrap
+          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen -type f | head -n1)"
+          chmod +x "$BOOT_SHEN"
+          echo "BOOT_SHEN=$BOOT_SHEN" >> "$GITHUB_ENV"
+
+      - name: Precompile kernel + compiler
+        run: make precompile SHEN="$BOOT_SHEN"
+
+      - name: Build shen-cl (SBCL)
+        run: make build-sbcl
+
+      - name: Compiler tests (existing)
+        run: make test-compiler
+
+      - name: Port runtime tests
+        run: make test-port
+
+      - name: CLI / launcher parity tests
+        run: make test-cli
