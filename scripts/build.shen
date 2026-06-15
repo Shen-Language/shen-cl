@@ -125,11 +125,21 @@
   X -> false where (cons? X)
   _ -> true)
 
+\\ Read a file as raw s-expressions, skipping reader-macro expansion.
+\\ The .kl kernel sources are already KLambda, but a bootstrapping Shen
+\\ (e.g. shen-scheme) would otherwise apply its stdlib macros while reading
+\\ them and fail. Mirrors shen-scheme's build script.
+(define read-file-unprocessed
+  File -> (let Bytelist (read-file-as-bytelist File)
+               S-exprs (trap-error (compile (/. X (shen.<s-exprs> X)) Bytelist)
+                         (/. E (shen.reader-error (value shen.*residue*))))
+            S-exprs))
+
 (define compile-kl-file
   Prelude From To
   -> (let _ (output "Compiling ~R...~%" From)
           Out (open To out)
-          Kl (read-file From)
+          Kl (read-file-unprocessed From)
           License (if (kl-file-license? (hd Kl)) (hd Kl) "")
           Defuns (if (kl-file-license? (hd Kl)) (tl Kl) Kl)
           Lisp (map (function compile-defun) Defuns)
