@@ -48,7 +48,22 @@
 
 (defun |shen.read-unit-string| (stream)
   (let ((c (read-char stream nil nil)))
-    (if c (string c) "")))
+    (cond (c (string c))
+          ;; EOF on the REPL's standard input (character path used by SBCL/CCL):
+          ;; the session is over, so exit cleanly rather than returning "" — the
+          ;; kernel reader chokes on "" and loops forever otherwise. Scoped to
+          ;; the REPL; a program's own char reads still get "" at EOF.
+          ((and |shen-cl.in-repl?| (eq stream |*stinput*|)) (|cl.exit| 0))
+          (t ""))))
+
+;; Run the kernel REPL with shen-cl.in-repl? bound, so the input layer
+;; (read-byte / shen.read-unit-string) can exit cleanly when the REPL's stdin
+;; reaches EOF (a closed pipe / Ctrl-D). Canonical Shen loops forever here;
+;; this is a deliberate, documented improvement, matching the other ports.
+(setf (symbol-function '|shen-cl.kernel-repl|) (symbol-function '|shen.repl|))
+(defun |shen.repl| ()
+  (let ((|shen-cl.in-repl?| t))
+    (funcall (symbol-function '|shen-cl.kernel-repl|))))
 
 (defvar |shen-cl.kernel-sysfunc?| (fdefinition '|shen.sysfunc?|))
 
