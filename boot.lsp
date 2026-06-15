@@ -179,7 +179,9 @@
    #+clisp |shen/cl.clisp|
    #+sbcl  |shen/cl.sbcl|
    #+ccl   |shen/cl.ccl|
- )))
+ ))
+ ;; Initialise the standard library (maths, vectors, strings, pretty-print).
+ (|stlib.initialise|))
 
 (fmakunbound 'compile-lsp)
 (fmakunbound 'import-lsp)

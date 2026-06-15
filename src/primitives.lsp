@@ -473,6 +473,8 @@
      (|shen.initialise|)
      (|shen-cl.initialise|)
      (|shen.x.features.initialise| '(|shen/cl| |shen/cl.ecl|))
+     ;; Initialise the standard library (maths, vectors, strings, pretty-print).
+     (|stlib.initialise|)
      (|shen-cl.toplevel-interpret-args| (si:command-args)))
 
     #+sbcl

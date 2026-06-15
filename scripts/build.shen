@@ -69,8 +69,19 @@
 (define symbol->string
   S -> "|;|" where (= ; S)
   S -> "|:|" where (= : S)
+  \\ A symbol whose name starts with ':' (e.g. the assignment operator ':=')
+  \\ would be read back by Common Lisp as a keyword whose symbol-name drops
+  \\ the colon -- ':=' becomes the keyword named "=", silently colliding with
+  \\ '='. The kernel never relies on ':=' /= '=', so this stayed latent until
+  \\ the standard library's vector macros (which DO distinguish them) were
+  \\ enabled. Pipe-quote so it reads back as a symbol in the current package.
+  S -> (@s "|" (str S) "|") where (build.colon-prefixed? (explode S))
   S -> (@s "|" (str S) "|") where (build.cased-symbol? (explode S))
   S -> (str S))
+
+(define build.colon-prefixed?
+  [C | _] -> true where (= ":" C)
+  _ -> false)
 
 (define build.escape-string
   S -> (build.escape-string-h (explode S)))
