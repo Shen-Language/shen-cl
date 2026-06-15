@@ -57,6 +57,9 @@
                           (compile-expression E1 Scope)
                           (compile-expression E2 Scope)])
   [= A B] Scope -> (emit-equality-check A B Scope)
+  \\ (thaw Exp) is a zero-arg application of the thunk: call it directly
+  \\ rather than routing through the `thaw` function (ported from Shen/Scheme).
+  [thaw Exp] Scope -> [(cl funcall) (compile-expression Exp Scope)]
   [intern S] _ -> [(cl quote) (intern S)] where (string? S)
   [type Exp _] Scope -> (compile-expression Exp Scope)
   [lisp.lambda Vars Body] Scope -> [(cl lambda) Vars (compile-expression Body (append Vars Scope))]
@@ -108,7 +111,23 @@
 
 (define subst*
   X X Body -> Body
+  \\ The Shen variable NIL is represented as the empty list, which is also
+  \\ every list's spine terminator. The kernel `subst` can't tell the two
+  \\ apart, so it would clobber terminators into an improper list. Replace
+  \\ position-aware instead: only `[]` in element positions becomes the var.
+  X [] Body -> (subst-nil-element X Body)
   X Y Body -> (subst X Y Body))
+
+\\ Walk a list spine, substituting `[]` elements with V but preserving the
+\\ terminating `[]` (mutually recursive with subst-nil-element).
+(define subst-nil-spine
+  _ [] -> []
+  V [Hd | Tl] -> [(subst-nil-element V Hd) | (subst-nil-spine V Tl)])
+
+(define subst-nil-element
+  V [] -> V
+  V [Hd | Tl] -> (subst-nil-spine V [Hd | Tl])
+  _ X -> X)
 
 (define ch-T/NIL
   X -> (cl safe-t) where (= (protect T) X)
@@ -130,7 +149,9 @@
        (compile-expression ChBody [ChVar | Scope])]))
 
 (define emit-if
-  Test Then Else Scope
+  true  Then _    Scope -> (compile-expression Then Scope)
+  false _    Else Scope -> (compile-expression Else Scope)
+  Test  Then Else Scope
   -> [(cl if) (optimise-boolean-check (compile-expression Test Scope))
               (compile-expression Then Scope)
               (compile-expression Else Scope)])
@@ -140,6 +161,10 @@
 
 (define emit-cond-clauses
   [] _ -> []
+  \\ A literal-false test never fires: drop the clause.
+  [[false _] | Rest] Scope -> (emit-cond-clauses Rest Scope)
+  \\ A literal-true test always fires: emit it and drop the dead tail.
+  [[true Body] | _] Scope -> [[(cl t) (compile-expression Body Scope)]]
   [[Test Body] | Rest] Scope
   -> (let CompiledTest (optimise-boolean-check (compile-expression Test Scope))
           CompiledBody (compile-expression Body Scope)

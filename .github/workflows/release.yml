@@ -70,6 +70,9 @@ jobs:
       - name: Test
         run: make test-sbcl
 
+      - name: Compiler tests
+        run: make test-compiler
+
       - name: Package
         shell: bash
         run: |

@@ -87,14 +87,14 @@
 
 (assert-equal
  (shen-cl.kl->lisp [trap-error [+ 1 2] [lambda E 0]])
- [(shen-cl.kl trap-error) [(shen-cl.kl shen-cl.add) 1 2]
+ [(shen-cl.kl trap-error) [(shen-cl.cl (intern "1+")) 2]
    [(shen-cl.kl lambda) E 0]])
 
 (define default D E -> D)
 
 (assert-equal
  (shen-cl.kl->lisp [trap-error [+ 1 2] [default 0]])
- [(shen-cl.kl trap-error) [(shen-cl.kl shen-cl.add) 1 2]
+ [(shen-cl.kl trap-error) [(shen-cl.cl (intern "1+")) 2]
    [(shen-cl.cl funcall) [(shen-cl.kl lambda) X [(shen-cl.kl lambda) Y [(shen-cl.qualify-op default) X Y]]] 0]])
 
 (assert-equal
@@ -164,15 +164,43 @@
 
 (assert-equal
  (shen-cl.kl->lisp [if [= 1 2] 1 2])
- [(shen-cl.cl if) [(shen-cl.cl eql) 1 2] 1 2])
+ [(shen-cl.cl if) [(shen-cl.cl equalp) 1 2] 1 2])
 
 (assert-equal
  (shen-cl.kl->lisp [cond [[= 1 2] 1] [[> 1 2] 2] [[= [] val] 0] [true 3]])
  [(shen-cl.cl cond)
-     [[(shen-cl.cl eql) 1 2] 1]
+     [[(shen-cl.cl equalp) 1 2] 1]
      [[(shen-cl.cl >) 1 2] 2]
      [[(shen-cl.cl null) [(shen-cl.cl quote) val]] 0]
      [(shen-cl.cl t) 3]])
+
+\\ Constant-test folding: an `if` with a literal true/false test collapses
+\\ to the taken branch (ported from Shen/Scheme's emit-if).
+(assert-equal
+ (shen-cl.kl->lisp [if true 1 2])
+ 1)
+
+(assert-equal
+ (shen-cl.kl->lisp [if false 1 2])
+ 2)
+
+\\ In a cond, a literal-false clause is dropped and a literal-true clause is
+\\ emitted as the CL `t` fallthrough, dropping any (dead) trailing clauses.
+(assert-equal
+ (shen-cl.kl->lisp [cond [false 1] [true 2] [[> 1 2] 3]])
+ [(shen-cl.cl cond) [(shen-cl.cl t) 2]])
+
+\\ (thaw Exp) compiles to a direct funcall of the thunk, not a call through
+\\ the `thaw` function (ported from Shen/Scheme).
+(assert-equal
+ (shen-cl.kl->lisp [thaw F])
+ [(shen-cl.cl funcall) [(shen-cl.cl quote) F]])
+
+\\ A chain of `cons` calls forming a proper list collapses to a single
+\\ `list` call (already done by optimise-static-application; locked in here).
+(assert-equal
+ (shen-cl.kl->lisp [cons 1 [cons 2 []]])
+ [(shen-cl.cl list) 1 2])
 
 (set shen-cl.*compiling-shen-sources* true)
 
