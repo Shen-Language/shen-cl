@@ -25,6 +25,31 @@
 
 (in-package :shen)
 
+;;; Kernel 41.1 stream primitives.
+;;; Character streams (e.g. *standard-input*) need read-char; binary streams
+;;; (e.g. file streams opened for bytes) use read-byte.
+(defun |shen.char-stinput?| (stream)
+  (if (subtypep (stream-element-type stream) 'character)
+      '|true|
+      '|false|))
+
+(defun |shen.char-stoutput?| (stream)
+  (if (subtypep (stream-element-type stream) 'character)
+      '|true|
+      '|false|))
+
+;; The kernel's pr calls this on character output streams. On SBCL/CCL the
+;; native |pr| override below bypasses it; other implementations (CLisp,
+;; ECL) run the kernel's KL pr and need it defined.
+(defun |shen.write-string| (string stream)
+  (write-string string stream)
+  (force-output stream)
+  string)
+
+(defun |shen.read-unit-string| (stream)
+  (let ((c (read-char stream nil nil)))
+    (if c (string c) "")))
+
 (defvar |shen-cl.kernel-sysfunc?| (fdefinition '|shen.sysfunc?|))
 
 (defun |shen.sysfunc?| (symbol)
@@ -73,51 +98,83 @@
       '|true|
       '|false|))
 
-(defun |shen.lazyderef| (x process-n)
-  (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
-    (let ((value (|shen.valvector| x process-n)))
-      (if (eq value '|shen.-null-|)
-        x
-        (|shen.lazyderef| value process-n)))
-    x))
+;;; --- Phase 3: Pattern factorization ---
+;;; Factorises multi-clause cond forms by grouping consecutive clauses
+;;; that share the same leading AND test. Operates on KL forms where
+;;; symbols are in the :SHEN package (|and|, |cond|, |defun|, |true|).
 
-(defun |shen.valvector| (var process-n)
-  (svref (svref |shen.*prologvectors*| process-n) (svref var 1)))
+(defun shen-cl.extract-first-test (test)
+  "Extract the first test from a KL (and X Y) chain, or return NIL if not."
+  (if (and (consp test)
+           (eq (car test) '|and|)
+           (consp (cdr test))
+           (consp (cddr test)))
+      (values (cadr test) (caddr test))
+      (values nil nil)))
 
-(defun |shen.unbindv| (var n)
-  (let ((vector (svref |shen.*prologvectors*| n)))
-    (setf (svref vector (svref var 1)) '|shen.-null-|)))
+(defun shen-cl.factorise-cases (cases)
+  "Group consecutive cond cases sharing the same first AND test.
+   When a group has >1 case, emit a nested cond under the shared test,
+   with a (true ...) fallthrough to the remaining cases for correctness."
+  (if (null cases)
+      nil
+      (let* ((case1 (car cases))
+             (test1 (car case1)))
+        (multiple-value-bind (first-test rest-test)
+            (shen-cl.extract-first-test test1)
+          (if (null first-test)
+              ;; Not an AND chain (e.g. |true| fallthrough) — pass through
+              (cons case1 (shen-cl.factorise-cases (cdr cases)))
+              ;; Collect consecutive cases sharing this first-test
+              (let ((group nil)
+                    (remaining (cdr cases)))
+                ;; First case's rest-test + body
+                (push (list rest-test (cadr case1)) group)
+                ;; Collect more cases with same first-test
+                (loop while remaining
+                      do (multiple-value-bind (ft rt)
+                             (shen-cl.extract-first-test (caar remaining))
+                           (if (and ft (equal ft first-test))
+                               (progn
+                                 (push (list rt (cadar remaining)) group)
+                                 (setf remaining (cdr remaining)))
+                               (return))))
+                (setf group (nreverse group))
+                (if (= (length group) 1)
+                    ;; Only one case in group — no benefit, keep original
+                    (cons case1 (shen-cl.factorise-cases remaining))
+                    ;; Multiple cases — factor out shared first-test.
+                    ;; The nested cond needs a (true ...) fallthrough to handle
+                    ;; when the shared test matches but no sub-test does.
+                    (let ((factored-remaining (shen-cl.factorise-cases remaining)))
+                      (let ((inner-cond
+                              (append group
+                                      (list (list '|true|
+                                                  (cons '|cond| factored-remaining))))))
+                        (cons (list first-test (cons '|cond| inner-cond))
+                              factored-remaining))))))))))
 
-(defun |shen.bindv| (var val n)
-  (let ((vector (svref |shen.*prologvectors*| n)))
-    (setf (svref vector (svref var 1)) val)))
-
-(defun |shen.copy-vector-stage-1| (count vector big-vector max)
-  (if (= max count)
-      big-vector
-      (|shen.copy-vector-stage-1|
-        (1+ count)
-        vector
-        (|address->| big-vector count (|<-address| vector count))
-        max)))
-
-(defun |shen.copy-vector-stage-2| (count max fill big-vector)
-  (if (= max count)
-      big-vector
-      (|shen.copy-vector-stage-2|
-        (1+ count)
-        max
-        fill
-        (|address->| big-vector count fill))))
-
-(defun |shen.newpv| (n)
-  (let ((count+1 (1+ (the integer (svref |shen.*varcounter*| n))))
-        (vector (svref |shen.*prologvectors*| n)))
-    (setf (svref |shen.*varcounter*| n) count+1)
-    (if (= (the integer count+1) (the integer (|limit| vector)))
-        (|shen.resizeprocessvector| n count+1)
-        '|skip|)
-    (|shen.mk-pvar| count+1)))
+(defun |shen.x.factorise-defun.factorise-defun| (defun-form)
+  "Factorise a [defun Name Args [cond | Cases]] form by grouping
+   consecutive clauses that share the same leading AND test."
+  (if (and (consp defun-form)
+           (eq (car defun-form) '|defun|)
+           (consp (cdr defun-form))
+           (consp (cddr defun-form))
+           (consp (cdddr defun-form))
+           (null (cddddr defun-form)))
+      (let* ((name (cadr defun-form))
+             (args (caddr defun-form))
+             (body (cadddr defun-form)))
+        (if (and (consp body)
+                 (eq (car body) '|cond|)
+                 (> (length (cdr body)) 1))
+            (let ((factored (shen-cl.factorise-cases (cdr body))))
+              (if (equal factored (cdr body))
+                  defun-form
+                  (list '|defun| name args (cons '|cond| factored))))
+            defun-form))
+      defun-form))
 
 (defun |vector->| (vector n x)
   (if (zerop n)
@@ -275,3 +332,80 @@
 
 (defun |shen-cl.remove-lisp-prefix| (symbol)
   (|intern| (subseq (symbol-name symbol) 5)))
+
+;;; --- Phase 1: Reader performance overrides ---
+
+;;; shen.str->bytes: O(N) via char indexing instead of recursive tlstr
+(defun |shen.str->bytes| (s)
+  (declare (type string s))
+  (let ((len (length s)))
+    (if (zerop len)
+        nil
+        (let ((result nil))
+          (loop for i from (1- len) downto 0
+                do (push (char-code (char s i)) result))
+          result))))
+
+;;; shen.bytes->string: O(N) via string buffer instead of recursive cn
+(defun |shen.bytes->string| (bytes)
+  (if (null bytes)
+      ""
+      (with-output-to-string (out)
+        (dolist (b bytes)
+          (write-char (code-char b) out)))))
+
+;;; shen.rfas-h: O(N) string building via buffer instead of repeated cn
+(defun |shen.rfas-h| (stream byte acc)
+  (declare (ignore acc))
+  (if (eql byte -1)
+      (progn (|close| stream) "")
+      (let ((result (with-output-to-string (out)
+                      (loop for b = byte then (|read-byte| stream)
+                            until (eql b -1)
+                            do (write-char (code-char b) out)))))
+        (|close| stream)
+        result)))
+
+;;; shen.reader-error-message: O(N) via string buffer
+(defun |shen.reader-error-message| (max-len idx bytes)
+  (if (or (null bytes) (eql max-len idx))
+      ""
+      (with-output-to-string (out)
+        (loop for b-list on bytes
+              for i from idx
+              while (not (eql max-len i))
+              do (write-char (code-char (car b-list)) out)))))
+
+;;; --- Phase 2: Macro expansion performance overrides ---
+
+;;; macroexpand: extract macro functions once instead of mapping CDR each call
+(defun |macroexpand| (expr)
+  (let ((fns (mapcar #'cdr |*macros*|)))
+    (|shen.macroexpand-h| expr fns fns)))
+
+;;; shen.macroexpand-h: EQ fast-path before expensive absequal
+;;; When a macro function doesn't match, it returns its argument unchanged
+;;; (same pointer), so EQ succeeds for the vast majority of non-matching cases.
+(defun |shen.macroexpand-h| (expr macros all-macros)
+  (if (null macros)
+      expr
+      (if (consp macros)
+          (let ((walked (|shen.walk| (car macros) expr)))
+            (if (eq expr walked)
+                ;; EQ means definitely unchanged — skip absequal entirely
+                (|shen.macroexpand-h| expr (cdr macros) all-macros)
+                ;; Pointers differ; check structural equality
+                (if (|shen-cl.absequal| expr walked)
+                    (|shen.macroexpand-h| expr (cdr macros) all-macros)
+                    ;; Genuinely changed: restart from all macros
+                    (|shen.macroexpand-h| walked all-macros all-macros))))
+          (|simple-error| "implementation error in shen.macroexpand-h"))))
+
+;;; Fix atom? to recognise CL T as a valid atom.
+;;; The kernel atom? uses (or (symbol? x) ...) but shen-cl's symbol?
+;;; excludes CL T (used for Shen variable T). This override uses CL
+;;; symbolp as a fallback so the prolog <hterm> parser can handle T.
+(defun |atom?| (x)
+  (if (or (symbolp x) (stringp x) (numberp x))
+      '|true|
+      '|false|))

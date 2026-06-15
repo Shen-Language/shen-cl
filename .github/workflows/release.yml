@@ -1,0 +1,129 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (blank = build HEAD without releasing)'
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  # shen-cl is self-hosting: building it requires an existing Shen kernel-41.1
+  # executable to precompile the kernel and compiler down to Lisp (`make
+  # precompile`). We bootstrap from a previously released prebuilt binary for
+  # the same platform. Repoint these at an upstream release once one exists.
+  BOOTSTRAP_REPO: pyrex41/shen-cl
+  BOOTSTRAP_TAG: v3.0.4
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux-x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux-aarch64
+          - os: macos-14
+            platform: macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SBCL (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends sbcl curl
+
+      - name: Install SBCL (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sbcl
+
+      - name: Fetch ShenOSKernel
+        run: make fetch
+
+      - name: Download bootstrap Shen
+        shell: bash
+        run: |
+          mkdir -p bootstrap
+          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-cl-${BOOTSTRAP_TAG}-${{ matrix.platform }}-prebuilt.tar.gz"
+          echo "Bootstrapping from $URL"
+          curl -fsSL -o bootstrap/boot.tar.gz "$URL"
+          tar xzf bootstrap/boot.tar.gz -C bootstrap
+          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen -type f | head -n1)"
+          chmod +x "$BOOT_SHEN"
+          echo "BOOT_SHEN=$BOOT_SHEN" >> "$GITHUB_ENV"
+
+      - name: Precompile kernel + compiler
+        run: make precompile SHEN="$BOOT_SHEN"
+
+      - name: Build shen-cl
+        run: make build-sbcl
+
+      - name: Test
+        run: make test-sbcl
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p release
+          VERSION="${GITHUB_REF_NAME:-$(git rev-parse --short HEAD)}"
+          STAGE_PARENT="$(mktemp -d)"
+          STAGE_NAME="shen-cl-${VERSION}-${{ matrix.platform }}"
+          STAGE="$STAGE_PARENT/$STAGE_NAME"
+          mkdir -p "$STAGE"
+          cp bin/sbcl/shen "$STAGE/"
+          cp LICENSE.txt "$STAGE/"
+          ARCHIVE="shen-cl-${VERSION}-${{ matrix.platform }}-prebuilt.tar.gz"
+          tar -czf "release/$ARCHIVE" -C "$STAGE_PARENT" "$STAGE_NAME"
+          ls -la "release/$ARCHIVE"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la release/
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PREV_TAG="$(git tag --sort=-v:refname | sed -n '2p')"
+          if [ -n "$PREV_TAG" ]; then
+            gh release create "${GITHUB_REF_NAME}" release/* \
+              --title "${GITHUB_REF_NAME}" \
+              --generate-notes \
+              --notes-start-tag "$PREV_TAG"
+          else
+            gh release create "${GITHUB_REF_NAME}" release/* \
+              --title "${GITHUB_REF_NAME}" \
+              --generate-notes
+          fi

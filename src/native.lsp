@@ -40,6 +40,6 @@
       (load filespec))))
 
 (defun |shen-cl.eval-lisp| (string &optional (package :common-lisp-user) (readtable-case :upcase))
-  (|shen-cl.with-temp-readcase readtable-case|
+  (|shen-cl.with-temp-readcase| readtable-case
     (let ((*package* (find-package package)))
      (eval (read-from-string string)))))

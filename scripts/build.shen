@@ -6,8 +6,9 @@
 
 (define shen.x.factorise-defun.apply-selector-handlers _ _ -> (fail))
 
-(load "kernel/klambda/extension-factorise-defun.kl")
-(shen.x.factorise-defun.initialise)
+\\ (load "kernel/klambda/extension-factorise-defun.kl")
+\\ (shen.x.factorise-defun.initialise)
+(define shen.x.factorise-defun.factorise-defun Defun -> Defun)
 (load "src/compiler.shen")
 
 (shen-cl.initialise-compiler)
@@ -33,8 +34,9 @@
        "t-star"
        "init"
        "extension-features"
+       "extension-expand-dynamic"
        "extension-launcher"
-       "extension-factorise-defun"
+       "stlib"
        ])
 
 (set *shen-cl-files* ["compiler"])
@@ -49,25 +51,37 @@
   false -> "|false|"
   Comma -> "|,|" where (= Comma ,)
   Sym -> (symbol->string Sym) where (symbol? Sym)
+  S -> (make-string "~R" (build.escape-string S)) where (string? S)
   [Quote Exp] -> (@s "'" (sexp->string Exp)) where (= Quote (shen-cl.cl quote))
   [Sexp | Sexps] -> (@s "(" (concat-strings (map (/. X (sexp->string X))
                                                  [Sexp | Sexps]))
                         ")")
   Sexp -> (make-string "~R" Sexp))
 
-(define cased-symbol?
+(define build.cased-symbol?
   [] -> false
-  [C | Rest] -> (or (lowercase? C) (cased-symbol? Rest)))
+  [C | Rest] -> (or (build.lowercase? C) (build.cased-symbol? Rest)))
 
-(define lowercase?
+(define build.lowercase?
   C -> (let N (string->n C)
          (and (>= N 97) (<= N 122))))
 
 (define symbol->string
   S -> "|;|" where (= ; S)
   S -> "|:|" where (= : S)
-  S -> (@s "|" (str S) "|") where (cased-symbol? (explode S))
+  S -> (@s "|" (str S) "|") where (build.cased-symbol? (explode S))
   S -> (str S))
+
+(define build.escape-string
+  S -> (build.escape-string-h (explode S)))
+
+(define build.escape-string-h
+  [] -> ""
+  [C | Cs] -> (@s (n->string 92) (n->string 92) (build.escape-string-h Cs))
+      where (= (string->n C) 92)
+  [C | Cs] -> (@s (n->string 92) C (build.escape-string-h Cs))
+      where (= (string->n C) 34)
+  [C | Cs] -> (@s C (build.escape-string-h Cs)))
 
 (define concat-strings
   [] -> ""
@@ -107,13 +121,27 @@
   [92 92 32 | Rest] Acc -> (bytes->string Rest Acc)
   [Byte | Rest] Acc -> (bytes->string Rest (@s Acc (n->string Byte))))
 
+(define kl-file-license?
+  X -> false where (cons? X)
+  _ -> true)
+
+\\ Read a file as raw s-expressions, skipping reader-macro expansion.
+\\ The .kl kernel sources are already KLambda, but a bootstrapping Shen
+\\ (e.g. shen-scheme) would otherwise apply its stdlib macros while reading
+\\ them and fail. Mirrors shen-scheme's build script.
+(define read-file-unprocessed
+  File -> (let Bytelist (read-file-as-bytelist File)
+               S-exprs (trap-error (compile (/. X (shen.<s-exprs> X)) Bytelist)
+                         (/. E (shen.reader-error (value shen.*residue*))))
+            S-exprs))
+
 (define compile-kl-file
   Prelude From To
   -> (let _ (output "Compiling ~R...~%" From)
           Out (open To out)
-          Kl (read-file From)
-          License (hd Kl)
-          Defuns (tl Kl)
+          Kl (read-file-unprocessed From)
+          License (if (kl-file-license? (hd Kl)) (hd Kl) "")
+          Defuns (if (kl-file-license? (hd Kl)) (tl Kl) Kl)
           Lisp (map (function compile-defun) Defuns)
           LispStr (map (function sexp->string) Lisp)
           _ (write-license-comment License Out)
@@ -122,8 +150,8 @@
        (close Out)))
 
 (define make-kl-code
-  [define F | Rules] -> (shen.elim-def [define F | Rules])
-  [defcc F | Rules] -> (shen.elim-def [defcc F | Rules])
+  [define F | Rules] -> (shen.shen->kl-h [define F | Rules])
+  [defcc F | Rules] -> (shen.shen->kl-h [defcc F | Rules])
   Code -> Code)
 
 (define compile-shen-file

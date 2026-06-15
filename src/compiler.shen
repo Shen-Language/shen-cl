@@ -189,13 +189,13 @@ but not otherwise.
   Op Arity Params -> (not (or (= Arity -1)
                               (= Arity (length Params)))))
 
-(define take
+(define take-n
   _ 0 -> []
-  [X | Xs] N -> [X | (take Xs (- N 1))])
+  [X | Xs] N -> [X | (take-n Xs (- N 1))])
 
-(define drop
+(define drop-n
   Xs 0 -> Xs
-  [X | Xs] N -> (drop Xs (- N 1)))
+  [X | Xs] N -> (drop-n Xs (- N 1)))
 
 \* TODO: optimise cases where the args are static values *\
 (define emit-partial-application
@@ -204,8 +204,8 @@ but not otherwise.
        (nest-call (nest-lambda Op Arity Scope) Args))
     where (> Arity (length Params))
   Op Arity Params Scope
-  -> (let App (compile-expression [Op | (take Params Arity)] Scope)
-          Rest (map (/. X (compile-expression X Scope)) (drop Params Arity))
+  -> (let App (compile-expression [Op | (take-n Params Arity)] Scope)
+          Rest (map (/. X (compile-expression X Scope)) (drop-n Params Arity))
        (nest-call App Rest))
     where (< Arity (length Params))
   _ _ _ _ -> (error "emit-partial-application called with non-partial application"))

@@ -105,11 +105,11 @@
   (let ((src-file (format nil "~A~A.lsp" location file))
         (lsp-file (format nil "~A~A.lsp" binary-path file))
         (fas-file (format nil "~A~A~A" binary-path file compiled-suffix)))
-    (|copy-file| src-file lsp-file)
+    (|shen-cl.boot-copy-file| src-file lsp-file)
     (compile-lsp file)
     (load fas-file)))
 
-(defun |copy-file| (src-file dest-file)
+(defun |shen-cl.boot-copy-file| (src-file dest-file)
   (with-open-file
     (in src-file
       :direction    :input
@@ -127,7 +127,19 @@
 
 (compile 'compile-lsp)
 (compile 'import-lsp)
-(compile '|copy-file|)
+(compile '|shen-cl.boot-copy-file|)
+
+;; ECL compiles intra-file calls as direct C calls, so a kernel function
+;; redefined by overwrite.lsp would keep its original definition at call
+;; sites inside the file that defines it (e.g. prolog.lsp's atom? calls).
+;; Proclaim every function overwrite.lsp defines NOTINLINE before compiling
+;; the kernel so all call sites dispatch through the function cell.
+#+ecl
+(with-open-file (in (format nil "~A~A" source-path "overwrite.lsp"))
+  (loop for form = (read in nil :eof)
+        until (eq form :eof)
+        when (and (consp form) (eq (car form) 'defun))
+        do (proclaim (list 'notinline (cadr form)))))
 
 (ensure-directories-exist binary-path)
 
@@ -153,13 +165,13 @@
 (import-lsp compiled-path "t-star")
 (import-lsp compiled-path "init")
 (import-lsp compiled-path "extension-features")
+(import-lsp compiled-path "extension-expand-dynamic")
 (import-lsp compiled-path "extension-launcher")
-(import-lsp compiled-path "extension-factorise-defun")
+(import-lsp compiled-path "stlib")
 (import-lsp source-path "overwrite")
 
 #-ecl
 (progn
- (|shen.x.factorise-defun.initialise|)
  (|shen.initialise|)
  (|shen-cl.initialise|)
  (|shen.x.features.initialise| '(
@@ -171,7 +183,7 @@
 
 (fmakunbound 'compile-lsp)
 (fmakunbound 'import-lsp)
-(fmakunbound '|copy-file|)
+(fmakunbound '|shen-cl.boot-copy-file|)
 
 ;
 ; Implementation-Specific Executable Output
@@ -179,7 +191,23 @@
 
 (defconstant executable-path (format nil "~A~A" binary-path executable-name))
 
-#+clisp
+;; :executable 0 (args bypass the CLISP runtime) patches the copied runtime
+;; binary in a way that invalidates its code signature, so macOS kills the
+;; image with SIGKILL. There, save with :executable t (a valid executable;
+;; the runtime parses its own options first) and :script nil so positional
+;; arguments still reach ext:*args* for the Shen launcher.
+#+(and clisp (or darwin macos))
+(progn
+  (ext:saveinitmem
+    executable-path
+    :executable t
+    :script nil
+    :norc t
+    :quiet t
+    :init-function '|shen-cl.toplevel|)
+  (quit))
+
+#+(and clisp (not (or darwin macos)))
 (progn
   (ext:saveinitmem
     executable-path

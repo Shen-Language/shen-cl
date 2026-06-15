@@ -8,12 +8,30 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
-**Updated to Shen Open Source Kernel 22.3**
+**Updated to Shen Open Source Kernel 41.1**
+
+### Added
+
+- GitHub Actions release workflow that builds and publishes prebuilt SBCL binaries for Linux (`x86_64`, `aarch64`) and macOS (`arm64`, plus a best-effort `x86_64`) on tagged releases.
+
+### Changed
+
+- Build pipeline updated for kernel 41.1: integrated the `stlib` and `extension-expand-dynamic` kernel extensions, and dropped the `factorise-defun` extension (its optimization is now implemented natively).
+- Test target now loads the kernel's `runme.shen` harness.
 
 ### Fixed
 
 - Fixed optimizations for addition and subtraction of 1.
 - Fixed code generation for number equality checks when one of the arguments is a known number.
+- `atom?` now recognizes Common Lisp `T` (used for the Shen variable `T`), fixing the Prolog `<hterm>` parser and the `montague.shen` type-checker test.
+- CLisp support restored: `shen-cl.process-number` used a non-conforming `LOOP` (`for` clause after `while`) that indexed past the end of the string on CLISP; added the `shen.char-stoutput?` and `shen.write-string` stream primitives needed by the kernel's `pr` on implementations without the native `pr` override; on macOS the image is saved with `:executable t :script nil` (the `:executable 0` format fails Apple Silicon code-signature checks and is killed at exec).
+- ECL support restored: startup no longer calls the removed `factorise-defun` extension; and every function `overwrite.lsp` redefines is proclaimed `NOTINLINE` before the kernel compiles, since ECL emits direct C calls for intra-file references, which silently bypassed the overrides (e.g. prolog's `atom?`, breaking datatypes mentioning the variable `T`).
+
+### Performance
+
+- O(N) native overrides for the reader primitives `shen.str->bytes`, `shen.bytes->string`, `shen.rfas-h` and `shen.reader-error-message`, replacing O(N²) recursive concatenation.
+- `macroexpand` now extracts the macro functions once and uses an `EQ` fast-path to skip deep-equality checks when a macro leaves its input unchanged.
+- Native KL `cond` factorization that groups consecutive clauses sharing a leading `and` test, reducing redundant guard evaluation.
 
 ## [3.0.3] - 2019-12-07
 
