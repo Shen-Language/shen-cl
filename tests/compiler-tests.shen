@@ -202,6 +202,12 @@
  (shen-cl.kl->lisp [cons 1 [cons 2 []]])
  [(shen-cl.cl list) 1 2])
 
+\\ (length X) compiles to CL's optimised LIST-LENGTH instead of the
+\\ kernel's recursive length (ported from the official S41.1 backend).
+(assert-equal
+ (shen-cl.compile-expression [length X] [X])
+ [(shen-cl.cl list-length) X])
+
 (set shen-cl.*compiling-shen-sources* true)
 
 (assert-equal

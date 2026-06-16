@@ -43,3 +43,17 @@
   (|shen-cl.with-temp-readcase| readtable-case
     (let ((*package* (find-package package)))
      (eval (read-from-string string)))))
+
+;; Threading natives required by the kernel's concurrency library
+;; (kernel/lib/concurrency): (thread Lazy) starts a frozen computation on a
+;; new thread, (terminate Thread) kills it. Both are declared
+;; thread-returning in concurrency.dtype, so terminate returns its argument
+;; even when the thread has already finished.
+#+sbcl
+(progn
+  (defun |thread| (lazy)
+    (sb-thread:make-thread lazy))
+
+  (defun |terminate| (thread)
+    (handler-case (progn (sb-thread:terminate-thread thread) thread)
+      (error () thread))))

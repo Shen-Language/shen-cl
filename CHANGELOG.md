@@ -13,11 +13,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 ### Added
 
 - GitHub Actions release workflow that builds and publishes prebuilt SBCL binaries for Linux (`x86_64`, `aarch64`) and macOS (`arm64`, plus a best-effort `x86_64`) on tagged releases.
+- `thread` and `terminate` threading natives on SBCL (ported from the official S41.1 distribution), registered via `update-lambda-table`. The kernel's concurrency library (`kernel/lib/concurrency`) now loads and runs.
 
 ### Changed
 
 - Build pipeline updated for kernel 41.1: integrated the `stlib` and `extension-expand-dynamic` kernel extensions, and dropped the `factorise-defun` extension (its optimization is now implemented natively).
 - Test target now loads the kernel's `runme.shen` harness.
+- `absvector` now initializes elements to the `(fail)` sentinel, matching the official S41.1 port and Shen/Scheme, so `<-vector` on an unset slot of a raw absvector signals "not found" instead of returning an implementation-defined value.
+- `pos`, `tlstr`, `n->string` and `string->n` validate their arguments and signal the same descriptive errors as the official S41.1 port (e.g. `"ab" is not a unit string`) instead of leaking raw Common Lisp conditions.
 
 ### Fixed
 
@@ -32,6 +35,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - O(N) native overrides for the reader primitives `shen.str->bytes`, `shen.bytes->string`, `shen.rfas-h` and `shen.reader-error-message`, replacing O(N²) recursive concatenation.
 - `macroexpand` now extracts the macro functions once and uses an `EQ` fast-path to skip deep-equality checks when a macro leaves its input unchanged.
 - Native KL `cond` factorization that groups consecutive clauses sharing a leading `and` test, reducing redundant guard evaluation.
+- `(length X)` now compiles to Common Lisp's optimized `LIST-LENGTH` instead of the kernel's recursive `length` (ported from the official S41.1 backend).
 
 ## [3.0.3] - 2019-12-07
 

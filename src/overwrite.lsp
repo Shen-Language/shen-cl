@@ -265,7 +265,13 @@
     (|declare| '|shen-cl.exit| (list '|number| '--> '|unit|))
 
     (|shen-cl.read-eval| "(defmacro      cl.exit-macro      [cl.exit] -> [cl.exit 0])")
-    (|shen-cl.read-eval| "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")))
+    (|shen-cl.read-eval| "(defmacro shen-cl.exit-macro [shen-cl.exit] -> [cl.exit 0])")
+
+    ;; Register the threading natives (defined in native.lsp) so they have
+    ;; a known arity and can be passed around as first-class functions;
+    ;; mirrors (update-lambda-table 'thread 1) in the official S41.1 build.
+    #+sbcl (|update-lambda-table| '|thread| 1)
+    #+sbcl (|update-lambda-table| '|terminate| 1)))
 
 #+(or ccl sbcl)
 (defun |shen.read-char-code| (s)
