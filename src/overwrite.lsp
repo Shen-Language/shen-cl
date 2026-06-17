@@ -280,11 +280,36 @@
       -1
       (char-int c))))
 
-#+(or ccl sbcl)
+;; Native pr: write the string to the stream unconditionally, never
+;; consulting *hush*. The kernel's KL pr (writer.kl) returns early without
+;; writing whenever *hush* is true -- which wrongly silences pr to FILE
+;; streams under -q (e.g. `eval -q -e "(pr ... FileStream)"`), producing a
+;; zero-byte file. SBCL/CCL already bypassed the KL pr via this override;
+;; ECL ran the KL pr and so silenced pr to files under -q. Its file streams
+;; are character streams, so the same write-string override applies.
+;; Extending the override to ECL makes SBCL/CCL/ECL agree: pr writes to its
+;; target stream regardless of *hush* (Shen issue #2).
+#+(or ccl sbcl ecl)
 (defun |pr| (x s)
   (write-string x s)
   (when (or (eq s |*stoutput*|) (eq s |*stinput*|))
     (force-output s))
+  x)
+
+;; CLisp file streams are opened with :element-type 'unsigned-byte (see
+;; |shen.openh| in primitives.lsp), so write-string is illegal on them; the
+;; kernel's KL pr dispatches such streams to a write-byte path. Mirror that
+;; dispatch here but, like the SBCL/CCL/ECL override, ignore *hush* so pr to
+;; a file stream is never silenced under -q (Shen issue #2). Character streams
+;; (e.g. *stoutput*) still take write-string.
+#+clisp
+(defun |pr| (x s)
+  (if (subtypep (stream-element-type s) 'character)
+      (progn
+        (write-string x s)
+        (when (or (eq s |*stoutput*|) (eq s |*stinput*|))
+          (force-output s)))
+      (loop for c across x do (write-byte (char-code c) s)))
   x)
 
 ;; file reading
