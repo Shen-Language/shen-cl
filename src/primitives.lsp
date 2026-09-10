@@ -767,9 +767,10 @@ Any other form is returned unchanged."
           (|cl.exit| 0)))))
     (|lambda| E
       (progn
-        (format t "~%!!! FATAL error: ")
-        (|shen.toplevel-display-exception| E)
-        (format t "~%Exiting Shen.~%")
+        (ignore-errors
+          (format *error-output* "~%!!! FATAL error: ")
+          (|shen.toplevel-display-exception| E)
+          (format *error-output* "~%Exiting Shen.~%"))
         (|cl.exit| 1)))))
 
 (defun |shen-cl.toplevel| ()
@@ -822,4 +823,10 @@ Any other form is returned unchanged."
      (|shen-cl.toplevel-interpret-args| (si:command-args)))
 
     #+sbcl
-    (|shen-cl.toplevel-interpret-args| sb-ext:*posix-argv*)))
+    (handler-case
+      (|shen-cl.toplevel-interpret-args| sb-ext:*posix-argv*)
+      (serious-condition (c)
+        (ignore-errors
+          (format *error-output* "~&Fatal: ~A~%" c))
+        (|cl.exit| 1)))
+))
