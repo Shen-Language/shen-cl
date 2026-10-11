@@ -799,26 +799,20 @@ Any other form is returned unchanged."
     ;; is implemented natively in overwrite.lsp), so unlike older releases
     ;; there is no extension initialise call here.
     ;; ECL builds via c:build-program, which links object files rather than
-    ;; dumping an image. Unlike SBCL/CLISP (which bake Tarver's StLib sources
-    ;; into the saved image at build time -- see boot.lsp), ECL cannot bake that
-    ;; runtime state, and loading the StLib sources at startup costs ~105s
-    ;; (ECL C-compiles each definition on load). So ECL alone retains the
-    ;; precompiled community stlib.kl graft (baked into the object files,
-    ;; replayed cheaply here). Retiring it needs a StLib->.lsp packager; see
-    ;; docs/KERNEL-PROVENANCE-tarver-s42.0.md.
+    ;; dumping an image, so it cannot bake the environment that boot.lsp
+    ;; builds for SBCL/CLISP. Run the same initialisation sequence here at
+    ;; startup instead: shen.initialise (init.kl), the port's registrations,
+    ;; the features extension, then stlib.initialise for the precompiled
+    ;; standard library (stlib.kl), which every implementation now shares.
     #+ecl
     (progn
+     ;; shen-cl.initialise compiles code, which makes ECL load its compiler
+     ;; module; keep ECL's ";;; Loading ..." notice off stdout.
+     (setq *load-verbose* nil)
      (|shen.initialise|)
      (|shen-cl.initialise|)
      (|shen.x.features.initialise| '(|shen/cl| |shen/cl.ecl|))
-     (|stlib.initialise-environment|)
-     (|stlib.initialise-arities|)
-     (|stlib.initialise-synonyms|)
-     (|stlib.initialise-datatypes|)
-     (|stlib.initialise-macros|)
-     (|stlib.initialise-types|)
-     (|stlib.initialise-sources|)
-     (|stlib.initialise-final|)
+     (|stlib.initialise|)
      (|shen-cl.install-sha256-host|)
      (|shen-cl.toplevel-interpret-args| (si:command-args)))
 

@@ -20,6 +20,7 @@
       ["toplevel"
        "core"
        "sys"
+       "dict"
        "sequent"
        "yacc"
        "reader"
@@ -31,17 +32,17 @@
        "declarations"
        "types"
        "t-star"
+       "init"
        "extension-features"
        "extension-expand-dynamic"
        "extension-launcher"
        "stlib"
        ])
-\\ NOTE on "stlib": SBCL and CLISP install the standard library from Tarver's
-\\ canonical StLib sources at build time (boot.lsp loads kernel/lib/StLib/
-\\ install.shen into the saved image) and do NOT import this compiled stlib.lsp.
-\\ It is precompiled solely for ECL, whose c:build-program cannot bake
-\\ image-loaded state; boot.lsp imports it only under #+ecl. See boot.lsp and
-\\ docs/KERNEL-PROVENANCE-tarver-s42.0.md.
+\\ ShenOSKernel-42.2 (community shen-sources) is compiled unmodified. Every
+\\ .kl file holds only defuns, so load order is not load-bearing; the
+\\ environment is built by (shen.initialise) from init.kl and the standard
+\\ library by (stlib.initialise) from stlib.kl, both called from boot.lsp
+\\ (or at startup on ECL). See docs/KERNEL-PROVENANCE-42.2.md.
 
 (set *shen-cl-files* ["compiler"])
 
