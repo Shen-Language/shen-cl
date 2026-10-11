@@ -8,6 +8,46 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Kernel: ShenOSKernel 42.2** (community `Shen-Language/shen-sources` tag
+  `shen-42.2`, commit `73507e0`, `ShenOSKernel-42.2.tar.gz` SHA-256
+  `1d02273003654d34ec020ae67cb214ecec410dee3350419ff807d82b652678d8`), the
+  kernel shipped by shen-scheme 0.50, adopted wholesale. This replaces the
+  Tarver S42.0 hybrid. `(version)` now reports `42.2`. See
+  [docs/KERNEL-PROVENANCE-42.2.md](docs/KERNEL-PROVENANCE-42.2.md) (the old
+  provenance doc is kept as history) and issue #21.
+- `make fetch` now downloads the 42.2 release, verifies its pinned SHA-256 and
+  extracts it unmodified (`scripts/fetch-kernel.sh`; pass `KERNEL_ARCHIVE=`
+  to use a local tarball). `scripts/assemble-tarver-kernel.sh`,
+  `fetch-tarver` and `fetch-community` were removed.
+- Boot loads `dict.kl`, `init.kl` and `stlib.kl`, then runs
+  `shen.initialise` and `stlib.initialise`. SBCL, CLISP and ECL now share the
+  precompiled standard library; the ECL-only `stlib.kl` graft divergence is
+  gone.
+- The native `macroexpand`/`shen.macroexpand-h` overrides take the 42.1
+  source-form handler registry (4th argument).
+- The `(trap-error (get ..) ..)` to `shen-cl.get/or` compiler peephole is
+  restored, because the property store is a dict again.
+- Removed the Tarver-only shims (`shen.repl` alias, no-op `shen.initialise`,
+  `shen.toplevel-display-exception`, `shen.set-lambda-form-entry`).
+
+### Fixed
+
+- `read`/`lineread` on a character stream (e.g. SBCL/ECL stdin) now parse
+  input that ends at EOF without a trailing newline, instead of failing with
+  `"" is not a unit string` (kernel 42.1 requirement). The REPL evaluates such
+  a final form before exiting at EOF.
+- `scripts/build.shen` quoted the fail object `shen.fail!` incorrectly when
+  the bootstrapping Shen's `(fail)` was that symbol. `explode` prints it as
+  `...`, so the case check failed and `(defun fail () ...)` was emitted as an
+  unquoted `'shen.fail!`, which CL reads as a different, upcased symbol. The
+  symbol's name is now exploded instead.
+- `src/overwrite.lsp` is ASCII-only, so the CLISP build no longer fails under
+  a C/POSIX locale.
+- ECL no longer prints `;;; Loading .../cmp.fas` on stdout at startup.
+
+
 - Update the supported Tarver kernel to S42.0 (`S42.zip`, SHA-256
   `30abdc7e5a1e27b7a20109c1ed141e4712885e31f24d9710d16415fbbd4dfb23`). The
   community 41.2 archive remains an explicit source for launcher/features and

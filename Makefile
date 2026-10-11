@@ -65,14 +65,11 @@ endif
 # Set shared variables
 #
 
-KernelVersion=42.0
-# Community extensions/tests remain sourced from the latest published
-# ShenOSKernel archive until a matching community S42 archive exists.
-CommunityKernelVersion=41.2
+KernelVersion=42.2
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
-KernelTag=shen-$(CommunityKernelVersion)
-KernelFolderName=ShenOSKernel-$(CommunityKernelVersion)
+KernelTag=shen-$(KernelVersion)
+KernelFolderName=ShenOSKernel-$(KernelVersion)
 KernelArchiveName=$(KernelFolderName)$(ArchiveSuffix)
 KernelArchiveUrl=$(UrlRoot)/$(KernelTag)/$(KernelArchiveName)
 BinaryName=shen$(BinarySuffix)
@@ -119,8 +116,13 @@ run: run-sbcl
 # Dependency retrieval
 #
 
-.PHONY: fetch-community
-fetch-community:
+# `fetch` downloads the community ShenOSKernel-42.2 release
+# (Shen-Language/shen-sources tag shen-42.2), verifies its pinned SHA-256 and
+# extracts it unmodified as `kernel/`. Pass KERNEL_ARCHIVE=path/to/
+# ShenOSKernel-42.2.tar.gz to use a local copy of the release tarball. See
+# docs/KERNEL-PROVENANCE-42.2.md.
+.PHONY: fetch
+fetch:
 ifeq ($(OSName),windows)
 	$(PS) "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
 	       Invoke-WebRequest -Uri $(KernelArchiveUrl) -OutFile $(KernelArchiveName)"
@@ -129,27 +131,8 @@ ifeq ($(OSName),windows)
 	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
 	$(PS) "Rename-Item $(KernelFolderName) kernel -ErrorAction Ignore"
 else
-	$(FetchCmd) $(KernelArchiveUrl)
-	tar zxf $(KernelArchiveName)
-	rm -f $(KernelArchiveName)
-	rm -rf kernel
-	mv $(KernelFolderName) kernel
+	scripts/fetch-kernel.sh $(KERNEL_ARCHIVE)
 endif
-
-# `fetch` assembles the supported hybrid kernel.  The raw community archive
-# has an older init/declarations split and is retained only as an explicit
-# legacy target for users who need its unmodified tree.
-.PHONY: fetch
-fetch:
-	scripts/assemble-tarver-kernel.sh
-
-# Assemble the hybrid kernel for Mark Tarver's S42.0 distribution
-# (2026-08-25, shenlanguage.org). Unlike the raw `fetch-community` target,
-# this is NOT a shen-sources github release: it combines Tarver's restructured
-# KLambda with the community launcher/features/expand-dynamic grafts. See
-# docs/KERNEL-PROVENANCE-tarver-s42.0.md.
-.PHONY: fetch-tarver
-fetch-tarver: fetch
 
 #
 # Precompilation into Lisp code

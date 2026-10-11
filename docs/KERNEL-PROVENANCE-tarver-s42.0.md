@@ -1,5 +1,11 @@
 # Kernel provenance: Tarver S42.0
 
+> **Historical.** This lineage was superseded by the community ShenOSKernel
+> 42.2 release (adopted wholesale). See
+> [KERNEL-PROVENANCE-42.2.md](KERNEL-PROVENANCE-42.2.md). The build tooling
+> described below (`scripts/assemble-tarver-kernel.sh`) was removed, and
+> remains available in git history.
+
 This branch assembles the Shen 42.0 kernel released by Mark Tarver as
 `S42.zip` (official URL: <https://www.shenlanguage.org/Download/S42.zip>).
 

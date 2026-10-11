@@ -149,48 +149,38 @@
 (import-lsp source-path "sha256")
 (import-lsp source-path "shen-utils")
 (import-lsp compiled-path "compiler")
-;; Load order follows Tarver's S42.0 (2026-08-25) install.lsp: t-star must
-;; precede types, because the refreshed types.kl issues top-level (declare ..)
-;; forms that call shen.rectify-type, which the refresh defines in t-star.kl
-;; (community 41.x defined it early in reader.kl, so order was not load-bearing
-;; there).
-(import-lsp compiled-path "sys")
-(import-lsp compiled-path "writer")
-(import-lsp compiled-path "core")
-(import-lsp compiled-path "reader")
-(import-lsp compiled-path "declarations")
+;; ShenOSKernel-42.2 (community shen-sources, vendored unmodified). Every .kl
+;; file holds only defuns, so this order is not load-bearing: the environment
+;; is built afterwards by (shen.initialise) from init.kl.
 (import-lsp compiled-path "toplevel")
-(import-lsp compiled-path "macros")
-(import-lsp compiled-path "load")
-(import-lsp compiled-path "prolog")
+(import-lsp compiled-path "core")
+(import-lsp compiled-path "sys")
+(import-lsp compiled-path "dict")
 (import-lsp compiled-path "sequent")
-(import-lsp compiled-path "track")
-(import-lsp compiled-path "t-star")
 (import-lsp compiled-path "yacc")
+(import-lsp compiled-path "reader")
+(import-lsp compiled-path "prolog")
+(import-lsp compiled-path "track")
+(import-lsp compiled-path "load")
+(import-lsp compiled-path "writer")
+(import-lsp compiled-path "macros")
+(import-lsp compiled-path "declarations")
 (import-lsp compiled-path "types")
+(import-lsp compiled-path "t-star")
+(import-lsp compiled-path "init")
 (import-lsp compiled-path "extension-features")
 (import-lsp compiled-path "extension-expand-dynamic")
 (import-lsp compiled-path "extension-launcher")
-;; ECL only: the precompiled community stlib.kl graft (SBCL/CLISP install the
-;; standard library from Tarver's StLib sources instead -- see below).
-#+ecl (import-lsp compiled-path "stlib")
+(import-lsp compiled-path "stlib")
 (import-lsp source-path "overwrite")
 
-;; Install the standard library from Tarver's canonical StLib SOURCES, exactly
-;; as his own install.lsp does: run kernel/lib/StLib/install.shen through the
-;; freshly built image (it typechecks + loads each module and declares the
-;; stlib externals as system functions). On SBCL/CLISP this state is then baked
-;; into the saved image; see the ECL note in src/primitives.lsp.
-;;
-;; This replaces the former community stlib.kl graft. Tarver's install.shen
-;; order already loads the Maths datatypes before Vectors/macros.shen, so the
-;; ':=' vector-macro-vs-typechecker hazard that forced a custom ordering under
-;; the community stlib is avoided by construction.
-(defun |shen-cl.initialise-stlib| ()
-  (|cd| "kernel/lib/StLib/")
-  (|load| "install.shen")
-  (|cd| ""))
-
+;; Initialisation, in the order the kernel's port guide prescribes:
+;; shen.initialise (init.kl) builds the global environment, then the port's
+;; own registrations, the features extension, and finally stlib.initialise
+;; (41.1+: a port distributing klambda/stlib.kl must call it after loading).
+;; SBCL/CLISP bake the result into the saved image. ECL's c:build-program
+;; links object files and cannot bake runtime state, so ECL runs the same
+;; sequence at startup in shen-cl.toplevel (src/primitives.lsp).
 #-ecl
 (progn
  (|shen.initialise|)
@@ -201,7 +191,7 @@
    #+sbcl  |shen/cl.sbcl|
    #+ccl   |shen/cl.ccl|
  ))
- (|shen-cl.initialise-stlib|))
+ (|stlib.initialise|))
 
 (fmakunbound 'compile-lsp)
 (fmakunbound 'import-lsp)

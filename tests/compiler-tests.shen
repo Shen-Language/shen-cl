@@ -222,15 +222,9 @@
  (shen-cl.kl->lisp [trap-error [<-vector Var [+ 10 10]] [lambda E default]])
  (shen-cl.kl->lisp [shen-cl.<-vector/or Var [+ 10 10] [freeze default]]))
 
-\\ The (trap-error (get ..) ..) -> shen-cl.get/or peephole was removed for the
-\\ Tarver S41.2 (2026-07-11) refresh: that optimisation assumed a CL hash-table
-\\ property store, but the refreshed kernel buckets a global absvector. get is
-\\ now left as an ordinary kernel call, so the optimised form must NOT be
-\\ produced. (value / <-vector / <-address optimisations above are unaffected.)
 (assert-equal
- (= (shen-cl.kl->lisp [trap-error [get Var prop Dict] [lambda E default]])
-    (shen-cl.kl->lisp [shen-cl.get/or Var prop Dict [freeze default]]))
- false)
+ (shen-cl.kl->lisp [trap-error [get Var prop Dict] [lambda E default]])
+ (shen-cl.kl->lisp [shen-cl.get/or Var prop Dict [freeze default]]))
 
 (assert-equal
   (shen-cl.compile-expression [X 1 2 3] [X])

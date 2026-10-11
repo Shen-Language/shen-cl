@@ -198,11 +198,12 @@ but not otherwise.
   -> (compile-expression [shen-cl.<-vector/or X N [freeze Handler]] Scope)
   [<-address X N] [lambda E Handler] Scope
   -> (compile-expression [shen-cl.<-address/or X N [freeze Handler]] Scope)
-  \\ NOTE (Tarver S42.0 2026-08-25 release): the (trap-error (get ..) ..) ->
-  \\ shen-cl.get/or peephole assumes the property store is a CL hash-table.
-  \\ The refreshed kernel binds *property-vector* to a bucketed absvector and
-  \\ implements get/put over it, so this optimisation is disabled; get now
-  \\ compiles to the kernel's own vector-based get. See PR notes.
+  \\ ShenOSKernel-42.2 keeps the property store in a shen.dict (init.kl), which
+  \\ overwrite.lsp maps onto a CL hash-table of (Prop . Value) alists, so the
+  \\ get/or fast path (disabled for the Tarver S4x kernels' absvector store)
+  \\ applies again.
+  [get X P D] [lambda E Handler] Scope
+  -> (compile-expression [shen-cl.get/or X P D [freeze Handler]] Scope)
   _ _ _ -> (fail))
 
 (define emit-equality-check

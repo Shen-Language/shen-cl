@@ -50,51 +50,60 @@
   (let ((c (read-char stream nil nil)))
     (cond (c (string c))
           ;; EOF on the REPL's standard input (character path used by SBCL/CCL):
-          ;; the session is over, so exit cleanly rather than returning "" — the
+          ;; the session is over, so exit cleanly rather than returning "" -- the
           ;; kernel reader chokes on "" and loops forever otherwise. Scoped to
           ;; the REPL; a program's own char reads still get "" at EOF.
           ((and |shen-cl.in-repl?| (eq stream |*stinput*|)) (|cl.exit| 0))
           (t ""))))
 
-;; Tarver's S42.0 (2026-08-25) release renamed the REPL entrypoint
-;; shen.repl -> shen.shen (identical body: (do (shen.credits) (shen.loop))).
-;; Alias it back so shen-cl's launcher and startup keep their shen.repl name.
-(unless (fboundp '|shen.repl|)
-  (setf (symbol-function '|shen.repl|) (symbol-function '|shen.shen|)))
+;; Kernel 42.1 requires `read`/`lineread` to process input at EOF without a
+;; trailing newline: shen.read-loop parses its buffered bytes when the stream
+;; yields -1. The kernel's shen.my-read-byte reads a character stream through
+;; (string->n (shen.read-unit-string S)), and shen.read-unit-string can only
+;; signal EOF with "", which string->n rejects ("" is not a unit string) before
+;; the read loop ever sees -1. Read the character directly and report EOF as
+;; -1, matching the byte path.
+;;
+;; REPL stdin: shen-cl exits cleanly when the REPL's stdin reaches EOF (see
+;; shen.repl below). It must still evaluate a final form that has no trailing
+;; newline, so the REPL's lineread counts the non-whitespace input it has
+;; buffered (shen-cl.repl-pending): EOF with pending input yields -1 so the
+;; kernel parses and evaluates it; EOF with nothing pending ends the session.
+(defvar |shen-cl.repl-pending| nil)
 
-;; Tarver's S42.0 release has no shen.initialise function: the
-;; global environment (set *property-vector* (vector 20000), the arity table,
-;; system symbols, etc.) is initialised by load-time top-level forms in
-;; declarations.kl, which have already run by the time boot.lsp's init block or
-;; the startup path calls (shen.initialise). Provide a no-op so those calls
-;; remain valid without re-running (or double-running) initialisation.
-(unless (fboundp '|shen.initialise|)
-  (setf (symbol-function '|shen.initialise|)
-        (lambda () '|shen.initialise|)))
+(defun |shen-cl.repl-input?| (stream)
+  (and |shen-cl.in-repl?| (eq stream |*stinput*|)))
 
-;; shen.toplevel-display-exception also lived in the dropped init.kl. Tarver's
-;; refreshed shen.loop inlines the same body (pr the error string + newline)
-;; rather than naming a function. shen-cl's launcher and REPL error handlers
-;; (src/primitives.lsp) still call it by name, so restore it.
-(unless (fboundp '|shen.toplevel-display-exception|)
-  (setf (symbol-function '|shen.toplevel-display-exception|)
-        (lambda (e)
-          (|pr| (|error-to-string| e) (|stoutput|))
-          (|nl| 0))))
+(defun |shen-cl.note-repl-input| (stream code)
+  (when (and |shen-cl.repl-pending|
+             (|shen-cl.repl-input?| stream)
+             (not (member code '(9 10 12 13 32))))
+    (incf |shen-cl.repl-pending|))
+  code)
 
-;; Tarver's S42.0 release dropped init.kl, whose
-;; shen.set-lambda-form-entry recorded a macro's lambda form under the
-;; shen.lambda-form property. The refreshed kernel does not use that property
-;; (macro expansion runs through shen.*macros*), but the retained community
-;; extensions (features, expand-dynamic) still call it. Restore it with the
-;; community body so those extensions initialise; the stored property is inert
-;; under the refreshed kernel but preserves introspection semantics.
-(unless (fboundp '|shen.set-lambda-form-entry|)
-  (setf (symbol-function '|shen.set-lambda-form-entry|)
-        (lambda (v)
-          (if (consp v)
-              (|put| (car v) '|shen.lambda-form| (cdr v) |*property-vector*|)
-              (|shen.f-error| '|shen.set-lambda-form-entry|)))))
+(defun |shen-cl.input-eof| (stream)
+  (if (and (|shen-cl.repl-input?| stream)
+           (not (and |shen-cl.repl-pending| (plusp |shen-cl.repl-pending|))))
+      (|cl.exit| 0)
+      -1))
+
+(defun |shen.my-read-byte| (stream)
+  (if (subtypep (stream-element-type stream) 'character)
+      (let ((c (read-char stream nil nil)))
+        (if c
+            (|shen-cl.note-repl-input| stream (char-code c))
+            (|shen-cl.input-eof| stream)))
+      (let ((b (read-byte stream nil -1)))
+        (if (eql b -1)
+            (|shen-cl.input-eof| stream)
+            (|shen-cl.note-repl-input| stream b)))))
+
+(setf (symbol-function '|shen-cl.kernel-lineread|) (symbol-function '|lineread|))
+(defun |lineread| (stream)
+  (if (|shen-cl.repl-input?| stream)
+      (let ((|shen-cl.repl-pending| 0))
+        (funcall (symbol-function '|shen-cl.kernel-lineread|) stream))
+      (funcall (symbol-function '|shen-cl.kernel-lineread|) stream)))
 
 ;; Run the kernel REPL with shen-cl.in-repl? bound, so the input layer
 ;; (read-byte / shen.read-unit-string) can exit cleanly when the REPL's stdin
@@ -207,7 +216,7 @@
         (multiple-value-bind (first-test rest-test)
             (shen-cl.extract-first-test test1)
           (if (null first-test)
-              ;; Not an AND chain (e.g. |true| fallthrough) — pass through
+              ;; Not an AND chain (e.g. |true| fallthrough) -- pass through
               (cons (shen-cl.factorise-case case1 returnp)
                     (shen-cl.factorise-cases-h (cdr cases) returnp))
               ;; Collect consecutive cases sharing this first-test
@@ -226,10 +235,10 @@
                                (return))))
                 (setf group (nreverse group))
                 (if (= (length group) 1)
-                    ;; Only one case in group — no benefit, keep original
+                    ;; Only one case in group -- no benefit, keep original
                     (cons (shen-cl.factorise-case case1 returnp)
                           (shen-cl.factorise-cases-h remaining returnp))
-                    ;; Multiple cases — factor out shared first-test. Emit
+                    ;; Multiple cases -- factor out shared first-test. Emit
                     ;; the remaining cases once under a label; jump to it
                     ;; when the shared test fails or no sub-test matches.
                     (let* ((label (shen-cl.fresh-factorise-label))
@@ -300,16 +309,12 @@
 (defun |thaw| (f)
   (funcall f))
 
-;; NOTE (Tarver S42.0 2026-08-25 release): do NOT override hash here.
-;; The refreshed kernel's global property store (put/get in sys.kl) buckets
-;; entries by (hash key (limit *property-vector*)), and the kernel populates it
-;; via top-level (put ..) forms at load time using the kernel's own hash
-;; (shen.hashkey + shen.mod, which never returns 0 -- index 0 holds the vector
-;; length). A native (mod (sxhash val) bound) override produces different bucket
-;; indices (and can return 0), so every property written before this file loads
-;; becomes unreachable ("shen has no attributes: ..."). Using the kernel hash
-;; everywhere keeps put and get consistent. (Under community 41.x the property
-;; store was a CL hash-table via shen.dict, so overriding hash was harmless.)
+;; hash: the kernel's own definition (sys.kl: shen.hashkey + shen.mod, never
+;; 0) is kept deliberately. Under ShenOSKernel-42.2 the property store is a
+;; shen.dict, which this file maps onto a CL hash-table below, so hash is not
+;; used for property lookup, and keeping the kernel version keeps `hash`
+;; identical across SBCL, CLISP and ECL. (Hash values are port-specific in
+;; Shen; e.g. shen-scheme overrides hash natively and returns other values.)
 
 (defun |shen.dict| (size)
   (make-hash-table :size size))
@@ -515,27 +520,36 @@
 
 ;;; --- Phase 2: Macro expansion performance overrides ---
 
-;;; macroexpand: extract macro functions once instead of mapping CDR each call
+;;; macroexpand: extract macro functions once instead of mapping CDR each call.
+;;; Kernel 42.1+: source-form handlers (shen.*source-form-handlers*) are passed
+;;; as the fourth argument and run before ordinary macros, exactly as in
+;;; macros.kl's macroexpand.
 (defun |macroexpand| (expr)
   (let ((fns (mapcar #'cdr |*macros*|)))
-    (|shen.macroexpand-h| expr fns fns)))
+    (|shen.macroexpand-h| expr fns fns
+                         (symbol-value '|shen.*source-form-handlers*|))))
 
-;;; shen.macroexpand-h: EQ fast-path before expensive absequal
+;;; shen.macroexpand-h: EQ fast-path before expensive absequal.
 ;;; When a macro function doesn't match, it returns its argument unchanged
 ;;; (same pointer), so EQ succeeds for the vast majority of non-matching cases.
-(defun |shen.macroexpand-h| (expr macros all-macros)
+;;; Kernel 42.1 signature (4 args): HANDLERS is the source-form handler
+;;; registry; the walk is shen.source-macro-walk, which skips sub-forms owned
+;;; by a source-form handler and reduces to shen.walk when HANDLERS is ().
+(defun |shen.macroexpand-h| (expr macros all-macros handlers)
   (if (null macros)
       expr
       (if (consp macros)
-          (let ((walked (|shen.walk| (car macros) expr)))
+          (let ((walked (if (null handlers)
+                            (|shen.walk| (car macros) expr)
+                            (|shen.source-macro-walk| (car macros) expr handlers))))
             (if (eq expr walked)
-                ;; EQ means definitely unchanged — skip absequal entirely
-                (|shen.macroexpand-h| expr (cdr macros) all-macros)
+                ;; EQ means definitely unchanged -- skip absequal entirely
+                (|shen.macroexpand-h| expr (cdr macros) all-macros handlers)
                 ;; Pointers differ; check structural equality
                 (if (|shen-cl.absequal| expr walked)
-                    (|shen.macroexpand-h| expr (cdr macros) all-macros)
+                    (|shen.macroexpand-h| expr (cdr macros) all-macros handlers)
                     ;; Genuinely changed: restart from all macros
-                    (|shen.macroexpand-h| walked all-macros all-macros))))
+                    (|shen.macroexpand-h| walked all-macros all-macros handlers))))
           (|simple-error| "implementation error in shen.macroexpand-h"))))
 
 ;;; Fix atom? to recognise CL T as a valid atom.
