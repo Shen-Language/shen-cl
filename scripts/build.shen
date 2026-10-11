@@ -80,8 +80,13 @@
   \\ '='. The kernel never relies on ':=' /= '=', so this stayed latent until
   \\ the standard library's vector macros (which DO distinguish them) were
   \\ enabled. Pipe-quote so it reads back as a symbol in the current package.
-  S -> (@s "|" (str S) "|") where (build.colon-prefixed? (explode S))
-  S -> (@s "|" (str S) "|") where (build.cased-symbol? (explode S))
+  S -> (@s "|" (str S) "|") where (build.colon-prefixed? (explode (str S)))
+  \\ explode the symbol's NAME, not the symbol: explode prints its argument
+  \\ with ~A, and the kernel prints the fail object shen.fail! as "...", so
+  \\ (explode shen.fail!) is [. . .]. That left sys.kl's (defun fail ()
+  \\ shen.fail!) emitting an unquoted 'shen.fail!, which CL upcases into a
+  \\ different symbol whenever the bootstrapping Shen's (fail) is shen.fail!.
+  S -> (@s "|" (str S) "|") where (build.cased-symbol? (explode (str S)))
   S -> (str S))
 
 (define build.colon-prefixed?
