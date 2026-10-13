@@ -123,10 +123,24 @@
         (|shen-cl.lisp-prefixed?| symbol)
         (apply |shen-cl.kernel-sysfunc?| (list symbol)))))
 
-(defun shen.pvar? (x)
-  (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
+(defun |shen.pvar?| (x)
+  (if (|shen-cl.pvar-p| x)
       '|true|
       '|false|))
+
+(defun |integer?| (x)
+  (if (|shen-cl.integral-p| x) '|true| '|false|))
+
+(defun |boolean?| (x)
+  (if (|shen-cl.boolean-p| x) '|true| '|false|))
+
+;; Since 41.3, source input+ is a macro. Its function value still names
+;; input+, so keep the two-place callable entry as well as the expansion.
+(defun |input+| (type stream)
+  (|shen.input-h+| type stream))
+
+(defun |shen.byte->digit| (code)
+  (- code 48))
 
 (defvar specials (coerce "=*/+-_?$!@~><&%{}:;`#'." 'list))
 
@@ -162,9 +176,9 @@
       '|true|
       '|false|))
 
-;;; --- Phase 3: Pattern factorization ---
+;;; Pattern factorization
 ;;; Factorises multi-clause cond forms by grouping consecutive clauses
-;;; that share the same leading AND test. Operates on KL forms where
+;;; that share a stable leading parameter test. Operates on KL forms where
 ;;; symbols are in the :SHEN package (|and|, |cond|, |defun|, |true|).
 
 (defun shen-cl.extract-first-test (test)
@@ -175,6 +189,28 @@
            (consp (cddr test)))
       (values (cadr test) (caddr test))
       (values nil nil)))
+
+(defun shen-cl.stable-pattern-test-p (test args)
+  "Only share parameter tests unaffected by guards mutating their contents."
+  (flet ((literal-p (x)
+           (or (numberp x) (and (symbolp x) (not (member x args))))))
+    (and (consp test)
+         (case (car test)
+           ((|cons?| |number?| |string?| |empty?| |absvector?|)
+            (and (= (length test) 2) (member (cadr test) args)))
+           (|=|
+            (and (= (length test) 3)
+                 (or (and (member (cadr test) args) (literal-p (caddr test)))
+                     (and (literal-p (cadr test)) (member (caddr test) args)))))))))
+
+(defun shen-cl.has-lisp-escape-p (form)
+  ;; Inline Lisp can even reassign parameters; leave such functions alone.
+  (and (consp form)
+       (or (and (symbolp (car form))
+                (let ((name (symbol-name (car form))))
+                  (and (>= (length name) 5)
+                       (string= "lisp." name :end2 5))))
+           (some #'shen-cl.has-lisp-escape-p form))))
 
 (defvar shen-cl.*factorise-label-counter* 0)
 
@@ -189,8 +225,8 @@
       (list (car case1) (list '|%%return| (cadr case1)))
       case1))
 
-(defun shen-cl.factorise-cases (cases)
-  "Group consecutive cond cases sharing the same first AND test.
+(defun shen-cl.factorise-cases (cases args)
+  "Group consecutive cond cases sharing a stable first AND test.
    When a group has >1 case, emit a nested cond under the shared test.
 
    The remaining cases are needed on two control paths: when the shared
@@ -206,19 +242,19 @@
    add-block wraps around every factorised defun; clause order and
    test/body evaluation order are exactly those of the nested-cond
    emission this replaces."
-  (shen-cl.factorise-cases-h cases nil))
+  (shen-cl.factorise-cases-h cases nil args))
 
-(defun shen-cl.factorise-cases-h (cases returnp)
+(defun shen-cl.factorise-cases-h (cases returnp args)
   (if (null cases)
       nil
       (let* ((case1 (car cases))
              (test1 (car case1)))
         (multiple-value-bind (first-test rest-test)
             (shen-cl.extract-first-test test1)
-          (if (null first-test)
-              ;; Not an AND chain (e.g. |true| fallthrough) -- pass through
+          (if (not (shen-cl.stable-pattern-test-p first-test args))
+              ;; Repeated guards and mutable selector tests must run again.
               (cons (shen-cl.factorise-case case1 returnp)
-                    (shen-cl.factorise-cases-h (cdr cases) returnp))
+                    (shen-cl.factorise-cases-h (cdr cases) returnp args))
               ;; Collect consecutive cases sharing this first-test
               (let ((group nil)
                     (remaining (cdr cases)))
@@ -237,12 +273,12 @@
                 (if (= (length group) 1)
                     ;; Only one case in group -- no benefit, keep original
                     (cons (shen-cl.factorise-case case1 returnp)
-                          (shen-cl.factorise-cases-h remaining returnp))
+                          (shen-cl.factorise-cases-h remaining returnp args))
                     ;; Multiple cases -- factor out shared first-test. Emit
                     ;; the remaining cases once under a label; jump to it
                     ;; when the shared test fails or no sub-test matches.
                     (let* ((label (shen-cl.fresh-factorise-label))
-                           (fallthrough (shen-cl.factorise-cases-h remaining t))
+                           (fallthrough (shen-cl.factorise-cases-h remaining t args))
                            (inner-cond
                              (append
                               (mapcar (lambda (c)
@@ -262,7 +298,7 @@
 
 (defun |shen.x.factorise-defun.factorise-defun| (defun-form)
   "Factorise a [defun Name Args [cond | Cases]] form by grouping
-   consecutive clauses that share the same leading AND test."
+   consecutive clauses that share a stable leading parameter test."
   (if (and (consp defun-form)
            (eq (car defun-form) '|defun|)
            (consp (cdr defun-form))
@@ -274,9 +310,10 @@
              (body (cadddr defun-form)))
         (if (and (consp body)
                  (eq (car body) '|cond|)
-                 (> (length (cdr body)) 1))
+                 (> (length (cdr body)) 1)
+                 (not (shen-cl.has-lisp-escape-p body)))
             (let* ((shen-cl.*factorise-label-counter* 0)
-                   (factored (shen-cl.factorise-cases (cdr body))))
+                   (factored (shen-cl.factorise-cases (cdr body) args)))
               (if (equal factored (cdr body))
                   defun-form
                   (list '|defun| name args (cons '|cond| factored))))
@@ -317,29 +354,29 @@
 ;; Shen; e.g. shen-scheme overrides hash natively and returns other values.)
 
 (defun |shen.dict| (size)
-  (make-hash-table :size size))
+  (|shen-cl.make-dict| size))
 
 (defun |shen.dict?| (dict)
   (if (hash-table-p dict) '|true| '|false|))
 
 (defun |shen.dict-count| (dict)
-  (hash-table-count dict))
+  (|shen-cl.dict-size| dict))
 
 (defun |shen.dict->| (dict key value)
- (setf (gethash key dict) value))
+  (|shen-cl.dict-store| dict key value))
 
 (defun |shen.<-dict| (dict key)
-  (multiple-value-bind (result found) (gethash key dict)
+  (multiple-value-bind (result found) (|shen-cl.dict-entry| dict key)
     (if found
         result
         (error "value ~A not found in dict~%" key))))
 
 (defun |shen.dict-rm| (dict key)
-  (progn (remhash key dict) key))
+  (|shen-cl.dict-remove| dict key))
 
 (defun |shen.dict-fold| (f dict init)
   (let ((acc init))
-    (maphash #'(lambda (k v)
+    (|shen-cl.map-dict| #'(lambda (k v)
                  (setf acc (funcall (funcall (funcall f k) v) acc))) dict)
     acc))
 
@@ -368,6 +405,9 @@
 (defun |shen-cl.initialise| ()
   (progn
     (|shen-cl.initialise-compiler|)
+    (|shen-cl.initialise-arities|)
+    (|update-lambda-table| '|shen-cl.load-lisp| 1)
+    (|update-lambda-table| '|shen-cl.eval-lisp| 1)
 
     (|put|      '|cl.exit| '|arity| 1 |*property-vector*|)
     (|put| '|shen-cl.exit| '|arity| 1 |*property-vector*|)
@@ -383,6 +423,11 @@
     ;; mirrors (update-lambda-table 'thread 1) in the official S41.1 build.
     #+sbcl (|update-lambda-table| '|thread| 1)
     #+sbcl (|update-lambda-table| '|terminate| 1)))
+
+(defun |shen-cl.initialise-extensions| ()
+  (|shen.x.programmable-pattern-matching.initialise|)
+  (|shen.x.namespaces.initialise|)
+  (|update-lambda-table| '|shen.x.type-annotations.annotate-kl| 1))
 
 #+(or ccl sbcl)
 (defun |shen.read-char-code| (s)

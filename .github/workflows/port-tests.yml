@@ -61,3 +61,12 @@ jobs:
 
       - name: CLI / launcher parity tests
         run: make test-cli
+
+      - name: Kernel extension tests
+        run: make test-extensions
+
+      - name: Accessor and dictionary regression tests
+        run: make test-accessors
+
+      - name: Optional SHA-256 extension tests
+        run: make test-sha256

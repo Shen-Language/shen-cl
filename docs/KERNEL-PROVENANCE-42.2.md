@@ -40,20 +40,20 @@ contains only `defun`s, and `init.kl` builds the environment.
   or dropped.
 - `make precompile SHEN=...` compiles `kernel/klambda/*.kl` (the core files,
   `dict`, `init`, `extension-features`, `extension-expand-dynamic`,
-  `extension-launcher` and `stlib`) and `src/compiler.shen` to
-  `compiled/*.lsp`.
+  `extension-launcher`, `extension-programmable-pattern-matching`,
+  `extension-namespaces`, `extension-type-annotations` and `stlib`), the
+  port compiler to `compiled/*.lsp`.
 - `boot.lsp` loads them, then calls `(shen.initialise)`,
-  `(shen-cl.initialise)`, `(shen.x.features.initialise ...)` and
-  `(stlib.initialise)`. SBCL and CLISP bake the resulting state into the saved
+  `(shen-cl.initialise)`, `(shen.x.features.initialise ...)`,
+  `(stlib.initialise)`, and the pattern/namespace initializers.
+  SBCL and CLISP bake the resulting state into the saved
   image. ECL cannot bake runtime state, so it runs the same sequence at startup
   (`shen-cl.toplevel`). All three implementations now use the same precompiled
   standard library. Under the Tarver hybrid, SBCL/CLISP loaded Tarver's StLib
   sources while ECL used a grafted 41.2 `stlib.kl`.
 
-The extensions shipped but not bundled are `namespaces`, `type-annotations`
-and `programmable-pattern-matching`. shen-cl did not bundle these before
-either; shen-scheme 0.50 bundles `namespaces` and
-`programmable-pattern-matching`.
+Namespaces, type annotations, and programmable patterns are bundled. Their
+canonical extension tests run through `make test-extensions`.
 
 ## Port-upgrade audit (doc/port-upgrades.md, 42.0 to 42.2)
 
@@ -75,13 +75,21 @@ either; shen-scheme 0.50 bundles `namespaces` and
   input that ends without a newline now parse it, matching shen-scheme 0.50.
   The REPL still exits cleanly at stdin EOF, but first evaluates a final form
   that has no trailing newline.
-- **42.2 namespaces.** Not applicable, because `extension-namespaces.kl` is
-  not bundled.
+- **42.2 namespaces.** The bundled `extension-namespaces.kl` comes from the
+  pinned 42.2 release and supports evaluated external-symbol expressions.
+- **41.3 `input+`.** The port retains the two-place callable function as well
+  as the source macro, so `(fn input+)` delegates to `shen.input-h+`.
 - **Property store.** `*property-vector*` is a `shen.dict` again, which
-  shen-cl maps to a CL hash table. The `(trap-error (get ..) ..)` to
+  shen-cl maps to a CL hash table using Shen structural equality. The
+  `(trap-error (get ..) ..)` to
   `shen-cl.get/or` peephole in `src/compiler.shen` was disabled for Tarver's
   absvector store and is restored. The kernel `hash` is still used unchanged.
 - **Removed Tarver shims.** The `shen.repl`→`shen.shen` alias and the no-op
   `shen.initialise`, `shen.toplevel-display-exception` and
   `shen.set-lambda-form-entry` were removed from `src/overwrite.lsp`; 42.2
   defines all of them itself.
+
+The branch integrates pyrex41/shen-cl through commit
+`d59bf137863b16ad8b4febee7aa3d81a41599c14`. The additional port fixes,
+extensions, and optimizations are applied outside the vendored kernel.
+Generated Lisp receives the same accessor optimization used by `eval-kl`.

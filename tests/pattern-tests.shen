@@ -164,3 +164,51 @@
   "grouped-dispatch: no shared test matches -> default"
   0
   (port-tests.grouped-dispatch h a))
+
+\\ Factorising arbitrary guards used to suppress their second evaluation.
+\\ These run with the ordinary defaults: kernel factorisation off, backend on.
+(set port-tests.*guard-calls* 0)
+
+(define port-tests.guard-tick
+  -> (do (set port-tests.*guard-calls* (+ 1 (value port-tests.*guard-calls*))) true))
+
+(define port-tests.guarded-choice
+  X -> first where (and (port-tests.guard-tick) (= X 1))
+  X -> second where (and (port-tests.guard-tick) (= X 2))
+  _ -> other)
+
+(assert= "guards: later clause selected" second (port-tests.guarded-choice 2))
+(assert= "guards: callback evaluated for each attempted clause"
+  2 (value port-tests.*guard-calls*))
+
+(define port-tests.guard-tick
+  -> (do (set port-tests.*guard-calls* (+ 1 (value port-tests.*guard-calls*)))
+         (if (= (value port-tests.*guard-calls*) 2)
+             (simple-error "second guard call") true)))
+
+(set port-tests.*guard-calls* 0)
+(assert-msg "guards: redefined callback's second-call error is preserved"
+  "second guard call" (freeze (port-tests.guarded-choice 2)))
+
+(define port-tests.mutate-guard
+  X -> (do (address-> X 1 after) false))
+
+(define port-tests.mutable-guard
+  X -> first where (and (= (<-address X 1) before) (port-tests.mutate-guard X))
+  X -> wrong where (and (= (<-address X 1) before) true)
+  _ -> after)
+
+(assert= "guards: selector test observes mutation in a failed guard"
+  after (let X (absvector 2)
+          (do (address-> X 1 before) (port-tests.mutable-guard X))))
+
+\\ A Lisp escape can reassign even a function parameter between clauses.
+(define port-tests.rebound-guard X -> after)
+(eval-kl [defun port-tests.rebound-guard [x]
+  [cond
+    [[and [= x 1] [lisp. "(PROGN (SETQ |x| 2) '|false|)"]] first]
+    [[and [= x 1] [= x 1]] wrong]
+    [true after]]])
+
+(assert= "guards: Lisp escape reassigning a parameter is preserved"
+  after (port-tests.rebound-guard 1))

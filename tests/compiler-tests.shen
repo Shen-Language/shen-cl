@@ -75,26 +75,31 @@
 
 (assert-equal
  (shen-cl.kl->lisp [lambda X [= X 1]])
- [lambda X [(shen-cl.kl shen-cl.equal?) X 1]])
+ [lambda X [(shen-cl.cl if) [shen-cl.numeric-equal X 1]
+            [(shen-cl.cl quote) true] [(shen-cl.cl quote) false]]])
 
 (assert-equal
  (shen-cl.compile-expression [and [some-func X] [= 1 2]] [X])
- [and [(shen-cl.qualify-op some-func) X] [(shen-cl.kl shen-cl.equal?) 1 2]])
+ [and [(shen-cl.qualify-op some-func) X]
+  [(shen-cl.cl if) [shen-cl.numeric-equal 1 2]
+   [(shen-cl.cl quote) true] [(shen-cl.cl quote) false]]])
 
 (assert-equal
  (shen-cl.compile-expression [or [some-func X] [= 1 2]] [X])
- [or [(shen-cl.qualify-op some-func) X] [(shen-cl.kl shen-cl.equal?) 1 2]])
+ [or [(shen-cl.qualify-op some-func) X]
+  [(shen-cl.cl if) [shen-cl.numeric-equal 1 2]
+   [(shen-cl.cl quote) true] [(shen-cl.cl quote) false]]])
 
 (assert-equal
  (shen-cl.kl->lisp [trap-error [+ 1 2] [lambda E 0]])
- [(shen-cl.kl trap-error) [(shen-cl.cl (intern "1+")) 2]
+ [(shen-cl.kl trap-error) [shen-cl.increment 2]
    [(shen-cl.kl lambda) E 0]])
 
 (define default D E -> D)
 
 (assert-equal
  (shen-cl.kl->lisp [trap-error [+ 1 2] [default 0]])
- [(shen-cl.kl trap-error) [(shen-cl.cl (intern "1+")) 2]
+ [(shen-cl.kl trap-error) [shen-cl.increment 2]
    [(shen-cl.cl funcall) [(shen-cl.kl lambda) X [(shen-cl.kl lambda) Y [(shen-cl.qualify-op default) X Y]]] 0]])
 
 (assert-equal
@@ -164,12 +169,12 @@
 
 (assert-equal
  (shen-cl.kl->lisp [if [= 1 2] 1 2])
- [(shen-cl.cl if) [(shen-cl.cl equalp) 1 2] 1 2])
+ [(shen-cl.cl if) [shen-cl.numeric-equal 1 2] 1 2])
 
 (assert-equal
  (shen-cl.kl->lisp [cond [[= 1 2] 1] [[> 1 2] 2] [[= [] val] 0] [true 3]])
  [(shen-cl.cl cond)
-     [[(shen-cl.cl equalp) 1 2] 1]
+     [[shen-cl.numeric-equal 1 2] 1]
      [[(shen-cl.cl >) 1 2] 2]
      [[(shen-cl.cl null) [(shen-cl.cl quote) val]] 0]
      [(shen-cl.cl t) 3]])

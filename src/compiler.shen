@@ -4,6 +4,9 @@
 (package shen-cl [progn quote null car cdr list-length t nil
                   numberp stringp consp funcall
                   list eq eql equal equalp let*
+                  setq
+                  shen.pvar? shen-cl.absvector-p shen-cl.integral-p
+                  shen-cl.boolean-p shen-cl.pvar-p
                   lisp.defun lisp.lambda lisp.block lisp.
                   %%return return %%goto-label go
                   %%let-label block tagbody]
@@ -34,12 +37,21 @@
       where (= (cl let) Let)
   X -> X)
 
+\\ These must precede compile-expression when bootstrapping: loading this
+\\ file replaces the active compiler one definition at a time.
+(define emit-boolean
+  Predicate -> [(cl if) Predicate [(cl quote) true] [(cl quote) false]])
+
+(initialise-compiler)
+
 (define compile-expression
   [] _ -> [(cl quote) []]
   true Scope -> [(cl quote) true]
   false Scope -> [(cl quote) false]
   Sym Scope -> (emit-symbol Sym) where (unbound-symbol? Sym Scope)
   [value Sym] Scope -> Sym where (unbound-symbol? Sym Scope)
+  [set Sym Exp] Scope -> [(cl setq) Sym (compile-expression Exp Scope)]
+      where (unbound-symbol? Sym Scope)
   [let Var Value Body] Scope -> (merge-nested-lets
                                  (emit-let Var Value Body Scope))
   [cond | Clauses] Scope -> (emit-cond Clauses Scope)
@@ -57,6 +69,14 @@
                           (compile-expression E1 Scope)
                           (compile-expression E2 Scope)])
   [= A B] Scope -> (emit-equality-check A B Scope)
+  [cons? X] Scope -> (emit-boolean [(cl consp) (compile-expression X Scope)])
+  [number? X] Scope -> (emit-boolean [(cl numberp) (compile-expression X Scope)])
+  [string? X] Scope -> (emit-boolean [(cl stringp) (compile-expression X Scope)])
+  [empty? X] Scope -> (emit-boolean [(cl null) (compile-expression X Scope)])
+  [absvector? X] Scope -> (emit-boolean [shen-cl.absvector-p (compile-expression X Scope)])
+  [integer? X] Scope -> (emit-boolean [shen-cl.integral-p (compile-expression X Scope)])
+  [boolean? X] Scope -> (emit-boolean [shen-cl.boolean-p (compile-expression X Scope)])
+  [shen.pvar? X] Scope -> (emit-boolean [shen-cl.pvar-p (compile-expression X Scope)])
   \\ (thaw Exp) is a zero-arg application of the thunk: call it directly
   \\ rather than routing through the `thaw` function (ported from Shen/Scheme).
   [thaw Exp] Scope -> [(cl funcall) (compile-expression Exp Scope)]
@@ -79,7 +99,14 @@
   )
 
 (define optimise-boolean-check
-  \\ TODO: let, do, etc
+  [If Test [Quote true] [Quote false]] -> Test
+      where (and (= If (cl if)) (= Quote (cl quote)))
+  [Let Bindings Body] -> [Let Bindings (optimise-boolean-check Body)]
+      where (or (= Let (cl let)) (= Let (cl let*)))
+  [Progn | Forms] -> [Progn | (optimise-boolean-sequence Forms)]
+      where (= Progn (cl progn))
+  [If Test Then Else] -> [If Test (optimise-boolean-check Then) (optimise-boolean-check Else)]
+      where (= If (cl if))
   [cons? X] -> [(cl consp) X]
   [string? X] -> [(cl stringp) X]
   [number? X] -> [(cl numberp) X]
@@ -93,8 +120,8 @@
   [equal? X [fail]] -> [(cl eq) X [fail]]
   [equal? S X] -> [(cl equal) S X]  where (string? S)
   [equal? X S] -> [(cl equal) X S]  where (string? S)
-  [equal? X N] -> [(cl equalp) X N]    where (number? N)
-  [equal? N X] -> [(cl equalp) X N]    where (number? N)
+  [equal? X N] -> [(kl numeric-equal) X N]    where (number? N)
+  [equal? N X] -> [(kl numeric-equal) X N]    where (number? N)
   [equal? X [Quote S]] -> [(cl eq) X [Quote S]]    where (= (cl quote) Quote)
   [equal? [Quote S] X] -> [(cl eq) X [Quote S]]    where (= (cl quote) Quote)
   [equal? X Y] -> [(kl absequal) X Y]
@@ -105,6 +132,10 @@
   [Quote true] -> (cl t) where (= Quote (cl quote))
   [Quote false] -> (cl nil) where (= Quote (cl quote))
   Exp -> [true? Exp])
+
+(define optimise-boolean-sequence
+  [Last] -> [(optimise-boolean-check Last)]
+  [First | Rest] -> [First | (optimise-boolean-sequence Rest)])
 
 (define emit-symbol
   S -> [(cl quote) S])
@@ -207,9 +238,19 @@ but not otherwise.
   _ _ _ -> (fail))
 
 (define emit-equality-check
-  V1 V2 Scope -> [(kl equal?)
-                   (compile-expression V1 Scope)
-                   (compile-expression V2 Scope)])
+  [] V Scope -> (emit-boolean [(cl null) (compile-expression V Scope)])
+  V [] Scope -> (emit-boolean [(cl null) (compile-expression V Scope)])
+  V1 V2 Scope -> (emit-boolean [(cl eq) (compile-expression V1 Scope) (compile-expression V2 Scope)])
+    where (or (unbound-symbol? V1 Scope) (unbound-symbol? V2 Scope)
+              (= V1 true) (= V1 false) (= V2 true) (= V2 false)
+              (= V1 [fail]) (= V2 [fail]))
+  V1 V2 Scope -> (emit-boolean [(kl numeric-equal) (compile-expression V1 Scope) (compile-expression V2 Scope)])
+    where (or (number? V1) (number? V2))
+  V1 V2 Scope -> (emit-boolean [(cl equal) (compile-expression V1 Scope) (compile-expression V2 Scope)])
+    where (or (string? V1) (string? V2))
+  V1 V2 Scope -> (emit-boolean [(kl absequal)
+                                (compile-expression V1 Scope)
+                                (compile-expression V2 Scope)]))
 
 (define emit-application
   Op Params Scope -> (emit-application* Op (arity Op) Params Scope))
@@ -296,6 +337,7 @@ but not otherwise.
   >=              -> (kl greater-than-or-equal-to?)
   <=              -> (kl less-than-or-equal-to?)
   cons            -> (cl cons)
+  cn              -> (kl cn)
   reverse         -> (cl reverse)
   append          -> (cl append)
   _               -> (fail))
@@ -307,9 +349,9 @@ but not otherwise.
   _               -> (fail))
 
 (define optimise-static-application
-  [add 1 X] -> [(cl (intern "1+")) X]
-  [add X 1] -> [(cl (intern "1+")) X]
-  [subtract X 1] -> [(cl (intern "1-")) X]
+  [add 1 X] -> [(kl increment) X]
+  [add X 1] -> [(kl increment) X]
+  [subtract X 1] -> [(kl decrement) X]
   [Cons Exp [Quote []]] -> [(cl list) Exp]
       where (and (= (cl cons) Cons)
                  (= (cl quote) Quote))

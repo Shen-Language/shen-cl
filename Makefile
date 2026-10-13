@@ -224,8 +224,20 @@ test-port:
 test-cli:
 	bash scripts/test-cli.sh
 
+.PHONY: test-accessors
+test-accessors:
+	$(RunSBCL) eval -e '(shen-cl.load-lisp "tests/accessor-tests.lsp")'
+
+.PHONY: test-extensions
+test-extensions:
+	$(RunSBCL) eval -e '(cd "kernel/")' -l tests/extensions/runme.shen
+
+.PHONY: test-sha256
+test-sha256:
+	$(RunSBCL) script extensions/sha256/tests.shen
+
 .PHONY: test-all
-test-all: test-sbcl test-compiler test-port test-cli
+test-all: test-sbcl test-compiler test-port test-cli test-extensions test-accessors test-sha256
 
 #
 # Run an implementation
@@ -255,13 +267,10 @@ run-sbcl:
 release:
 ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
-	$(PS) "Compress-Archive -Force -DestinationPath release\\$(ReleaseArchiveName) -LiteralPath $(ShenSBCL), LICENSE.txt"
-else ifeq ($(OSName),linux)
-	mkdir -p release
-	tar -vczf release/$(ReleaseArchiveName) $(ShenSBCL) LICENSE.txt --transform 's?.*/??g'
+	$(PS) "Compress-Archive -Force -DestinationPath release\\$(ReleaseArchiveName) -LiteralPath $(ShenSBCL), LICENSE.txt, extensions"
 else
 	mkdir -p release
-	tar -vczf release/$(ReleaseArchiveName) -s '?.*/??g' $(ShenSBCL) LICENSE.txt
+	tar -vczf release/$(ReleaseArchiveName) -C bin/sbcl $(BinaryName) -C ../.. LICENSE.txt extensions
 endif
 
 .PHONY: source-release
@@ -269,15 +278,15 @@ source-release:
 ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
 	$(PS) "New-Item -Path release\\$(SourceReleaseName) -Force -ItemType Directory"
-	$(PS) "Copy-Item -Path src, compiled, scripts, tests, assets, Makefile, boot.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
+	$(PS) "Copy-Item -Path src, compiled, scripts, tests, extensions, assets, Makefile, boot.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
 	$(PS) "cd release; Compress-Archive -Force -DestinationPath $(SourceReleaseName)$(ArchiveSuffix) -LiteralPath $(SourceReleaseName)"
 	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName) -Force -Recurse"
 else ifeq ($(OSName),linux)
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src compiled scripts tests assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?g"
+	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src compiled scripts tests extensions assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?g"
 else
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?g" src compiled scripts tests assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
+	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?g" src compiled scripts tests extensions assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
 endif
 
 #

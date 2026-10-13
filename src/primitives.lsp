@@ -116,7 +116,8 @@
 (defun |shen-cl.process-intern| (S)
   (declare (type string S))
   (let ((len (length S)))
-    (if (zerop len)
+    (if (or (zerop len)
+            (not (find-if (lambda (c) (find c "#'`|")) S)))
         S
         (with-output-to-string (out)
           (loop for i from 0 below len
@@ -155,8 +156,8 @@
 ;;   - within (AND t1 t2 ...): bindings made in t_i are visible in t_j, j > i
 ;;     (t_j only evaluates after t_i was true), and in a COND clause body
 ;;     guarded by the whole test;
-;;   - across COND clauses, IF branches, OR alternatives, trap-error bodies:
-;;     bindings do NOT escape (short-circuiting means they may not have run);
+;;   - across conditional joins, bindings do not escape: skipped expressions
+;;     may not have assigned them, and completed branches may mutate roots;
 ;;   - chains are only bound when rooted at a *lexical* variable (defun
 ;;     params, LET/let vars, or an earlier accessor binding) -- bare special
 ;;     variable references (from KL [value X]) are never CSE'd since their
@@ -168,8 +169,8 @@
 ;;     operators reachable only through lisp. escapes) is left completely
 ;;     unchanged.
 ;;
-;; Only |eval-kl| applies this pass, so precompiled kernel sources
-;; (compiled/*.lsp) are byte-identical to before.
+;; EVAL-KL and the build's copies of generated kernel/StLib Lisp use this
+;; pass. Writes and calls not known to be pure invalidate accessor bindings.
 
 (defvar shen-cl.*acc-vars* nil)     ; vars allocated for the current defun
 (defvar shen-cl.*acc-counter* 0)
@@ -209,16 +210,20 @@
       (let ((head (car e)))
         (cond
           ((or (not (symbolp head))
-               (member head '(quote function go declare setq
+               (member head '(quote function go declare
                               lambda |lambda| |freeze|)))
            ;; Literals and closures: leave the whole form untouched.
            (values e env env))
+          ((member head '(setq setf))
+           ;; Host escapes and literal global writes may change a root or
+           ;; the conses reachable through it. No previous cache survives.
+           (values e nil nil))
           ((eq head 'tagbody)
            ;; (TAGBODY {tag | statement}*), emitted by the pattern
            ;; factoriser's fallthrough join. A statement can also be
            ;; reached via GO from a sibling statement, so bindings made
            ;; in one statement are never guaranteed on entry to another:
-           ;; walk each compound statement with the tagbody's entry env,
+           ;; walk each compound statement with an empty cache,
            ;; pass tags (atoms) through, and let nothing escape (GO may
            ;; skip any suffix of a statement, and TAGBODY's value is NIL).
            ;; Within a single statement the usual guarded-reuse rules
@@ -228,10 +233,10 @@
                                    (if (atom s)
                                        s
                                        (multiple-value-bind (s2)
-                                           (shen-cl.acc-walk s env scope)
+                                           (shen-cl.acc-walk s nil scope)
                                          s2)))
                                  (cdr e)))
-                   env env))
+                   nil nil))
           ((member head '(car cdr))
            (shen-cl.acc-walk-chain head (second e) env scope))
           ((eq head 'and) (shen-cl.acc-walk-and e env scope))
@@ -245,7 +250,7 @@
                (values (if (cddr (cdr e))
                            (list 'if c a b)
                            (list 'if c a))
-                       ca ca))))
+                       nil nil))))
           ((eq head 'cond) (shen-cl.acc-walk-cond e env scope))
           ((member head '(let let*)) (shen-cl.acc-walk-let e env scope))
           ((eq head '|let|)           ; (|let| var value body)
@@ -255,31 +260,31 @@
                              body
                              (shen-cl.acc-shadow va (list var))
                              (cons var scope))))
-                 (values (list op var value2 body2) va va)))))
+                 (values (list op var value2 body2) nil nil)))))
           ((eq head '|if|)            ; (|if| c y z): c always evaluated
            (destructuring-bind (op c y z) e
              (multiple-value-bind (c2 ca) (shen-cl.acc-walk c env scope)
                (values (list op c2
                              (shen-cl.acc-walk y ca scope)
                              (shen-cl.acc-walk z ca scope))
-                       ca ca))))
+                       nil nil))))
           ((member head '(|and| |or|)) ; (op x y): y conditionally evaluated
            (destructuring-bind (op x y) e
              (multiple-value-bind (x2 xa xt) (shen-cl.acc-walk x env scope)
                (values (list op x2
                              (shen-cl.acc-walk y (if (eq head '|and|) xt xa)
                                                scope))
-                       xa xa))))
+                       nil nil))))
           ((eq head '|trap-error|)    ; body may unwind mid-way
            (destructuring-bind (op x f) e
              (values (list op
                            (shen-cl.acc-walk x env scope)
                            (shen-cl.acc-walk f env scope))
-                     env env)))
+                     nil nil)))
           ((eq head 'block)           ; (BLOCK name form...): RETURN may skip
            (multiple-value-bind (forms)
                (shen-cl.acc-walk-seq (cddr e) env scope)
-             (values (list* 'block (second e) forms) env env)))
+             (values (list* 'block (second e) forms) nil nil)))
           ((eq head 'progn)
            (multiple-value-bind (forms env2)
                (shen-cl.acc-walk-seq (cdr e) env scope)
@@ -288,22 +293,33 @@
            (values (if (cdr e)
                        (list 'return (shen-cl.acc-walk (second e) env scope))
                        e)
-                   env env))
+                   nil nil))
           ((eq head 'return-from)     ; (RETURN-FROM name [value])
            (values (if (cddr e)
                        (list 'return-from (second e)
                              (shen-cl.acc-walk (third e) env scope))
                        e)
-                   env env))
+                   nil nil))
           ((or (special-operator-p head) (macro-function head))
            ;; Anything else the compiler does not emit (lisp. escapes):
            ;; leave completely unchanged.
-           (values e env env))
+           (values e nil nil))
           (t
            ;; Plain function call: arguments all evaluated left-to-right.
            (multiple-value-bind (args env2)
                (shen-cl.acc-walk-seq (cdr e) env scope)
-             (values (cons head args) env2 env2)))))))
+             (let ((after (if (shen-cl.acc-pure-call-p head) env2 nil)))
+               (values (cons head args) after after))))))))
+
+(defun shen-cl.acc-pure-call-p (name)
+  (member name '(car cdr consp null eq eql equal equalp numberp stringp
+                 + - * / > < >= <= not 1+ 1- list list-length cons append reverse
+                 |shen-cl.absequal| |shen-cl.equal?| |shen-cl.true?|
+                 |shen-cl.numeric-equal| |shen-cl.increment| |shen-cl.decrement|
+                 |shen-cl.absvector-p| |shen-cl.integral-p|
+                 |shen-cl.boolean-p| |shen-cl.pvar-p|
+                 |shen-cl.add| |shen-cl.subtract| |shen-cl.multiply| |shen-cl.divide|)
+          :test #'eq))
 
 (defun shen-cl.acc-walk-chain (op arg env scope)
   (multiple-value-bind (arg2 enva) (shen-cl.acc-walk arg env scope)
@@ -324,40 +340,35 @@
 
 (defun shen-cl.acc-walk-and (e env scope)
   ;; arg j evaluates only if args 1..j-1 were true.
-  (let ((cur env) (out nil) (env-always env))
+  (let ((cur env) (out nil))
     (loop for arg in (cdr e)
-          for i from 0
           do (multiple-value-bind (a2 aa at) (shen-cl.acc-walk arg cur scope)
+               (declare (ignore aa))
                (push a2 out)
-               (when (= i 0) (setf env-always aa))
                (setf cur at)))
-    (values (cons 'and (nreverse out)) env-always cur)))
+    (values (cons 'and (nreverse out)) nil cur)))
 
 (defun shen-cl.acc-walk-or (e env scope)
   ;; arg j evaluates only if args 1..j-1 were false.
-  (let ((cur env) (out nil) (env-always env))
+  (let ((cur env) (out nil))
     (loop for arg in (cdr e)
-          for i from 0
           do (multiple-value-bind (a2 aa) (shen-cl.acc-walk arg cur scope)
                (push a2 out)
-               (when (= i 0) (setf env-always aa))
                (setf cur aa)))
-    (values (cons 'or (nreverse out)) env-always env-always)))
+    (values (cons 'or (nreverse out)) nil nil)))
 
 (defun shen-cl.acc-walk-cond (e env scope)
   ;; test i+1 evaluates only after test i evaluated (to false); a clause body
   ;; evaluates only after its own test was fully true.
-  (let ((cur env) (out nil) (env-always env))
+  (let ((cur env) (out nil))
     (loop for clause in (cdr e)
-          for i from 0
           do (multiple-value-bind (t2 ta tt)
                  (shen-cl.acc-walk (car clause) cur scope)
                (multiple-value-bind (body)
                    (shen-cl.acc-walk-seq (cdr clause) tt scope)
                  (push (cons t2 body) out))
-               (when (= i 0) (setf env-always ta))
                (setf cur ta)))
-    (values (cons 'cond (nreverse out)) env-always env-always)))
+    (values (cons 'cond (nreverse out)) nil nil)))
 
 (defun shen-cl.acc-walk-let (e env scope)
   (destructuring-bind (op bindings . body) e
@@ -385,8 +396,8 @@
                         (shen-cl.acc-walk-seq body body-env body-scope)
                       forms)))
         ;; Bindings made inside a LET may be rooted at its (now out-of-scope)
-        ;; variables, so nothing escapes.
-        (values (list* op (nreverse out) body2) env env)))))
+        ;; variables, and the body may change outer roots. Nothing escapes.
+        (values (list* op (nreverse out) body2) nil nil)))))
 
 (defun shen-cl.acc-walk-seq (forms env scope)
   "Walk FORMS as a left-to-right always-evaluated sequence.
@@ -438,6 +449,23 @@ Any other form is returned unchanged."
               form)))
       form))
 
+(defun shen-cl.optimize-generated-file (path)
+  "Apply the same accessor pass to precompiled kernel and StLib defuns."
+  (let* ((text (with-open-file (in path)
+                 (let ((s (make-string (file-length in))))
+                   (subseq s 0 (read-sequence s in)))))
+         (start (search "(in-package :shen)" text))
+         (forms (with-input-from-string (in text)
+                  (loop for form = (read in nil :eof)
+                        until (eq form :eof)
+                        collect (shen-cl.bind-accessor-chains form)))))
+    (unless start (error "Missing generated package prelude: ~A" path))
+    (with-open-file (out path :direction :output :if-exists :supersede)
+      ;; Keep the license comments before the generated package prelude.
+      (write-string text out :end start)
+      (let ((*print-readably* t) (*print-circle* t) (*print-pretty* nil))
+        (dolist (form forms) (write form :stream out) (terpri out))))))
+
 (defun |eval-kl| (X)
   (let ((e (eval (shen-cl.bind-accessor-chains (|shen-cl.kl->lisp| x)))))
     (if (and (consp x) (eq (car x) '|defun|))
@@ -475,9 +503,20 @@ Any other form is returned unchanged."
                 n |shen-cl.max-absvector-size|))))
 
 (defun |absvector?| (x)
-  (if (and (arrayp x) (not (stringp x)))
+  (if (|shen-cl.absvector-p| x)
      '|true|
      '|false|))
+
+(declaim (inline |shen-cl.absvector-p|))
+(defun |shen-cl.absvector-p| (x)
+  (and (arrayp x) (not (stringp x))))
+
+;; Open-code the small checked primitives at call sites. Keep validation,
+;; double precision conversion, bounds checks, and the absvector size cap.
+(declaim (inline |address->| |<-address| |pos| |tlstr| |cn|
+                 |n->string| |string->n| |shen-cl.add| |shen-cl.subtract|
+                 |shen-cl.multiply| |shen-cl.divide| |shen-cl.increment|
+                 |shen-cl.decrement| |shen-cl.numeric-equal| |shen-cl.true?|))
 
 (defun |address->| (vector n value)
   (setf (svref vector n) value)
@@ -492,7 +531,7 @@ Any other form is returned unchanged."
       (funcall default)))
 
 (defun |shen-cl.get/or| (var prop dict default)
-  (multiple-value-bind (entry found) (gethash var dict)
+  (multiple-value-bind (entry found) (|shen-cl.dict-entry| dict var)
     (if found
         (let ((res (assoc prop entry :test #'eq)))
           (if res
@@ -518,16 +557,24 @@ Any other form is returned unchanged."
 
 (defun |shen-cl.absequal| (x y)
   (cond
-    ((and (consp x) (consp y) (|shen-cl.absequal| (car x) (car y)))
-     (|shen-cl.absequal| (cdr x) (cdr y)))
-    ((and (stringp x) (stringp y))
-     (string= x y))
-    ((and (numberp x) (numberp y))
-     (= x y))
-    ((and (arrayp x) (arrayp y))
-     (cf-vectors x y (length x) (length y)))
+    ((eq x y) t)
+    ((numberp x) (and (numberp y) (= x y)))
+    ((consp x)
+     (and (consp y) (|shen-cl.absequal| (car x) (car y))
+          (|shen-cl.absequal| (cdr x) (cdr y))))
+    ((stringp x) (and (stringp y) (string= x y)))
+    ((arrayp x)
+     (and (arrayp y) (not (stringp y))
+          (cf-vectors x y (length x) (length y))))
     (t
      (equal x y))))
+
+;; Literal numeric equality: integer operands need only EQL. Other numeric
+;; representations still compare by value; non-numbers simply do not match.
+(defun |shen-cl.numeric-equal| (x y)
+  (if (and (integerp x) (integerp y))
+      (eql x y)
+      (and (numberp x) (numberp y) (= x y))))
 
 (defun cf-vectors (x y lx ly)
   (and
@@ -673,7 +720,9 @@ Any other form is returned unchanged."
 (defun |shen-cl.process-string| (x)
   (declare (type string x))
   (let ((len (length x)))
-    (if (zerop len)
+    (if (or (zerop len)
+            (not (or (search "_hash1957" x) (search "_quote1957" x)
+                     (search "_backquote1957" x) (search "bar!1957" x))))
         x
         (with-output-to-string (out)
           (loop with i = 0
@@ -700,18 +749,33 @@ Any other form is returned unchanged."
     (t                 (error "get-time does not understand the parameter ~A~%" time))))
 
 (defun |shen-cl.double-precision| (x)
-  (if (integerp x) x (coerce x 'double-float)))
+  (if (typep x '(or integer double-float)) x (coerce x 'double-float)))
+
+;; Expose fixnum inputs to the host compiler, without constraining results:
+;; Common Lisp arithmetic promotes overflow to bignums. Keep the existing
+;; general-number behavior of the compiler's 1+/1- translations.
+(defun |shen-cl.increment| (x)
+  (if (typep x 'fixnum) (1+ (the fixnum x)) (1+ x)))
+
+(defun |shen-cl.decrement| (x)
+  (if (typep x 'fixnum) (1- (the fixnum x)) (1- x)))
 
 (defun |shen-cl.multiply| (x y)
-  (if (or (zerop x) (zerop y))
-    0
-    (* (|shen-cl.double-precision| x) (|shen-cl.double-precision| y))))
+  (cond ((and (typep x 'fixnum) (typep y 'fixnum)) (* x y))
+        ((and (typep x 'double-float) (typep y 'double-float))
+         (if (or (zerop x) (zerop y)) 0 (* x y)))
+        ((or (zerop x) (zerop y)) 0)
+        (t (* (|shen-cl.double-precision| x) (|shen-cl.double-precision| y)))))
 
 (defun |shen-cl.add| (x y)
-  (+ (|shen-cl.double-precision| x) (|shen-cl.double-precision| y)))
+  (cond ((and (typep x 'fixnum) (typep y 'fixnum)) (+ x y))
+        ((and (typep x 'double-float) (typep y 'double-float)) (+ x y))
+        (t (+ (|shen-cl.double-precision| x) (|shen-cl.double-precision| y)))))
 
 (defun |shen-cl.subtract| (x y)
-  (- (|shen-cl.double-precision| x) (|shen-cl.double-precision| y)))
+  (cond ((and (typep x 'fixnum) (typep y 'fixnum)) (- x y))
+        ((and (typep x 'double-float) (typep y 'double-float)) (- x y))
+        (t (- (|shen-cl.double-precision| x) (|shen-cl.double-precision| y)))))
 
 (defun |shen-cl.divide| (x y)
   (let ((div (/ (|shen-cl.double-precision| x)
@@ -734,6 +798,20 @@ Any other form is returned unchanged."
 
 (defun |number?| (n)
   (if (numberp n) '|true| '|false|))
+
+;; Available before the generated kernel is compiled: SBCL must see the
+;; inline bodies then, not just after overwrite.lsp installs public shims.
+(declaim (inline |shen-cl.pvar-p| |shen-cl.integral-p| |shen-cl.boolean-p|))
+
+(defun |shen-cl.pvar-p| (x)
+  (and (simple-vector-p x) (plusp (length x))
+       (eq (svref x 0) '|shen.pvar|)))
+
+(defun |shen-cl.integral-p| (x)
+  (or (integerp x) (and (floatp x) (= x (truncate x)))))
+
+(defun |shen-cl.boolean-p| (x)
+  (or (eq x '|true|) (eq x '|false|)))
 
 (defun |shen-cl.repl| ()
 
@@ -776,12 +854,6 @@ Any other form is returned unchanged."
 (defun |shen-cl.toplevel| ()
   (let ((*package* (find-package :shen)))
 
-    ;; Advertise the host SHA-256 backend from the running process. SBCL/CLISP
-    ;; bake the environment into the saved image at build time, so this cannot
-    ;; move to boot.lsp without freezing SHEN_X_SHA256 at whoever built it.
-    ;; ECL initialises the Shen environment further down and installs there.
-    #-ecl (|shen-cl.install-sha256-host|)
-
     #+clisp
     (handler-bind ((warning #'muffle-warning))
       (with-open-stream (*standard-input* (ext:make-stream :input :element-type 'unsigned-byte))
@@ -813,7 +885,7 @@ Any other form is returned unchanged."
      (|shen-cl.initialise|)
      (|shen.x.features.initialise| '(|shen/cl| |shen/cl.ecl|))
      (|stlib.initialise|)
-     (|shen-cl.install-sha256-host|)
+     (|shen-cl.initialise-extensions|)
      (|shen-cl.toplevel-interpret-args| (si:command-args)))
 
     #+sbcl

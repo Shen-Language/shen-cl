@@ -73,6 +73,9 @@ jobs:
       - name: Compiler tests
         run: make test-compiler
 
+      - name: Port, extension, and accessor tests
+        run: make test-port test-extensions test-accessors test-sha256
+
       - name: Package
         shell: bash
         run: |
@@ -84,6 +87,7 @@ jobs:
           mkdir -p "$STAGE"
           cp bin/sbcl/shen "$STAGE/"
           cp LICENSE.txt "$STAGE/"
+          cp -R extensions "$STAGE/"
           ARCHIVE="shen-cl-${VERSION}-${{ matrix.platform }}-prebuilt.tar.gz"
           tar -czf "release/$ARCHIVE" -C "$STAGE_PARENT" "$STAGE_NAME"
           ls -la "release/$ARCHIVE"

@@ -1,4 +1,4 @@
-[![Shen Version](https://img.shields.io/badge/shen-41.1-blue.svg)](https://github.com/Shen-Language)
+[![Shen Version](https://img.shields.io/badge/shen-42.2-blue.svg)](https://github.com/Shen-Language)
 [![Build Status](https://github.com/Shen-Language/shen-cl/actions/workflows/release.yml/badge.svg)](https://github.com/Shen-Language/shen-cl/actions/workflows/release.yml)
 
 # Shen for Common Lisp
@@ -14,7 +14,9 @@ This codebase currently supports the following implementations:
   * [Embeddable Common Lisp](https://common-lisp.net/project/ecl/)
   * [Steel Bank Common Lisp](http://www.sbcl.org/)
 
-This port acts as the standard implementation of the Shen language. It is also the fastest known port, running the standard test suite in 4-8 seconds on SBCL, depending on hardware.
+SBCL is the primary build and test target. Compiler and runtime optimizations,
+their correctness constraints, and further opportunities are described in
+[docs/SBCL-PERFORMANCE.md](docs/SBCL-PERFORMANCE.md).
 
 Bug reports, fixes and enhancements are welcome. If you intend to port Shen to another variety of Common Lisp, consider doing so as a pull request to this repo.
 
@@ -23,6 +25,13 @@ Bug reports, fixes and enhancements are welcome. If you intend to port Shen to a
 Documentation of native interop functions is in [INTEROP.md](INTEROP.md). These functions allow calling into Lisp from Shen and Shen from Lisp.
 
 Also included is the function `cl.exit`, which takes an exit code, terminates the process, returning the given exit code.
+
+The 42.2 namespace, programmable pattern, and type annotation extensions are
+bundled.
+
+Optional host extensions live under `extensions/`. The
+[SHA-256 extension](extensions/sha256/README.md) is loaded explicitly through
+the existing Lisp interop API.
 
 ## Prerequisites
 
@@ -48,6 +57,7 @@ The `Makefile` automates all build and test operations.
 | `precompile` | Precompile kernel and compiler to Lisp code. |
 | `build-X`    | Build executable.                            |
 | `test-X`     | Run test suite.                              |
+| `test-all`   | Kernel, compiler, port, CLI, extension, and native artifact tests. |
 | `X`          | Build and run test suite.                    |
 | `run-X`      | Start Shen REPL.                             |
 | `release`    | Creates archive of compiled binaries.        |
@@ -68,6 +78,10 @@ code (an earlier shen-cl, or shen-scheme). The output reaches a fixpoint after
 one self-hosted pass: if you bootstrap from another port, rebuild, run
 `make precompile SHEN=bin/sbcl/shen` once more and rebuild so that the
 compiled kernel was produced by shen-cl itself.
+
+Kernel compilation retains global function bindings and interactive
+redefinition. SBCL block compilation is disabled for the kernel; see the
+optimization guide for the binding tradeoff.
 
 ## Building from a precompiled sources release
 

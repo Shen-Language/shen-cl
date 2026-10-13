@@ -1,6 +1,6 @@
-\\ FIPS 180-4 vectors for the shen.x host SHA-256 backend (src/sha256.lsp).
+\\ FIPS 180-4 vectors for the shen.x host SHA-256 extension (extensions/sha256/sha256.lsp).
 \\
-\\ Run:  bin/sbcl/shen script tests/sha256-tests.shen
+\\ Run:  make test-sha256
 \\
 \\ Digests are written as octet lists rather than hex so the test needs no
 \\ formatting helpers of its own and cannot pass because of a bug in them.
@@ -34,7 +34,16 @@
 
 (define sha256-tests.run
   -> (let Results
-       [(sha256-tests.check "backend-is-host" (sha256-tests.backend) host)
+       [(sha256-tests.check "callable-metadata" (arity shen.x.sha256-octets-host) 1)
+        (sha256-tests.check "first-class-function"
+          ((fn shen.x.sha256-octets-host) []) (shen.x.sha256-octets-host []))
+        (sha256-tests.check "invalid-octet"
+          (trap-error (do (shen.x.sha256-octets-host [256]) not-caught)
+                      (/. E caught)) caught)
+        (sha256-tests.check "improper-list"
+          (trap-error (do (shen.x.sha256-octets-host [0 | 1]) not-caught)
+                      (/. E caught)) caught)
+        (sha256-tests.check "backend-is-host" (sha256-tests.backend) host)
         (sha256-tests.check "batteries-feature-is-advertised"
           (sha256-tests.batteries-feature) true)
         (sha256-tests.check "nist-empty"
@@ -72,4 +81,11 @@
                true)
            (do (output "shen-cl sha256: SOME FAILED~%") false))))
 
-(sha256-tests.run)
+(if (and (= (arity shen.x.sha256-octets-host) -1)
+         (not (sha256-tests.batteries-feature)))
+    true
+    (simple-error "SHA-256 must be absent before explicit loading"))
+
+(shen-cl.load-lisp "extensions/sha256/sha256.lsp")
+
+(if (sha256-tests.run) (cl.exit 0) (cl.exit 1))

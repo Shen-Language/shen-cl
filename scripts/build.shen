@@ -9,6 +9,11 @@
 \\ (load "kernel/klambda/extension-factorise-defun.kl")
 \\ (shen.x.factorise-defun.initialise)
 (define shen.x.factorise-defun.factorise-defun Defun -> Defun)
+\\ Loading the compiler replaces Shen/CL's active translator immediately.
+\\ Give an older CL bootstrap image its new host helpers first.
+(if (= (language) "Common Lisp")
+    (eval-kl [lisp.load "scripts/bootstrap-compiler.lsp"])
+    skip)
 (load "src/compiler.shen")
 
 (shen-cl.initialise-compiler)
@@ -36,6 +41,9 @@
        "extension-features"
        "extension-expand-dynamic"
        "extension-launcher"
+       "extension-programmable-pattern-matching"
+       "extension-namespaces"
+       "extension-type-annotations"
        "stlib"
        ])
 \\ ShenOSKernel-42.2 (community shen-sources) is compiled unmodified. Every
@@ -45,6 +53,29 @@
 \\ (or at startup on ECL). See docs/KERNEL-PROVENANCE-42.2.md.
 
 (set *shen-cl-files* ["compiler"])
+
+\\ Derive the port's callable metadata from its actual definitions. The
+\\ kernel's init.kl only knows kernel functions, not this compiler.
+(define build.arity-registrations
+  [] -> []
+  [[defun F Args _] | Forms]
+  -> [[update-lambda-table F (length Args)] | (build.arity-registrations Forms)]
+  [_ | Forms] -> (build.arity-registrations Forms))
+
+(define build.sequence
+  [] -> done
+  [X] -> X
+  [X | Xs] -> [do X (build.sequence Xs)])
+
+(define build.port-initialiser
+  -> (let Forms (mapcan (/. F (read-file-unprocessed
+                                (@s "kernel/klambda/" F ".kl")))
+                        (value *shen-cl-files*))
+          Code [defun shen-cl.initialise-arities []
+                 (build.sequence (build.arity-registrations Forms))]
+       (write-string-to-file
+        (@s (package-prelude) (sexp->string (compile-defun Code)) "c#10;")
+        "compiled/port-init.lsp")))
 
 (define for-each
   _ [] -> true
@@ -186,7 +217,9 @@
                (close Out)))
 
 (define build
-  -> (do (compile-shen-file "src/compiler.shen" "kernel/klambda/compiler.kl")
+  -> (do (for-each (/. F (compile-shen-file (@s "src/" F ".shen")
+                                          (@s "kernel/klambda/" F ".kl")))
+                   (value *shen-cl-files*))
          (for-each (/. F (compile-kl-file
                           (package-prelude)
                           (@s "kernel/klambda/" F ".kl")
@@ -197,6 +230,7 @@
                           (@s "kernel/klambda/" F ".kl")
                           (@s "compiled/" F ".lsp")))
                    (value *shen-files*))
+         (build.port-initialiser)
          done))
 
 (define write-string-to-file

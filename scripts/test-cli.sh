@@ -152,20 +152,12 @@ test_impl() { # IMPL
     *) ok "$impl: adversarial eval did not leak a Lisp backtrace" ;;
   esac
 
-  # --- quiet (-q) pr-to-file (the yggdrasil stage-1 regression + divergence) ---
-  # DIVERGENCE: under -q (which sets *hush*), only the SBCL build still writes
-  # (pr STR FileStream); the CLISP and ECL builds SILENCE pr to file streams
-  # (zero-byte file). (write-byte ... FileStream) is unaffected on ALL builds.
+  # Quiet mode suppresses launcher output, not writes to an explicit file.
   rm -f "$tmp/q.txt"
   run_bounded 60 $bin eval -q -e \
     "(let S (open \"$tmp/q.txt\" out) (do (pr \"payload\" S) (close S)))" >/dev/null 2>&1
   local content=""; [ -f "$tmp/q.txt" ] && content="$(cat "$tmp/q.txt")"
-  case "$impl" in
-    sbcl)
-      assert_eq "payload" "$content" "$impl: -q does NOT suppress pr to a file stream" ;;
-    clisp|ecl)
-      assert_eq "" "$content" "$impl: -q silences pr to a file stream (CLISP/ECL divergence)" ;;
-  esac
+  assert_eq "payload" "$content" "$impl: -q does NOT suppress pr to a file stream"
   # write-byte to a file is unaffected by -q on ALL impls (impl-independent).
   rm -f "$tmp/wb.txt"
   run_bounded 60 $bin eval -q -e \
@@ -190,22 +182,14 @@ test_impl() { # IMPL
   else
     assert_eq "0" "$ec" "$impl: REPL exits 0 via (cl.exit)"
   fi
-  # DIVERGENCE: a bare EOF (no cl.exit) does NOT exit the shen-cl/Shen-41.x REPL
-  # cleanly -- it loops (a known kernel gotcha), and the REPL also ignores the
-  # soft SIGTERM. Bound it so CI can't hang: run_bounded escalates to SIGKILL,
-  # so a firing bound shows as 124 (soft kill honoured), 137 (128+9 SIGKILL
-  # escalation) or 134 (CLISP SIGABRT on a piped REPL). Any of those means
-  # "the loop was bounded"; only a clean, prompt 0 would be a (welcome)
-  # divergence. An unbounded hang would deadline the whole run.
-  printf '(version)\n' | run_bounded 6 $bin >/dev/null 2>&1; ec=$?
-  if [ -z "$TIMEOUT_BIN" ]; then
-    echo "  [SKIP]  $impl: no timeout binary; not probing bare-EOF loop"
-  elif [ "$ec" -eq 124 ] || [ "$ec" -eq 137 ] || [ "$ec" -eq 134 ]; then
-    ok "$impl: bare-EOF REPL does not exit cleanly (bounded) -- documented divergence"
-  elif [ "$ec" -eq 0 ]; then
-    ok "$impl: bare-EOF REPL exited cleanly (better than documented)"
+  # At EOF the final complete form is evaluated, even without a newline.
+  printf '(+ 100 23)' | run_bounded 6 $bin > "$tmp/eof.out" 2>&1; ec=$?
+  out="$(cat "$tmp/eof.out")"
+  assert_contains "123" "$out" "$impl: REPL evaluates final form without newline"
+  if [ "$impl" = "clisp" ] && [ "$ec" -eq 134 ]; then
+    ok "clisp: bare-EOF REPL reaches the known non-TTY driver-frame abort"
   else
-    bad "$impl: bare-EOF REPL exited with unexpected status $ec"
+    assert_eq "0" "$ec" "$impl: bare-EOF REPL exits cleanly"
   fi
 
   # --- kernel 42.1: read / lineread at EOF without a trailing newline ---

@@ -10,6 +10,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Changed
 
+- Integrate pyrex41/shen-cl through `d59bf13`, including its Nix environment,
+  pattern factorizer, and kernel update.
+- Bundle the 42.2 namespace, programmable pattern, and type annotation
+  extensions, and derive the port compiler's callable metadata at build time.
+- Emit direct predicates, literal equality tests, literal global assignments,
+  and Boolean tests through `let`/`do`. Inline checked small primitives and
+  expose predicate helpers before compiling the generated kernel.
+- Expose checked fixnum and double-float arithmetic paths, avoid redundant
+  double-float normalization, and inline numeric-literal and strict Boolean
+  tests. General equality no longer repeats failed list comparisons.
+- Apply accessor caching to generated kernel/StLib Lisp, with invalidation
+  across writes, unknown calls, branches, and control-flow joins.
+- Use structural dictionary keys with case-sensitive strings and numeric
+  equality across representations. Preserve the unchanged public kernel `hash`.
+- Retain dynamic kernel bindings and interactive redefinition. Optimization
+  rationale and further opportunities are documented in
+  [docs/SBCL-PERFORMANCE.md](docs/SBCL-PERFORMANCE.md).
+
 - **Kernel: ShenOSKernel 42.2** (community `Shen-Language/shen-sources` tag
   `shen-42.2`, commit `73507e0`, `ShenOSKernel-42.2.tar.gz` SHA-256
   `1d02273003654d34ec020ae67cb214ecec410dee3350419ff807d82b652678d8`), the
@@ -34,6 +52,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Fixed
 
+- Preserve repeated guard evaluation and errors in the backend pattern
+  factoriser by sharing only stable parameter tests.
+- Keep `(fn input+)` callable, correctly name the native `shen.pvar?`
+  override, and accept integral floats in `integer?` without narrowing bignums.
+- Avoid traversing identical equality operands and allocating escaped symbol
+  strings when no escaping is needed.
+- CLI tests require clean EOF handling and preserve quiet-mode file writes.
+
 - `read`/`lineread` on a character stream (e.g. SBCL/ECL stdin) now parse
   input that ends at EOF without a trailing newline, instead of failing with
   `"" is not a unit string` (kernel 42.1 requirement). The REPL evaluates such
@@ -47,6 +73,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
   a C/POSIX locale.
 - ECL no longer prints `;;; Loading .../cmp.fas` on stdout at startup.
 
+### Added
+
+- Optional SHA-256 host extension under `extensions/sha256/`, with explicit
+  loading, feature registration, and its own documentation and tests.
+- Performance documentation and extension/accessor regression targets,
+  validated on SBCL 2.6.9.
+
+### Earlier experimental kernel work
 
 - Update the supported Tarver kernel to S42.0 (`S42.zip`, SHA-256
   `30abdc7e5a1e27b7a20109c1ed141e4712885e31f24d9710d16415fbbd4dfb23`). The
