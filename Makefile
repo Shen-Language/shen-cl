@@ -65,7 +65,7 @@ endif
 # Set shared variables
 #
 
-KernelVersion=41.2
+KernelVersion=42.2
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
 KernelTag=shen-$(KernelVersion)
@@ -116,6 +116,11 @@ run: run-sbcl
 # Dependency retrieval
 #
 
+# `fetch` downloads the community ShenOSKernel-42.2 release
+# (Shen-Language/shen-sources tag shen-42.2), verifies its pinned SHA-256 and
+# extracts it unmodified as `kernel/`. Pass KERNEL_ARCHIVE=path/to/
+# ShenOSKernel-42.2.tar.gz to use a local copy of the release tarball. See
+# docs/KERNEL-PROVENANCE-42.2.md.
 .PHONY: fetch
 fetch:
 ifeq ($(OSName),windows)
@@ -126,11 +131,7 @@ ifeq ($(OSName),windows)
 	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
 	$(PS) "Rename-Item $(KernelFolderName) kernel -ErrorAction Ignore"
 else
-	$(FetchCmd) $(KernelArchiveUrl)
-	tar zxf $(KernelArchiveName)
-	rm -f $(KernelArchiveName)
-	rm -rf kernel
-	mv $(KernelFolderName) kernel
+	scripts/fetch-kernel.sh $(KERNEL_ARCHIVE)
 endif
 
 #
@@ -165,7 +166,7 @@ build-ecl:
 
 .PHONY: build-sbcl
 build-sbcl:
-	$(SBCL) --load boot.lsp
+	$(SBCL) --non-interactive --load boot.lsp
 
 #
 # Test an implementation

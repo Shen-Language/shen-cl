@@ -146,8 +146,12 @@
 (import-lsp source-path "package")
 (import-lsp source-path "primitives")
 (import-lsp source-path "native")
+(import-lsp source-path "sha256")
 (import-lsp source-path "shen-utils")
 (import-lsp compiled-path "compiler")
+;; ShenOSKernel-42.2 (community shen-sources, vendored unmodified). Every .kl
+;; file holds only defuns, so this order is not load-bearing: the environment
+;; is built afterwards by (shen.initialise) from init.kl.
 (import-lsp compiled-path "toplevel")
 (import-lsp compiled-path "core")
 (import-lsp compiled-path "sys")
@@ -170,6 +174,13 @@
 (import-lsp compiled-path "stlib")
 (import-lsp source-path "overwrite")
 
+;; Initialisation, in the order the kernel's port guide prescribes:
+;; shen.initialise (init.kl) builds the global environment, then the port's
+;; own registrations, the features extension, and finally stlib.initialise
+;; (41.1+: a port distributing klambda/stlib.kl must call it after loading).
+;; SBCL/CLISP bake the result into the saved image. ECL's c:build-program
+;; links object files and cannot bake runtime state, so ECL runs the same
+;; sequence at startup in shen-cl.toplevel (src/primitives.lsp).
 #-ecl
 (progn
  (|shen.initialise|)
@@ -180,7 +191,6 @@
    #+sbcl  |shen/cl.sbcl|
    #+ccl   |shen/cl.ccl|
  ))
- ;; Initialise the standard library (maths, vectors, strings, pretty-print).
  (|stlib.initialise|))
 
 (fmakunbound 'compile-lsp)

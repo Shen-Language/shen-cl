@@ -11,7 +11,7 @@ name: Port Tests
 
 on:
   push:
-    branches: [ main, 'kernel-*' ]
+    branches: [ master, 'kernel-*' ]
   pull_request:
   workflow_dispatch:
 
@@ -32,7 +32,7 @@ jobs:
       - name: Install SBCL
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends sbcl curl
 
-      - name: Fetch ShenOSKernel
+      - name: Fetch ShenOSKernel 42.2 (SHA-256 verified)
         run: make fetch
 
       - name: Download bootstrap Shen

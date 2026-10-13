@@ -46,7 +46,7 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install sbcl
 
-      - name: Fetch ShenOSKernel
+      - name: Fetch ShenOSKernel 42.2 (SHA-256 verified)
         run: make fetch
 
       - name: Download bootstrap Shen

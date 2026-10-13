@@ -44,7 +44,7 @@ The `Makefile` automates all build and test operations.
 
 | Target       | Operation                                    |
 |:-------------|:---------------------------------------------|
-| `fetch`      | Download and extract Shen sources.           |
+| `fetch`      | Download and verify the ShenOSKernel 42.2 release. |
 | `precompile` | Precompile kernel and compiler to Lisp code. |
 | `build-X`    | Build executable.                            |
 | `test-X`     | Run test suite.                              |
@@ -54,7 +54,20 @@ The `Makefile` automates all build and test operations.
 
 `X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
 
-`precompile` is only required when bootstraping Shen/CL from this repository, the source release includes the precompiled files. The `SHEN` variable has to be defined and point to a working Shen executable that will be used to precompile the kernel and compiler code.
+`fetch` downloads the community ShenOSKernel 42.2 release
+(Shen-Language/shen-sources tag `shen-42.2`, the kernel shipped by
+shen-scheme 0.50), checks its pinned SHA-256 and extracts it unmodified as
+`kernel/`. To build offline, pass a local copy of the release tarball:
+`make fetch KERNEL_ARCHIVE=path/to/ShenOSKernel-42.2.tar.gz`. See
+[`docs/KERNEL-PROVENANCE-42.2.md`](docs/KERNEL-PROVENANCE-42.2.md).
+
+`precompile` is only required when bootstrapping Shen/CL from this repository;
+the source release includes the precompiled files. The `SHEN` variable must
+point to a working Shen executable used to precompile the kernel and compiler
+code (an earlier shen-cl, or shen-scheme). The output reaches a fixpoint after
+one self-hosted pass: if you bootstrap from another port, rebuild, run
+`make precompile SHEN=bin/sbcl/shen` once more and rebuild so that the
+compiled kernel was produced by shen-cl itself.
 
 ## Building from a precompiled sources release
 
@@ -91,3 +104,22 @@ make precompile SHEN=shen-sbcl
 make sbcl
 make release
 ```
+## Optional Nix environment
+
+Nix is optional; the normal shen-cl build and launcher commands continue to work
+with tools installed by any method. For a pinned development toolchain:
+
+```sh
+nix develop
+```
+
+The flake also exports `packages.toolchain` for composition by
+[Bifrost](https://github.com/pyrex41/bifrost):
+
+```sh
+nix shell .#toolchain
+```
+
+If direnv is installed, `direnv allow` opts this checkout into the same dev
+shell automatically. Nothing activates until that explicit authorization, and
+Nix is never required at runtime.
