@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
   checked index loop. General equality dispatches fixnum comparisons directly,
   retaining host-array checks and numeric equality across representations.
 - Construct fresh unit strings directly in `pos` and `n->string`.
+- Reject distinct symbols directly in general equality, preserving numeric paths.
 - Apply accessor caching to generated kernel/StLib Lisp, with invalidation
   across writes, unknown calls, branches, and control-flow joins.
 - Use structural dictionary keys with case-sensitive strings and numeric

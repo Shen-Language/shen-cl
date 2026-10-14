@@ -570,6 +570,8 @@ Any other form is returned unchanged."
     ((arrayp x)
      (and (arrayp y) (not (stringp y))
           (cf-vectors x y (length x) (length y))))
+    ;; Distinct symbols cannot be structurally equal; identity was checked above.
+    ((symbolp x) nil)
     (t
      (equal x y))))
 

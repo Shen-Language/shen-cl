@@ -154,6 +154,9 @@ non-string vectors.
 
 Fixnum comparisons use `eql` directly. Comparisons with other numeric
 representations retain numeric `=`, including integer/float equivalence.
+Distinct symbols need no call to Common Lisp `equal`: the earlier identity
+test has already ruled out equality. This rejection follows the numeric and
+structural cases, preserving their existing dispatch paths.
 
 Dispatch then follows the first operand's type. A failed list comparison returns
 immediately; falling through to Common Lisp `equal` would repeat the failed

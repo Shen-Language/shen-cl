@@ -79,6 +79,19 @@
 (assert-true "literal equality with effectful expression" (= 1 (prim-test.argument 1.0)))
 (assert= "literal equality evaluates expression once" 1 (value prim-test.*arguments*))
 
+(define prim-test.equal-values X Y -> (= X Y))
+(assert-false "uninterned symbols with the same name remain unequal"
+  (prim-test.equal-values
+    (prim-test.host "(make-symbol (symbol-name 'same-name))")
+    (prim-test.host "(make-symbol (symbol-name 'same-name))")))
+(let Symbol (prim-test.host "(make-symbol (symbol-name 'same-name))")
+  (assert-true "shared uninterned symbols retain identity in structural equality"
+    (prim-test.equal-values [Symbol 1] [Symbol 1.0])))
+(assert-false "symbol identity distinguishes packages"
+  (prim-test.equal-values
+    (prim-test.host "'shen::same-name")
+    (prim-test.host "'cl-user::same-name")))
+
 \\ float comparisons (mirrors shen-go's float comparison coverage)
 (assert-true  "gt float true"  (> 3.5 2.0))
 (assert-false "gt float false" (> 2.0 3.5))
