@@ -69,6 +69,11 @@ irrelevant tests. Non-numbers still fail the match, and each operand is evaluate
 once. The internal strict Boolean helper is also inline, retaining its error
 branch while avoiding a call for ordinary conditions.
 
+`pos` and `n->string` construct a fresh string of length one directly after
+validating their inputs. This exposes the known result size to SBCL and avoids
+the generic string-designator conversion. Each call returns an independent
+string, including for NUL and non-ASCII characters.
+
 Inlining retains the implementations' numeric conversions and checks. The
 build uses Lisp safety 3. Numbers remain general numbers: bignums and floats
 must continue to work, and `integer?` accepts integral floats. Vector bounds,

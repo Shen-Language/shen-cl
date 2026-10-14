@@ -127,6 +127,47 @@
 (assert= "str number" "42"    (str 42))
 (assert= "str symbol" "foo"   (str foo))
 
+\\ Unknown arguments exercise the compiled constructor paths.
+(define prim-test.pos S N -> (pos S N))
+(define prim-test.nstring N -> (n->string N))
+(assert= "unit string preserves NUL" 0 (string->n (prim-test.nstring 0)))
+(let Code (prim-test.host
+            "(if (and (< 128512 char-code-limit) (code-char 128512)) 128512 65)")
+  (assert= "unit string preserves host character codes" Code
+    (string->n (prim-test.nstring Code))))
+(assert= "pos preserves host character codes"
+  (prim-test.host
+    "(if (and (< 128512 char-code-limit) (code-char 128512)) 128512 65)")
+  (string->n (prim-test.pos
+    (prim-test.host
+      "(string (or (and (< 128512 char-code-limit) (code-char 128512)) #\A))") 0)))
+(assert= "pos supports displaced strings" "c"
+  (prim-test.pos (prim-test.host
+    "(make-array 2 :element-type 'character
+       :displaced-to (coerce '(#\a #\b #\c #\d) 'string)
+       :displaced-index-offset 1)") 1))
+(let S (prim-test.host
+         "(make-array 4 :element-type 'character
+            :initial-contents '(#\a #\b #\c #\d) :fill-pointer 2 :adjustable t)")
+  (do (assert= "pos supports adjustable strings" "b" (prim-test.pos S 1))
+      (assert-caught "pos respects the fill pointer" (freeze (prim-test.pos S 2)))))
+(assert= "unit string constructors return independent strings" [97 97 97]
+  (prim-test.host
+    "(let* ((input (coerce '(#\a #\b) 'string))
+            (a (shen::|prim-test.pos| input 0)) (b (shen::|prim-test.pos| input 0))
+            (c (shen::|prim-test.nstring| 97)) (d (shen::|prim-test.nstring| 97)))
+       (setf (char a 0) #\z (char c 0) #\y)
+       (list (char-code (char input 0)) (char-code (char b 0)) (char-code (char d 0))))"))
+(assert-caught "pos rejects fractional indices" (freeze (prim-test.pos "ab" 0.5)))
+(assert-caught "unit string rejects float codes"
+  (freeze (prim-test.nstring (prim-test.host "65d0"))))
+(assert-caught "unit string rejects the character-code limit"
+  (freeze (prim-test.nstring (prim-test.host "char-code-limit"))))
+(set prim-test.*arguments* 0)
+(assert-caught "pos evaluates arguments before validation"
+  (freeze (prim-test.pos (prim-test.argument bad) (prim-test.argument 0))))
+(assert= "pos evaluates each argument once" 2 (value prim-test.*arguments*))
+
 \\ --- symbols / globals: set then value ---
 (assert= "set returns value" 99 (set prim-test-global 99))
 (assert= "value reads global" 99 (value prim-test-global))

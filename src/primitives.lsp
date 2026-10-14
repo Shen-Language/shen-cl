@@ -638,7 +638,7 @@ Any other form is returned unchanged."
      (error "~A is not a string~%" x))
     ((or (not (integerp n)) (minusp n) (>= n (length x)))
      (error "~A is not a natural number less than the length of the string~%" n))
-    (t (string (char x n)))))
+    (t (make-string 1 :initial-element (char x n)))))
 
 (defun |tlstr| (x)
   (if (and (stringp x) (plusp (length x)))
@@ -655,7 +655,7 @@ Any other form is returned unchanged."
 (defun |n->string| (n)
   (let ((c (and (integerp n) (not (minusp n)) (< n char-code-limit) (code-char n))))
     (if c
-        (string c)
+        (make-string 1 :initial-element c)
         (error "~A is not a natural number~%" n))))
 
 (defun |string->n| (s)
