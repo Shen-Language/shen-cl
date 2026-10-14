@@ -187,6 +187,20 @@
 (assert= "pos"        "e"     (pos "hello" 1))
 (assert= "str number" "42"    (str 42))
 (assert= "str symbol" "foo"   (str foo))
+(assert= "str leaves a partial shortest marker unchanged" "bar!195"
+  (str (prim-test.host "'|bar!195|")))
+(assert= "str decodes the shortest complete marker" (n->string 124)
+  (str (prim-test.host "'|bar!1957|")))
+(assert= "str leaves an eight-character partial hash marker unchanged" "_hash195"
+  (str (prim-test.host "'|_hash195|")))
+(assert= "str decodes the complete hash marker" (n->string 35)
+  (str (prim-test.host "'|_hash1957|")))
+(assert= "str decodes the complete quote marker" (n->string 39)
+  (str (prim-test.host "'|_quote1957|")))
+(assert= "str decodes the complete backquote marker" (n->string 96)
+  (str (prim-test.host "'|_backquote1957|")))
+(assert= "str decodes markers inside longer names" "a#|z"
+  (str (prim-test.host "'|a_hash1957bar!1957z|")))
 
 \\ Unknown arguments exercise the compiled constructor paths.
 (define prim-test.pos S N -> (pos S N))

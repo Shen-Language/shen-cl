@@ -724,7 +724,8 @@ Any other form is returned unchanged."
 (defun |shen-cl.process-string| (x)
   (declare (type string x))
   (let ((len (length x)))
-    (if (or (zerop len)
+    ;; No encoded marker is shorter than "bar!1957".
+    (if (or (< len (length "bar!1957"))
             (not (or (search "_hash1957" x) (search "_quote1957" x)
                      (search "_backquote1957" x) (search "bar!1957" x))))
         x

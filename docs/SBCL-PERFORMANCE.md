@@ -193,6 +193,9 @@ Symbol escaping and decoding return the original string when no transformation
 is needed. Strings containing escape characters or encoded markers take the
 normal conversion path. Avoiding intermediate strings reduces allocation in
 reading and symbol handling without changing the escape format.
+Names shorter than the shortest encoded marker skip the marker searches
+entirely. The bound comes from the escape format; partial markers remain
+unchanged, while complete markers still take the normal decoder path.
 Symbol validation scans the resulting string directly rather than using generic
 sequence mapping, and classifies each character once. It retains Common Lisp's
 Unicode-aware alphanumeric tests, the mutable punctuation list, and replaceable
