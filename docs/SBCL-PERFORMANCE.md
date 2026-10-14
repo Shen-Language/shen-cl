@@ -168,6 +168,13 @@ is needed. Strings containing escape characters or encoded markers take the
 normal conversion path. Avoiding intermediate strings reduces allocation in
 reading and symbol handling without changing the escape format.
 
+The reader's `shen.misc?` punctuation classifier also avoids constructing a
+list on each call. Integer inputs use a fixed set of character codes; other
+numbers use numeric equality against that set, preserving integral floats and
+complex representations. The function retains its global binding, so compiled
+reader code observes interactive redefinition. This is a specific host override;
+ordinary mutable Shen lists are not shared or hoisted by the compiler.
+
 ## Function bindings and compilation boundaries
 
 The normal build explicitly disables SBCL block compilation. Calls between

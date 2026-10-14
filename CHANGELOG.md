@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Expose checked fixnum and double-float arithmetic paths, avoid redundant
   double-float normalization, and inline numeric-literal and strict Boolean
   tests. General equality no longer repeats failed list comparisons.
+- Avoid allocating a punctuation list on each reader character test, while
+  preserving numeric equality and the classifier's replaceable global binding.
 - Apply accessor caching to generated kernel/StLib Lisp, with invalidation
   across writes, unknown calls, branches, and control-flow joins.
 - Use structural dictionary keys with case-sensitive strings and numeric

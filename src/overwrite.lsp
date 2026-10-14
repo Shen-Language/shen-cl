@@ -522,6 +522,18 @@
 
 ;;; --- Phase 1: Reader performance overrides ---
 
+;; The kernel constructs a fresh list of punctuation codes for every test.
+;; Keep the common integer case allocation-free, with numeric equality for
+;; other representations (including integral floats and complex numbers).
+;; This remains a global function so compiled readers see later redefinitions.
+(defun |shen.misc?| (x)
+  (if (if (integerp x)
+          (case x ((61 45 42 47 43 95 63 36 33 64 126 46 62 60 38 37 39 35 96) t))
+          (and (numberp x)
+               (member x '(61 45 42 47 43 95 63 36 33 64 126 46 62 60 38 37 39 35 96)
+                       :test #'=)))
+      '|true| '|false|))
+
 ;;; shen.str->bytes: O(N) via char indexing instead of recursive tlstr
 (defun |shen.str->bytes| (s)
   (declare (type string s))

@@ -13,6 +13,36 @@
 (define first-form
   S -> (head (read-from-string S)))
 
+\\ Character classification must retain numeric equality, not just fixnum
+\\ identity. Compare the whole byte range with the original kernel predicate.
+(define reader-test.misc-reference
+  X -> (element? X [61 45 42 47 43 95 63 36 33 64 126 46 62 60 38 37 39 35 96]))
+(define reader-test.misc-bytes
+  256 -> true
+  N -> (and (= (shen.misc? N) (reader-test.misc-reference N))
+            (reader-test.misc-bytes (+ N 1))))
+(assert-true "misc? byte classification" (reader-test.misc-bytes 0))
+(assert-true "misc? integral double" (shen.misc? 61.0))
+(assert-true "misc? integral single" (shen.misc? (eval-kl [lisp. "61f0"])))
+(assert-true "misc? complex equivalent" (shen.misc? (eval-kl [lisp. "#c(61d0 0d0)"])))
+(assert-false "misc? fractional number" (shen.misc? 61.5))
+(assert-false "misc? non-real number" (shen.misc? (eval-kl [lisp. "#c(61 1)"])))
+(assert-false "misc? large integer" (shen.misc? (eval-kl [lisp. "(expt 2 130)"])))
+(assert-false "misc? unicode code point" (shen.misc? 955))
+(assert-false "misc? symbol" (shen.misc? punctuation))
+(assert-false "misc? string" (shen.misc? "="))
+(assert-false "misc? list" (shen.misc? [61]))
+(assert-false "misc? vector" (shen.misc? (absvector 2)))
+(assert-true "misc? redefinition reaches compiled reader"
+  (eval-kl [lisp. "(let ((original (symbol-function '|shen.misc?|)) (seen nil))
+    (unwind-protect
+         (progn
+           (setf (symbol-function '|shen.misc?|)
+                 (lambda (x) (setf seen t) (funcall original x)))
+           (|read-from-string| (symbol-name '|+|))
+           (if seen '|true| '|false|))
+      (setf (symbol-function '|shen.misc?|) original)))"]))
+
 \\ --- well-formed atoms ---
 (assert= "read integer"  42      (first-form "42"))
 (assert= "read symbol"   symbol  (first-form "symbol"))
