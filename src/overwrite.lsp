@@ -490,6 +490,17 @@
 (defun |@p| (x y)
   (vector '|shen.tuple| x y))
 
+;; Ordinary Shen tuples are simple vectors. Avoid the kernel's fallback
+;; machinery for those, retaining its checked address behavior for host arrays.
+;; Keep this global binding replaceable by interactive definitions.
+(defun |tuple?| (x)
+  (if (if (simple-vector-p x)
+          (and (plusp (length x)) (eq (svref x 0) '|shen.tuple|))
+          (and (arrayp x) (not (stringp x))
+               (eq '|shen.tuple|
+                   (|shen-cl.<-address/or| x 0 (lambda () '|shen.not-tuple|)))))
+      '|true| '|false|))
+
 ;; vectors
 
 (defun |vector| (n)

@@ -25,6 +25,60 @@
 (assert-false "pvar? ordinary vector" (shen.pvar? (vector 2)))
 (assert-false "pvar? list" (shen.pvar? [shen.pvar]))
 
+(assert-true "tuple? ordinary tuple" (tuple? (@p 1 2)))
+(assert-false "tuple? empty vector" (tuple? (absvector 0)))
+(assert-false "tuple? ordinary vector" (tuple? (vector 2)))
+(assert-false "tuple? list" (tuple? [shen.tuple 1 2]))
+(assert-false "tuple? string" (tuple? "shen.tuple"))
+(assert-true "tuple? tests the marker without requiring three slots"
+  (tuple? (address-> (absvector 1) 0 shen.tuple)))
+(let Tuple (@p 1 2)
+     Before (tuple? Tuple)
+     Changed (address-> Tuple 0 changed)
+  (assert= "tuple? sees marker mutation" [true false] [Before (tuple? Tuple)]))
+
+(define port-test.tuple-check X -> (tuple? X))
+(define port-test.tuple-branch X -> (if (tuple? X) matched unmatched))
+(assert= "tuple callers retain redefinition and strict Boolean checks" [false true]
+  (shen-cl.eval-lisp
+    "(let ((saved (symbol-function 'shen::|tuple?|)))
+       (unwind-protect
+         (progn
+           (setf (symbol-function 'shen::|tuple?|)
+                 (lambda (x) (declare (ignore x)) 'shen::|false|))
+           (let ((result (shen::|port-test.tuple-check| (vector 'shen::|shen.tuple| 1 2))))
+             (setf (symbol-function 'shen::|tuple?|) (lambda (x) (declare (ignore x)) 42))
+             (list result
+                   (handler-case
+                     (progn (shen::|port-test.tuple-branch| (vector 'shen::|shen.tuple| 1 2))
+                            'shen::|false|)
+                     (simple-error (e) (declare (ignore e)) 'shen::|true|)))))
+         (setf (symbol-function 'shen::|tuple?|) saved)))"))
+
+(assert-true "empty abstract vectors compare equal" (= (absvector 0) (absvector 0)))
+(assert-false "unequal vector lengths fail equality" (= (vector 1) (vector 2)))
+(assert-true "vector equality retains nested numeric equality"
+  (= (@v 1 [2 (@p 3 4)] <>) (@v 1.0 [2.0 (@p 3.0 4.0)] <>)))
+(assert-false "vector equality checks the final slot"
+  (= (@v 1 2 3 <>) (@v 1 2 4 <>)))
+(assert-true "vector equality supports specialized host vectors"
+  (shen-cl.eval-lisp
+    "(shen::|shen-cl.equal?| (make-array 3 :element-type 'double-float :initial-contents '(1d0 2d0 3d0))
+                (vector 1 2 3))"))
+(assert-true "vector equality supports adjustable host vectors"
+  (shen-cl.eval-lisp
+    "(shen::|shen-cl.equal?| (make-array 3 :adjustable t :initial-contents '(1 2 3)) (vector 1 2 3))"))
+(assert-false "vector equality stops before a later invalid comparison"
+  (shen-cl.eval-lisp
+    "(shen::|shen-cl.equal?| (vector 1 (make-array '(2 2))) (vector 2 (make-array '(2 2))))"))
+(assert-caught "vector equality retains errors in reached elements"
+  (freeze (shen-cl.eval-lisp
+    "(shen::|shen-cl.equal?| (vector 1 (make-array '(2 2))) (vector 1 (make-array '(2 2))))")))
+(assert-false "tuple? retains empty adjustable vector behavior"
+  (shen-cl.eval-lisp "(shen::|tuple?| (make-array 0 :adjustable t))"))
+(assert-caught "tuple? retains address type checks on host arrays"
+  (freeze (shen-cl.eval-lisp "(shen::|tuple?| (make-array 1 :element-type 'bit :initial-element 0))")))
+
 (assert= "type annotation extension remains callable through fn"
   [defun port-test.annotated [x] [+ [type x number] [type 1 number]]]
   ((fn shen.x.type-annotations.annotate-kl)

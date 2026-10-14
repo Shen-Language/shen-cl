@@ -558,6 +558,10 @@ Any other form is returned unchanged."
 (defun |shen-cl.absequal| (x y)
   (cond
     ((eq x y) t)
+    ;; Keep common integer comparisons out of the general numeric dispatcher.
+    ;; Other representations still use numeric equality, including 1 and 1.0.
+    ((typep x 'fixnum)
+     (if (typep y 'fixnum) (eql x y) (and (numberp y) (= x y))))
     ((numberp x) (and (numberp y) (= x y)))
     ((consp x)
      (and (consp y) (|shen-cl.absequal| (car x) (car y))
@@ -577,19 +581,13 @@ Any other form is returned unchanged."
       (and (numberp x) (numberp y) (= x y))))
 
 (defun cf-vectors (x y lx ly)
-  (and
-    (= lx ly)
-    (or (zerop lx)
-        (cf-vectors-help x y 0 (1- lx)))))
-
-(defun cf-vectors-help (x y count max)
-  (cond
-    ((= count max)
-     (|shen-cl.absequal| (aref x max) (aref y max)))
-    ((|shen-cl.absequal| (aref x count) (aref y count))
-     (cf-vectors-help x y (1+ count) max))
-    (t
-     nil)))
+  ;; Called after LENGTH has checked both arrays are vectors. Their lengths
+  ;; bound the index; elements still use general Shen equality and checked AREF.
+  (declare (type vector x y)
+           (type (integer 0 #.array-total-size-limit) lx ly))
+  (and (= lx ly)
+       (loop for i of-type fixnum below lx
+             always (|shen-cl.absequal| (aref x i) (aref y i)))))
 
 (defun |write-byte| (byte s)
   (write-byte byte s))

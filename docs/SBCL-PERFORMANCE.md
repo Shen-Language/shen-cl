@@ -147,9 +147,23 @@ both operands are the same object. Other operands retain structural comparison,
 case-sensitive strings, and numeric equality. Strings remain distinct from
 non-string vectors.
 
+Fixnum comparisons use `eql` directly. Comparisons with other numeric
+representations retain numeric `=`, including integer/float equivalence.
+
 Dispatch then follows the first operand's type. A failed list comparison returns
 immediately; falling through to Common Lisp `equal` would repeat the failed
 structural comparison.
+
+Vector equality uses a checked index loop with bounds obtained from the vector
+lengths. This exposes the index's integer range and avoids recursive helper
+calls and general arithmetic for the counter. Elements retain general Shen
+equality, including numeric equality across representations; specialized and
+adjustable host vectors retain checked access.
+
+The host `tuple?` override checks simple vectors directly for the `shen.tuple`
+marker. Empty vectors fail the test; other host arrays take the kernel's checked
+address path. The predicate remains a global function, so already compiled
+callers observe redefinition and changes to the marker slot.
 
 SBCL dictionaries use a custom hash-table test matching Shen equality. Equal
 list/vector keys and numerically equal keys such as `1` and `1.0` must select
