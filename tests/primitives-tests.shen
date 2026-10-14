@@ -91,6 +91,13 @@
   (prim-test.equal-values
     (prim-test.host "'shen::same-name")
     (prim-test.host "'cl-user::same-name")))
+(let Object (prim-test.host "(make-hash-table)")
+  (assert-true "distinct vectors compare shared opaque elements by identity"
+    (prim-test.equal-values (@v Object <>) (@v Object <>))))
+(assert-false "distinct vector elements retain symbol identity"
+  (prim-test.equal-values
+    (@v (prim-test.host "(make-symbol (symbol-name 'same-name))") <>)
+    (@v (prim-test.host "(make-symbol (symbol-name 'same-name))") <>)))
 
 \\ float comparisons (mirrors shen-go's float comparison coverage)
 (assert-true  "gt float true"  (> 3.5 2.0))
@@ -118,6 +125,47 @@
 (assert-false "string? no"     (string? 1))
 (assert-true  "symbol? yes"    (symbol? hello))
 (assert-false "symbol? no"     (symbol? 1))
+(define prim-test.symbol-p X -> (symbol? X))
+\\ Construct non-ASCII characters independently of source-file encoding.
+(assert-true "symbol validation accepts Unicode letters"
+  (prim-test.symbol-p
+    (prim-test.host "(make-symbol (coerce (mapcar #'code-char '(955 233 19968 25991)) 'string))")))
+(assert-true "symbol validation accepts Unicode digits after a letter"
+  (prim-test.symbol-p
+    (prim-test.host "(make-symbol (coerce (mapcar #'code-char '(97 1633)) 'string))")))
+(assert-true "symbol validation retains punctuation"
+  (prim-test.symbol-p (intern "a_+?b")))
+(assert-false "symbol validation rejects an initial digit"
+  (prim-test.symbol-p (intern "1name")))
+(assert-false "symbol validation rejects invalid later characters"
+  (prim-test.symbol-p (intern "a b")))
+(assert-false "symbol validation rejects an empty name"
+  (prim-test.symbol-p (prim-test.host "(make-symbol (make-string 0))")))
+(assert-false "true remains a Boolean rather than a symbol"
+  (prim-test.symbol-p true))
+(assert-false "false remains a Boolean rather than a symbol"
+  (prim-test.symbol-p false))
+(assert= "symbol validation respects the dynamically bound punctuation list" 1
+  (prim-test.host
+    "(let ((shen::specials (list #\Space)))
+       (if (and (eq (shen::|shen.analyse-symbol?| (symbol-name '|a b|)) 'shen::|true|)
+                (eq (shen::|shen.analyse-symbol?| (symbol-name '|a-b|)) 'shen::|false|))
+           1 0))"))
+(assert= "compiled symbol checks observe validator and str replacement" [false false]
+  (prim-test.host
+    "(let ((analyser (symbol-function 'shen::|shen.analyse-symbol?|))
+           (str (symbol-function 'shen::|str|)))
+       (unwind-protect
+         (progn
+           (setf (symbol-function 'shen::|shen.analyse-symbol?|)
+                 (lambda (s) (declare (ignore s)) 'shen::|false|))
+           (let ((result (shen::|prim-test.symbol-p| 'shen::|hello|)))
+             (setf (symbol-function 'shen::|shen.analyse-symbol?|) analyser
+                   (symbol-function 'shen::|str|)
+                   (lambda (s) (declare (ignore s)) (make-string 0)))
+             (list result (shen::|prim-test.symbol-p| 'shen::|hello|))))
+         (setf (symbol-function 'shen::|shen.analyse-symbol?|) analyser
+               (symbol-function 'shen::|str|) str)))"))
 (assert-true  "variable? upper" (variable? X))
 (assert-false "variable? lower" (variable? x))
 (assert-true  "cons? yes"      (cons? (cons 1 ())))

@@ -167,6 +167,10 @@ lengths. This exposes the index's integer range and avoids recursive helper
 calls and general arithmetic for the counter. Elements retain general Shen
 equality, including numeric equality across representations; specialized and
 adjustable host vectors retain checked access.
+Ordinary Shen vectors take a simple-vector path, allowing SBCL to generate
+checked slot loads directly. Identical elements avoid the general equality call;
+distinct elements retain its numeric and structural comparisons. Other host
+vectors use the general array path.
 
 The host `tuple?` override checks simple vectors directly for the `shen.tuple`
 marker. Empty vectors fail the test; other host arrays take the kernel's checked
@@ -189,6 +193,10 @@ Symbol escaping and decoding return the original string when no transformation
 is needed. Strings containing escape characters or encoded markers take the
 normal conversion path. Avoiding intermediate strings reduces allocation in
 reading and symbol handling without changing the escape format.
+Symbol validation scans the resulting string directly rather than using generic
+sequence mapping, and classifies each character once. It retains Common Lisp's
+Unicode-aware alphanumeric tests, the mutable punctuation list, and replaceable
+global bindings for `symbol?`, `str`, and `shen.analyse-symbol?`.
 
 The reader's `shen.misc?` punctuation classifier also avoids constructing a
 list on each call. Integer inputs use a fixed set of character codes; other

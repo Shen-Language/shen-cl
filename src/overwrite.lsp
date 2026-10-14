@@ -151,8 +151,8 @@
 (defun |shen.analyse-symbol?| (s)
   (if (and (> (length s) 0)
            (not (digit-char-p (char s 0)))
-           (symbol-characterp (char s 0))
-           (every #'symbol-characterp s))
+           (loop for c across (the string s)
+                 always (symbol-characterp c)))
       '|true|
       '|false|))
 

@@ -588,8 +588,12 @@ Any other form is returned unchanged."
   (declare (type vector x y)
            (type (integer 0 #.array-total-size-limit) lx ly))
   (and (= lx ly)
-       (loop for i of-type fixnum below lx
-             always (|shen-cl.absequal| (aref x i) (aref y i)))))
+       (if (and (simple-vector-p x) (simple-vector-p y))
+           (loop for i of-type fixnum below lx
+                 always (let ((a (svref x i)) (b (svref y i)))
+                          (or (eq a b) (|shen-cl.absequal| a b))))
+           (loop for i of-type fixnum below lx
+                 always (|shen-cl.absequal| (aref x i) (aref y i))))))
 
 (defun |write-byte| (byte s)
   (write-byte byte s))
