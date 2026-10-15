@@ -30,7 +30,15 @@
 ;;; (e.g. file streams opened for bytes) use read-byte.
 (declaim (inline |shen-cl.character-stream-p|))
 (defun |shen-cl.character-stream-p| (stream)
-  (let ((type (stream-element-type stream)))
+  ;; Native FD streams keep their current type in a slot. Preserve the
+  ;; normal protocol for closed streams and streams with other handlers.
+  (let ((type #+sbcl
+              (if (and (typep stream 'sb-sys:fd-stream)
+                       (eq (sb-impl::ansi-stream-misc stream)
+                           #'sb-impl::fd-stream-misc-routine))
+                  (sb-impl::fd-stream-element-type stream)
+                  (stream-element-type stream))
+              #-sbcl (stream-element-type stream)))
     (cond ((eq type 'character) t)
           ((equal type '(unsigned-byte 8)) nil)
           (t (subtypep type 'character)))))

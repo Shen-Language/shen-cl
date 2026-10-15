@@ -81,6 +81,12 @@ element types directly. Other element types retain `subtypep`, including named
 character types and wider binary streams. The check reads the stream's current
 element type on every call, so synonym streams and custom streams need no cache
 or invalidation scheme. Character input retains Unicode codes and EOF handling.
+On SBCL, ordinary native file streams expose that type directly in their current
+stream state. The fast path checks the native handler before reading the slot;
+closed streams and streams with another handler retain normal dispatch. Wrappers
+and Gray streams also retain `stream-element-type`. This uses SBCL internals,
+confined to the stream classification helper; it does not access input buffers
+or change character decoding or byte/character interleaving.
 
 Inlining retains the implementations' numeric conversions and checks. The
 build uses Lisp safety 3. Numbers remain general numbers: bignums and floats
