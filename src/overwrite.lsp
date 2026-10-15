@@ -28,13 +28,20 @@
 ;;; Kernel 41.1 stream primitives.
 ;;; Character streams (e.g. *standard-input*) need read-char; binary streams
 ;;; (e.g. file streams opened for bytes) use read-byte.
+(declaim (inline |shen-cl.character-stream-p|))
+(defun |shen-cl.character-stream-p| (stream)
+  (let ((type (stream-element-type stream)))
+    (cond ((eq type 'character) t)
+          ((equal type '(unsigned-byte 8)) nil)
+          (t (subtypep type 'character)))))
+
 (defun |shen.char-stinput?| (stream)
-  (if (subtypep (stream-element-type stream) 'character)
+  (if (|shen-cl.character-stream-p| stream)
       '|true|
       '|false|))
 
 (defun |shen.char-stoutput?| (stream)
-  (if (subtypep (stream-element-type stream) 'character)
+  (if (|shen-cl.character-stream-p| stream)
       '|true|
       '|false|))
 
@@ -88,7 +95,7 @@
       -1))
 
 (defun |shen.my-read-byte| (stream)
-  (if (subtypep (stream-element-type stream) 'character)
+  (if (|shen-cl.character-stream-p| stream)
       (let ((c (read-char stream nil nil)))
         (if c
             (|shen-cl.note-repl-input| stream (char-code c))
@@ -113,6 +120,21 @@
 (defun |shen.repl| ()
   (let ((|shen-cl.in-repl?| t))
     (funcall (symbol-function '|shen-cl.kernel-repl|))))
+
+;; Symbol equality is identity. Select the comparison before traversing;
+;; the local macro shares the checked loop without a per-element dispatch.
+(defun |element?| (value list)
+  (macrolet ((search-with (test)
+               `(loop
+                  (cond ((null list) (return '|false|))
+                        ((not (consp list))
+                         (return (|simple-error| "attempt to find an element in a non-list
+")))
+                        ((,test value (car list)) (return '|true|)))
+                  (setf list (cdr list)))))
+    (if (symbolp value)
+        (search-with eq)
+        (search-with |shen-cl.absequal|))))
 
 (defvar |shen-cl.kernel-sysfunc?| (fdefinition '|shen.sysfunc?|))
 

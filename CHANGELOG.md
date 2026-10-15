@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Emit direct known-global stores with local declarations, preserving lexical
   scope, host dynamic bindings, and assigned-value evaluation.
 - Construct Prolog-variable vectors directly with their marker and ticket.
+- Compare symbol membership by identity and dispatch common stream element
+  types directly, preserving general equality and stream-type fallbacks.
 - Apply accessor caching to generated kernel/StLib Lisp, with invalidation
   across writes, unknown calls, branches, and control-flow joins.
 - Use structural dictionary keys with case-sensitive strings and numeric

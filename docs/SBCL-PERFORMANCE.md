@@ -76,6 +76,12 @@ validating their inputs. This exposes the known result size to SBCL and avoids
 the generic string-designator conversion. Each call returns an independent
 string, including for NUL and non-ASCII characters.
 
+Stream dispatch recognizes the common `character` and `(unsigned-byte 8)`
+element types directly. Other element types retain `subtypep`, including named
+character types and wider binary streams. The check reads the stream's current
+element type on every call, so synonym streams and custom streams need no cache
+or invalidation scheme. Character input retains Unicode codes and EOF handling.
+
 Inlining retains the implementations' numeric conversions and checks. The
 build uses Lisp safety 3. Numbers remain general numbers: bignums and floats
 must continue to work, and `integer?` accepts integral floats. Vector bounds,
@@ -178,6 +184,13 @@ The host `tuple?` override checks simple vectors directly for the `shen.tuple`
 marker. Empty vectors fail the test; other host arrays take the kernel's checked
 address path. The predicate remains a global function, so already compiled
 callers observe redefinition and changes to the marker slot.
+
+List membership selects its comparison once before traversal: symbol keys use
+identity, while other keys retain general Shen equality. Both paths use the
+same checked loop, expanded locally with the selected comparison. The list is
+read on each call; no membership results or mutable contents are cached.
+Improper lists retain the kernel's error unless a preceding element matches,
+and compiled callers continue to observe redefinition of `element?`.
 
 SBCL dictionaries use a custom hash-table test matching Shen equality. Equal
 list/vector keys and numerically equal keys such as `1` and `1.0` must select

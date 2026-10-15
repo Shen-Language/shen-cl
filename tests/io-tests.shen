@@ -64,6 +64,33 @@
               _ (close In)
            B))
 
+(assert= "character stream dispatch preserves Unicode, NUL and EOF"
+  [true true 65 0 955 -1 -1]
+  (shen-cl.eval-lisp
+    "(with-input-from-string (stream (coerce (list (code-char 65) (code-char 0) (code-char 955)) 'string))
+       (list (shen::|shen.char-stinput?| stream) (shen::|shen.char-stoutput?| stream)
+             (shen::|shen.my-read-byte| stream) (shen::|shen.my-read-byte| stream)
+             (shen::|shen.my-read-byte| stream) (shen::|shen.my-read-byte| stream)
+             (shen::|shen.my-read-byte| stream)))"))
+(assert= "byte stream dispatch preserves bytes and EOF" [false false 0 255 -1]
+  (do (set io-test.*dispatch-path* "tests/io-dispatch.tmp")
+    (shen-cl.eval-lisp
+    "(progn (with-open-file (stream (symbol-value 'shen::|io-test.*dispatch-path*|) :direction :output
+                             :element-type '(unsigned-byte 8) :if-exists :supersede)
+       (write-byte 0 stream) (write-byte 255 stream))
+     (with-open-file (stream (symbol-value 'shen::|io-test.*dispatch-path*|) :element-type '(unsigned-byte 8))
+       (list (shen::|shen.char-stinput?| stream) (shen::|shen.char-stoutput?| stream)
+             (shen::|shen.my-read-byte| stream) (shen::|shen.my-read-byte| stream)
+             (shen::|shen.my-read-byte| stream))))")))
+(assert= "wider byte streams retain the subtype fallback" [false 8192 -1]
+  (shen-cl.eval-lisp
+    "(progn (with-open-file (stream (symbol-value 'shen::|io-test.*dispatch-path*|) :direction :output
+                             :element-type '(unsigned-byte 16) :if-exists :supersede)
+       (write-byte 8192 stream))
+     (with-open-file (stream (symbol-value 'shen::|io-test.*dispatch-path*|) :element-type '(unsigned-byte 16))
+       (list (shen::|shen.char-stinput?| stream)
+             (shen::|shen.my-read-byte| stream) (shen::|shen.my-read-byte| stream))))"))
+
 \\ Lock in the *hush*/pr-to-file divergence as an explicit assertion:
 \\ under *hush* = true, (pr ... FileStream) writes on SBCL but is silenced on
 \\ CLISP; (write-byte ... FileStream) writes on BOTH. We assert only the
