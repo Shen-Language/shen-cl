@@ -93,6 +93,14 @@
          (setq ,symbol ,value)))))
 
 (defun |value| (x)
+  ;; Read once, including thread-local bindings; signal an unbound value directly.
+  #+sbcl
+  (let* ((symbol (the symbol x))
+         (value (sb-sys:%primitive sb-c:fast-symbol-value symbol)))
+    (if (sb-int:unbound-marker-p value)
+        (error 'unbound-variable :name symbol)
+        value))
+  #-sbcl
   (symbol-value x))
 
 (defun |simple-error| (string)

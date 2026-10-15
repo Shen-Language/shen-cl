@@ -95,6 +95,17 @@ string access, and the abstract-vector allocation limit retain their checks.
 Inlining is not permission to replace those operations with unchecked fixnum
 or array access.
 
+On SBCL, dynamic `value` uses the native symbol-value load once, including
+thread-local bindings, and signals `unbound-variable` directly on SBCL's unbound
+marker. The symbol type check remains; the marker is never returned to Shen.
+The implementation uses SBCL's `fast-symbol-value` primitive and
+`unbound-marker-p` test. The host `<-vector` implementation
+similarly signals ordinary out-of-range simple-vector conditions without entering
+a native trap. It uses SBCL's `invalid-array-index-error` routine to preserve the
+condition and its message; other operand types retain checked `svref`. These
+functions keep their replaceable global bindings. Error boundaries and handlers
+are unchanged, including handlers that inspect the condition.
+
 ## Pattern matching and accessor reuse
 
 There are two separate factorisation layers. The S-kernel's `(factorise +)`

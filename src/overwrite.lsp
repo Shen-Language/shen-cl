@@ -358,7 +358,14 @@
 (defun |<-vector| (vector n)
   (if (zerop n)
     (error "cannot access 0th element of a vector~%")
-    (let ((vector-element (svref vector n)))
+    (let ((vector-element #+sbcl
+                          ;; Keep the native condition without entering a trap.
+                          (if (and (simple-vector-p vector)
+                                   (typep n '(integer 0 #.most-positive-fixnum))
+                                   (>= n (length vector)))
+                              (sb-int:invalid-array-index-error vector n (length vector))
+                              (svref vector n))
+                          #-sbcl (svref vector n)))
       (if (eq vector-element (|fail|))
           (error "vector element not found~%")
           vector-element))))

@@ -37,6 +37,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
   types directly, preserving general equality and stream-type fallbacks.
 - Avoid generic element-type dispatch for native SBCL file streams, retaining
   closed-stream errors and the protocol for custom streams and handlers.
+- Signal SBCL unbound-variable and Shen vector bounds errors directly,
+  preserving native conditions and checked successful reads.
 - Apply accessor caching to generated kernel/StLib Lisp, with invalidation
   across writes, unknown calls, branches, and control-flow joins.
 - Use structural dictionary keys with case-sensitive strings and numeric

@@ -74,3 +74,74 @@
          "specific message"
          (error-to-string (trap-error (simple-error "specific message")
                                       (lambda E E))))
+
+\\ Exercise ordinary compiled reads with unknown operands and retained errors.
+(define err.lookup Symbol -> (trap-error (value Symbol) (/. E E)))
+(define err.vector Vector Index -> (trap-error (<-vector Vector Index) (/. E E)))
+(define err.handler-error Vector Index
+  -> (trap-error (<-vector Vector Index) (/. E (simple-error "handler error"))))
+
+(assert-msg "a failing handler is outside its original trap" "handler error"
+  (freeze (err.handler-error (absvector 0) 1)))
+(assert= "vector read preserves operand error order" "first operand"
+  (error-to-string
+    (trap-error (<-vector (simple-error "first operand")
+                          (simple-error "second operand")) (/. E E))))
+(assert= "vector read retains the handler's lexical bindings" captured
+  (let E captured (trap-error (<-vector (absvector 0) 1) (/. Ignored E))))
+(set err.*arguments* 0)
+(define err.argument X
+  -> (do (set err.*arguments* (+ 1 (value err.*arguments*))) X))
+(let Error (err.vector (err.argument (absvector 0)) (err.argument 1))
+  (assert= "vector read evaluates each operand once" 2 (value err.*arguments*)))
+
+\\ Compare host conditions, including messages, rather than just catchability.
+(assert= "vector access errors retain native conditions" []
+  (prim-test.host
+    "(labels ((caught (thunk) (handler-case (funcall thunk) (error (e) e)))
+              (description (e) (list (type-of e) (princ-to-string e))))
+       (loop for v in (list #() #(a b c) (make-array 2 :adjustable t)
+                            (make-array '(2 2)) :not-a-vector)
+             append (loop for n in (list -1 3 99 1.5d0 (1+ most-positive-fixnum))
+                          for native = (caught (lambda () (svref v n)))
+                          for compiled = (shen::|err.vector| v n)
+                          when (and (typep native 'condition)
+                                    (not (and (typep compiled 'condition)
+                                              (equal (description native) (description compiled)))))
+                            collect (list v n compiled)))))"))
+(assert= "dynamic value retains bound, unbound, and invalid-symbol behavior" []
+  (prim-test.host
+    "(let ((name (make-symbol (string 'unbound-value-test))))
+       (loop for x in (list name nil t :keyword 1 1.5d0 (list 1))
+             for native = (handler-case (symbol-value x) (error (e) e))
+             for compiled = (shen::|err.lookup| x)
+             unless (if (typep native 'condition)
+                        (and (typep compiled 'condition)
+                             (equal (type-of native) (type-of compiled))
+                             (string= (princ-to-string native) (princ-to-string compiled)))
+                        (eql native compiled))
+               collect (list x compiled)))"))
+(assert= "dynamic value respects bindings and dynamically unbound symbols"
+  [local true global]
+  (prim-test.host
+    "(let ((name (make-symbol (string 'dynamic-value-test))))
+       (set name 'shen::|global|)
+       (list (progv (list name) (list 'shen::|local|) (shen::|err.lookup| name))
+             (progv (list name) nil
+               (if (typep (shen::|err.lookup| name) 'unbound-variable)
+                   'shen::|true| 'shen::|false|))
+             (shen::|err.lookup| name)))"))
+(assert= "compiled reads still observe function redefinition" [replacement replacement]
+  (prim-test.host
+    "(let ((lookup (symbol-function 'shen::|value|))
+           (read-vector (symbol-function 'shen::|<-vector|)))
+       (unwind-protect
+         (progn
+           (setf (symbol-function 'shen::|value|)
+                 (lambda (x) (declare (ignore x)) 'shen::|replacement|)
+                 (symbol-function 'shen::|<-vector|)
+                 (lambda (v n) (declare (ignore v n)) 'shen::|replacement|))
+           (list (shen::|err.lookup| (make-symbol (string 'unbound)))
+                 (shen::|err.vector| #() 99)))
+         (setf (symbol-function 'shen::|value|) lookup
+               (symbol-function 'shen::|<-vector|) read-vector)))"))
