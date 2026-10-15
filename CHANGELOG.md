@@ -30,6 +30,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Use checked simple-vector loads in structural equality and scan symbol names
   directly, retaining general host vectors and Unicode character classification.
 - Skip escape-marker searches for symbol names too short to contain a marker.
+- Emit direct known-global stores with local declarations, preserving lexical
+  scope, host dynamic bindings, and assigned-value evaluation.
+- Construct Prolog-variable vectors directly with their marker and ticket.
 - Apply accessor caching to generated kernel/StLib Lisp, with invalidation
   across writes, unknown calls, branches, and control-flow joins.
 - Use structural dictionary keys with case-sensitive strings and numeric

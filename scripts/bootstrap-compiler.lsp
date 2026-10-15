@@ -5,7 +5,8 @@
 (in-package :shen)
 (with-open-file (in "src/primitives.lsp")
   (loop for form = (read in nil :eof) until (eq form :eof)
-        when (and (consp form) (eq (car form) 'defun)
+        when (and (consp form) (member (car form) '(defun defmacro))
                   (member (second form) '(|shen-cl.numeric-equal|
-                                         |shen-cl.increment| |shen-cl.decrement|)))
+                                         |shen-cl.increment| |shen-cl.decrement|
+                                         |shen-cl.set-global|)))
         do (eval form)))

@@ -84,6 +84,14 @@
 (defun |set| (x y)
   (set x y))
 
+;; Declare only the store special; its value may contain lexical bindings
+;; of the same name. Do not proclaim Shen globals special across compilation.
+(defmacro |shen-cl.set-global| (symbol expression)
+  (let ((value (gensym "VALUE")))
+    `(let ((,value ,expression))
+       (locally (declare (special ,symbol))
+         (setq ,symbol ,value)))))
+
 (defun |value| (x)
   (symbol-value x))
 

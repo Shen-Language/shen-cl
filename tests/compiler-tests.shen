@@ -107,6 +107,14 @@
  [(shen-cl.cl progn) 1 2])
 
 (assert-equal
+ (shen-cl.kl->lisp [set compiler-test.*global* 42])
+ [shen-cl.set-global compiler-test.*global* 42])
+
+(assert-equal
+ (shen-cl.compile-expression [set Sym Value] [Sym Value])
+ [(shen-cl.qualify-op set) Sym Value])
+
+(assert-equal
  (shen-cl.kl->lisp [freeze [print "hello"]])
  [(shen-cl.kl freeze) [(shen-cl.qualify-op print) "hello"]])
 

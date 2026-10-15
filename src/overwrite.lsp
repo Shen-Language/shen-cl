@@ -501,6 +501,11 @@
                    (|shen-cl.<-address/or| x 0 (lambda () '|shen.not-tuple|)))))
       '|true| '|false|))
 
+;; Prolog variables have two initialized slots; avoid filling then replacing
+;; both through the general abstract-vector allocator. Keep the global binding.
+(defun |shen.make-prolog-variable| (ticket)
+  (vector '|shen.pvar| ticket))
+
 ;; vectors
 
 (defun |vector| (n)

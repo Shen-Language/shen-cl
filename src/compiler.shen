@@ -50,7 +50,7 @@
   false Scope -> [(cl quote) false]
   Sym Scope -> (emit-symbol Sym) where (unbound-symbol? Sym Scope)
   [value Sym] Scope -> Sym where (unbound-symbol? Sym Scope)
-  [set Sym Exp] Scope -> [(cl setq) Sym (compile-expression Exp Scope)]
+  [set Sym Exp] Scope -> [shen-cl.set-global Sym (compile-expression Exp Scope)]
       where (unbound-symbol? Sym Scope)
   [let Var Value Body] Scope -> (merge-nested-lets
                                  (emit-let Var Value Body Scope))

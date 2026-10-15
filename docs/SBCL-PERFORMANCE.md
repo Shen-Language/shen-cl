@@ -40,11 +40,13 @@ Equality with a known literal uses the corresponding host operation:
 | String | `equal` | Case-sensitive string contents. |
 | Neither operand known | `shen-cl.absequal` | General Shen equality. |
 
-Other small translations avoid unnecessary calls: a literal global `set`
-becomes `setq`, a literal `intern` is resolved during compilation, and `thaw`
-becomes a zero-argument `funcall`. Dynamic symbol names continue to use the
-normal runtime operations. `setq` returns the assigned value, as Shen's `set`
-requires.
+Literal global `set` uses a local `special` declaration around the store, so
+SBCL can assign the known variable directly. The value expression is evaluated
+once outside that declaration; its lexical bindings and captured values keep
+their scope. Globals are not proclaimed special across compilation, and host
+dynamic bindings remain observable. Dynamic symbol names retain runtime `set`.
+Both paths return the assigned value. A literal `intern` is resolved during
+compilation, and `thaw` becomes a zero-argument `funcall`.
 
 ## Checked primitive inlining
 
@@ -209,6 +211,11 @@ reader code observes interactive redefinition. This is a specific host override;
 ordinary mutable Shen lists are not shared or hoisted by the compiler.
 
 ## Function bindings and compilation boundaries
+
+Prolog variables are constructed directly as fresh two-slot host vectors, with
+the kernel's marker and ticket. This avoids initializing an abstract vector
+and then replacing both slots. The representation, mutable slots, binding and
+unwinding behavior, and replaceable constructor binding remain the same.
 
 The normal build explicitly disables SBCL block compilation. Calls between
 kernel functions retain global bindings, allowing redefinition and reaching

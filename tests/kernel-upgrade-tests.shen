@@ -25,6 +25,42 @@
 (assert-false "pvar? ordinary vector" (shen.pvar? (vector 2)))
 (assert-false "pvar? list" (shen.pvar? [shen.pvar]))
 
+(let P (shen.make-prolog-variable 12)
+     Q (shen.make-prolog-variable 12)
+  (do (assert-true "constructed Prolog variable has its marker" (shen.pvar? P))
+      (assert= "constructed Prolog variable retains its ticket" 12 (<-address P 1))
+      (address-> P 0 changed)
+      (address-> P 1 99)
+      (assert-false "Prolog variable marker remains mutable" (shen.pvar? P))
+      (assert= "Prolog variables have independent storage" [shen.pvar 12]
+        [(<-address Q 0) (<-address Q 1)])))
+(assert= "Prolog variable construction preserves arbitrary ticket values" [a 1]
+  (<-address (shen.make-prolog-variable [a 1]) 1))
+(let Context (shen.prolog-vector)
+     P (shen.newpv Context)
+     Result (shen.bind! P 42 Context (freeze false))
+  (do (assert= "failed Prolog continuation unwinds its binding" [false shen.-null-]
+        [Result (<-address Context 2)])
+      (assert= "unbound Prolog variable dereferences to itself" P (shen.lazyderef P Context))
+      (shen.bind! P 42 Context (freeze true))
+      (assert= "successful Prolog continuation retains its binding" 42 (shen.lazyderef P Context))))
+(assert= "newpv observes constructor redefinition" [redefined 2]
+  (shen-cl.eval-lisp
+    "(let ((saved (symbol-function 'shen::|shen.make-prolog-variable|)))
+       (unwind-protect
+         (progn
+           (setf (symbol-function 'shen::|shen.make-prolog-variable|)
+                 (lambda (ticket) (list 'shen::|redefined| ticket)))
+           (shen::|shen.newpv| (shen::|shen.prolog-vector|)))
+         (setf (symbol-function 'shen::|shen.make-prolog-variable|) saved)))"))
+(assert= "inference counting promotes past the fixnum boundary"
+  (prim-test.host "(1+ most-positive-fixnum)")
+  (shen-cl.eval-lisp
+    "(let ((saved (symbol-value 'shen::|shen.*infs*|)))
+       (unwind-protect
+         (progn (set 'shen::|shen.*infs*| most-positive-fixnum) (shen::|shen.incinfs|))
+         (set 'shen::|shen.*infs*| saved)))"))
+
 (assert-true "tuple? ordinary tuple" (tuple? (@p 1 2)))
 (assert-false "tuple? empty vector" (tuple? (absvector 0)))
 (assert-false "tuple? ordinary vector" (tuple? (vector 2)))
@@ -141,6 +177,36 @@
 (assert= "literal set returns assigned value" 42
   (eval-kl [set port-test.*assigned* 42]))
 (assert= "literal set stores global value" 42 (value port-test.*assigned*))
+(assert= "global assignment keeps lexical bindings in its value expression" 42
+  (eval-kl [set port-test.*assigned*
+              [let port-test.*assigned* 7
+                   [lisp. "(symbol-value 'shen::|port-test.*assigned*|)"]]]))
+(assert= "global assignment does not proclaim later lexical bindings special" 42
+  (eval-kl [let port-test.*assigned* 7
+               [lisp. "(symbol-value 'shen::|port-test.*assigned*|)"]]))
+(assert= "global assignment retains escaping lexical captures" 91
+  (thaw (eval-kl [set port-test.*assigned*
+                     [let port-test.*assigned* 91 [freeze port-test.*assigned*]]])))
+(set port-test.*assigned* 42)
+(define port-test.set-assigned Value -> (set port-test.*assigned* Value))
+(assert= "global assignment respects host dynamic bindings" [9 9 42]
+  (shen-cl.eval-lisp
+    "(let ((result (progv '(shen::|port-test.*assigned*|) '(8)
+                     (list (shen::|port-test.set-assigned| 9)
+                           (symbol-value 'shen::|port-test.*assigned*|)))))
+       (append result (list (symbol-value 'shen::|port-test.*assigned*|))))"))
+(set port-test.*store-count* 0)
+(assert= "global assignment evaluates its value once" 99
+  (set port-test.*assigned*
+    (do (set port-test.*store-count* (+ 1 (value port-test.*store-count*))) 99)))
+(assert= "global assignment value ran once" 1 (value port-test.*store-count*))
+(assert-caught "global assignment propagates value errors"
+  (freeze (set port-test.*assigned* (simple-error "assignment value"))))
+(assert= "failed assignment preserves the previous value" 99 (value port-test.*assigned*))
+(assert= "lexically supplied global names remain dynamic" 73
+  (let Target port-test.*assigned* (set Target 73)))
+(assert= "dynamic assignment stores into the selected global" 73 (value port-test.*assigned*))
+
 (assert= "boolean through let and do keeps evaluation order" [yes [first second]]
   (let _ (set port-test.*order* [])
     [(if (do (set port-test.*order* [first])
