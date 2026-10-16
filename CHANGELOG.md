@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-10-16
+
 ### Changed
 
 - Upgrade to the community ShenOSKernel 43.1 kernel and its standard library
@@ -15,6 +17,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Expose `char-stream?`, `read-unit-string`, and `write-string` under their
   public S43.1 names. Reuse native character stream detection and Unicode I/O,
   retaining the reader's EOF and final-input handling.
+- Bootstrap CI and release builds from the published Shen/CL release, with
+  matching instructions for local builds.
 
 ## [3.1.0]
 
@@ -227,7 +231,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Cleaned up `backend.lsp`, as `backend.shen` was removed.
 - Expanded README.
 
-[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/Shen-Language/shen-cl/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/Shen-Language/shen-cl/compare/v3.0.3...v3.1.0
 [3.0.3]: https://github.com/Shen-Language/shen-cl/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/Shen-Language/shen-cl/compare/v3.0.1...v3.0.2

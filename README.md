@@ -28,6 +28,11 @@ Also included is the function `cl.exit`, which takes an exit code, terminates th
 The namespace, programmable pattern, and type annotation extensions are
 bundled.
 
+`char-stream?` recognizes native Common Lisp character streams.
+`read-unit-string` reads one character and returns an empty string at EOF;
+`write-string` writes and flushes a string, then returns it. Byte I/O is
+available through `read-byte` and `write-byte`.
+
 Optional host extensions live under `extensions/`. The
 [SHA-256 extension](extensions/sha256/README.md) is loaded explicitly through
 the existing Lisp interop API.
@@ -56,7 +61,7 @@ The `Makefile` automates all build and test operations.
 | `precompile` | Precompile kernel and compiler to Lisp code. |
 | `build-X`    | Build executable.                            |
 | `test-X`     | Run test suite.                              |
-| `test-all`   | Kernel, compiler, port, CLI, extension, accessor, and dictionary tests. |
+| `test-all`   | Kernel, compiler, port, CLI, extension, accessor, and SHA-256 tests. |
 | `X`          | Build and run test suite.                    |
 | `run-X`      | Start Shen REPL.                             |
 | `release`    | Creates archive of compiled binaries.        |
@@ -125,13 +130,14 @@ the selected branch or optional tag for verification without publishing.
 Archives can also be produced locally with the `make release` command. They appear under `release/`, named with the operating system and current git tag or short commit hash. Archives include the SBCL executable (named `shen[.exe]`), the license, and the optional host extensions.
 
 To reproduce a release archive locally, build the exact tagged commit
-(replace `vX.Y.Z` with the desired release tag):
+(replace `vX.Y.Z` with the desired release tag and the bootstrap path with
+a working Shen executable):
 
 ```shell
 make pure
 git checkout vX.Y.Z
 make fetch
-make precompile SHEN=shen-sbcl
+make precompile SHEN=/path/to/bootstrap/shen
 make build-sbcl
 make precompile SHEN=bin/sbcl/shen
 make build-sbcl test-all

@@ -229,10 +229,8 @@ but not otherwise.
   -> (compile-expression [shen-cl.<-vector/or X N [freeze Handler]] Scope)
   [<-address X N] [lambda E Handler] Scope
   -> (compile-expression [shen-cl.<-address/or X N [freeze Handler]] Scope)
-  \\ ShenOSKernel-42.2 keeps the property store in a shen.dict (init.kl), which
-  \\ overwrite.lsp maps onto a CL hash-table of (Prop . Value) alists, so the
-  \\ get/or fast path (disabled for the Tarver S4x kernels' absvector store)
-  \\ applies again.
+  \\ The kernel property store is a shen.dict (init.kl), which overwrite.lsp
+  \\ maps onto a CL hash-table of (Prop . Value) alists, enabling this fast path.
   [get X P D] [lambda E Handler] Scope
   -> (compile-expression [shen-cl.get/or X P D [freeze Handler]] Scope)
   _ _ _ -> (fail))
