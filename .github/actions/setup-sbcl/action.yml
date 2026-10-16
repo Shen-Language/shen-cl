@@ -1,0 +1,42 @@
+name: Set up SBCL 2.6.9
+description: Build and cache the SBCL version used for release validation.
+runs:
+  using: composite
+  steps:
+    - name: Cache SBCL
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/sbcl-2.6.9
+        key: sbcl-2.6.9-${{ runner.os }}-${{ runner.arch }}-1
+
+    - name: Install build dependencies (Linux)
+      if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends sbcl build-essential zlib1g-dev
+
+    - name: Install bootstrap SBCL (macOS)
+      if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'macOS'
+      shell: bash
+      run: brew install sbcl
+
+    - name: Build SBCL 2.6.9
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        git clone --quiet --depth 1 --branch sbcl-2.6.9 \
+          https://github.com/sbcl/sbcl.git "$RUNNER_TEMP/sbcl-source"
+        cd "$RUNNER_TEMP/sbcl-source"
+        sh make.sh
+        INSTALL_ROOT="$RUNNER_TEMP/sbcl-2.6.9" sh install.sh
+
+    - name: Select SBCL 2.6.9
+      shell: bash
+      run: |
+        echo "$RUNNER_TEMP/sbcl-2.6.9/bin" >> "$GITHUB_PATH"
+        echo "SBCL_HOME=$RUNNER_TEMP/sbcl-2.6.9/lib/sbcl" >> "$GITHUB_ENV"
+        VERSION="$("$RUNNER_TEMP/sbcl-2.6.9/bin/sbcl" --version)"
+        echo "$VERSION"
+        test "$VERSION" = 'SBCL 2.6.9'

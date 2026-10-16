@@ -111,6 +111,12 @@ the kernel version reported by `(version)` and `--version`. Build and run
 `make test-all`, then merge the release preparation before tagging the merged
 commit.
 
+CI uses SBCL 2.6.9 and temporarily bootstraps from
+[`tizoc/shen-scheme` v0.51](https://github.com/tizoc/shen-scheme/releases/tag/v0.51).
+After publishing 3.1.0, the bootstrap can switch to this repository's release.
+The release workflow generates portable Lisp once on Linux x64, then builds
+and tests it natively on each target platform.
+
 Pushing a `vX.Y.Z` tag runs the [`Release` GitHub Actions workflow](.github/workflows/release.yml).
 It checks that the tag matches `*port*`, builds and tests the SBCL port for
 Linux (`x86_64`, `aarch64`) and macOS (`arm64`), and publishes prebuilt archives

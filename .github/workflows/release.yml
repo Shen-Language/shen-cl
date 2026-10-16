@@ -14,16 +14,58 @@ permissions:
   contents: write
 
 env:
-  # shen-cl is self-hosting: building it requires an existing Shen
-  # executable to precompile the kernel and compiler down to Lisp (`make
-  # precompile`). We bootstrap from a previously released prebuilt binary for
-  # the same platform. Repoint these at an upstream release once one exists.
-  BOOTSTRAP_REPO: pyrex41/shen-cl
-  BOOTSTRAP_TAG: v3.0.4
+  # Temporary until Shen/CL 3.1.0 is published. Then use this repository's
+  # release, updating the tag and download asset name along with the repo.
+  BOOTSTRAP_REPO: tizoc/shen-scheme
+  BOOTSTRAP_TAG: v0.51
 
 jobs:
+  precompile:
+    name: Precompile portable Lisp
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: ./.github/actions/setup-sbcl
+
+      - name: Fetch ShenOSKernel 42.2 (SHA-256 verified)
+        run: make fetch
+
+      # Shen/Scheme publishes a Linux x64 bootstrap. Generate portable Lisp
+      # once, then build it natively on every release platform.
+      - name: Download bootstrap Shen
+        shell: bash
+        run: |
+          mkdir -p bootstrap
+          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-scheme-${BOOTSTRAP_TAG}-linux-x64-bin.tar.gz"
+          curl -fsSL -o bootstrap/boot.tar.gz "$URL"
+          tar xzf bootstrap/boot.tar.gz -C bootstrap
+          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen-scheme -type f | head -n1)"
+          test -n "$BOOT_SHEN"
+          chmod +x "$BOOT_SHEN"
+          echo "BOOT_SHEN=$BOOT_SHEN" >> "$GITHUB_ENV"
+
+      - name: Precompile kernel + compiler
+        run: make precompile SHEN="$BOOT_SHEN"
+
+      - name: Build bootstrap shen-cl
+        run: make build-sbcl
+
+      - name: Self-host kernel + compiler
+        run: make precompile SHEN=bin/sbcl/shen
+
+      - name: Upload precompiled Lisp
+        uses: actions/upload-artifact@v4
+        with:
+          name: precompiled-lisp
+          path: compiled/*.lsp
+          if-no-files-found: error
+
   build:
     name: Build ${{ matrix.platform }}
+    needs: precompile
     strategy:
       fail-fast: false
       matrix:
@@ -62,39 +104,18 @@ jobs:
           echo "PORT_VERSION=$PORT_VERSION" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Install SBCL (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends sbcl curl
-
-      - name: Install SBCL (macOS)
-        if: runner.os == 'macOS'
-        run: brew install sbcl
+      - uses: ./.github/actions/setup-sbcl
 
       - name: Fetch ShenOSKernel 42.2 (SHA-256 verified)
         run: make fetch
 
-      - name: Download bootstrap Shen
-        shell: bash
-        run: |
-          mkdir -p bootstrap
-          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-cl-${BOOTSTRAP_TAG}-${{ matrix.platform }}-prebuilt.tar.gz"
-          echo "Bootstrapping from $URL"
-          curl -fsSL -o bootstrap/boot.tar.gz "$URL"
-          tar xzf bootstrap/boot.tar.gz -C bootstrap
-          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen -type f | head -n1)"
-          chmod +x "$BOOT_SHEN"
-          echo "BOOT_SHEN=$BOOT_SHEN" >> "$GITHUB_ENV"
-
-      - name: Precompile kernel + compiler
-        run: make precompile SHEN="$BOOT_SHEN"
+      - name: Download precompiled Lisp
+        uses: actions/download-artifact@v4
+        with:
+          name: precompiled-lisp
+          path: compiled
 
       - name: Build shen-cl
-        run: make build-sbcl
-
-      - name: Self-host kernel + compiler
-        run: make precompile SHEN=bin/sbcl/shen
-
-      - name: Rebuild shen-cl
         run: make build-sbcl
 
       - name: Check built version
@@ -125,7 +146,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}
+          name: ${{ matrix.platform }}-release
           path: release/*
           if-no-files-found: error
           retention-days: 14
@@ -144,6 +165,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release
+          pattern: '*-release'
           merge-multiple: true
 
       - name: List artifacts
