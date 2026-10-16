@@ -65,11 +65,13 @@ and existing double floats directly; it converts other accepted representations
 to double precision. Avoiding conversion of an existing double float also avoids
 boxing another copy of it.
 
-Literal numeric equality uses `eql` when both operands are integers and `=` for
-other numeric representations. The literal operand lets inlining eliminate
-irrelevant tests. Non-numbers still fail the match, and each operand is evaluated
-once. The internal strict Boolean helper is also inline, retaining its error
-branch while avoiding a call for ordinary conditions.
+Literal numeric equality exposes an integer path before the general numeric
+comparison. Both paths use `=`: using `eql` in the integer path makes SBCL 2.2.9
+miscompile a subsequent inlined Prolog-variable predicate. The literal operand
+lets inlining eliminate irrelevant tests and retain direct integer comparisons.
+Non-numbers still fail the match, and each operand is evaluated once. The internal
+strict Boolean helper is also inline, retaining its error branch while avoiding
+a call for ordinary conditions.
 
 `pos` and `n->string` construct a fresh string of length one directly after
 validating their inputs. This exposes the known result size to SBCL and avoids

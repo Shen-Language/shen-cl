@@ -1,13 +1,12 @@
 name: Port Tests
 
-# Port-authored test suites (ADDITIVE; distinct from the canonical kernel
-# certification suite). Builds shen-cl on SBCL, then runs:
+# Builds and self-hosts shen-cl on SBCL, then runs the canonical kernel
+# certification suite and the port-authored test suites:
+#   - make test-sbcl     : canonical kernel certification suite
 #   - make test-compiler : existing KL->Lisp compiler-output golden tests
 #   - make test-port     : tests/*-tests.shen runtime regression suite
 #   - make test-cli      : scripts/test-cli.sh CLI/launcher parity (SBCL here;
 #                          locally it also exercises clisp + ecl when built)
-# It does NOT run the canonical kernel suite (that lives in the release CI's
-# `make test-sbcl`) and does NOT modify any canonical target.
 
 on:
   push:
@@ -52,6 +51,15 @@ jobs:
 
       - name: Build shen-cl (SBCL)
         run: make build-sbcl
+
+      - name: Self-host kernel + compiler
+        run: make precompile SHEN=bin/sbcl/shen
+
+      - name: Rebuild shen-cl (SBCL)
+        run: make build-sbcl
+
+      - name: Canonical kernel tests
+        run: make test-sbcl
 
       - name: Compiler tests (existing)
         run: make test-compiler

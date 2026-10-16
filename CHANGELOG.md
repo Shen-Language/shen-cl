@@ -36,6 +36,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Preserve guard evaluation order, exception behavior, and tail positions
   when factorising patterns. Large patterns compile without exponential
   duplication or repeated accessor chains.
+- Keep literal numeric comparisons followed by Prolog-variable tests correct
+  on SBCL 2.2.9, avoiding its incorrect propagation of `eql` type constraints.
 - Update native macro expansion to the 42.2 source-form handler protocol;
   derive the port compiler's callable metadata from its definitions.
 - Preserve `(fn input+)`, recognize the Shen variable `T` in `atom?`, correctly
