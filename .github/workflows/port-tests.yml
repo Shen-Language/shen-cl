@@ -15,10 +15,8 @@ on:
   workflow_dispatch:
 
 env:
-  # Temporary until Shen/CL 3.1.0 is published. Then use this repository's
-  # release, updating the tag and download asset name along with the repo.
-  BOOTSTRAP_REPO: tizoc/shen-scheme
-  BOOTSTRAP_TAG: v0.51
+  BOOTSTRAP_REPO: Shen-Language/shen-cl
+  BOOTSTRAP_TAG: v3.1.0
 
 jobs:
   port-tests:
@@ -36,11 +34,11 @@ jobs:
         shell: bash
         run: |
           mkdir -p bootstrap
-          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-scheme-${BOOTSTRAP_TAG}-linux-x64-bin.tar.gz"
+          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-cl-${BOOTSTRAP_TAG}-linux-x86_64-prebuilt.tar.gz"
           echo "Bootstrapping from $URL"
           curl -fsSL -o bootstrap/boot.tar.gz "$URL"
           tar xzf bootstrap/boot.tar.gz -C bootstrap
-          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen-scheme -type f | head -n1)"
+          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen -type f | head -n1)"
           test -n "$BOOT_SHEN"
           chmod +x "$BOOT_SHEN"
           echo "BOOT_SHEN=$BOOT_SHEN" >> "$GITHUB_ENV"

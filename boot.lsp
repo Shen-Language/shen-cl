@@ -151,9 +151,8 @@
 (import-lsp source-path "native")
 (import-lsp source-path "shen-utils")
 (import-lsp compiled-path "compiler")
-;; ShenOSKernel-42.2 (community shen-sources, vendored unmodified). Every .kl
-;; file holds only defuns, so this order is not load-bearing: the environment
-;; is built afterwards by (shen.initialise) from init.kl.
+;; Kernel files define functions; (shen.initialise) from init.kl builds the
+;; environment after they are loaded.
 (import-lsp compiled-path "toplevel")
 (import-lsp compiled-path "core")
 (import-lsp compiled-path "sys")
