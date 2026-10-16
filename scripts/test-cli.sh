@@ -73,10 +73,12 @@ assert_eq() { # EXPECTED ACTUAL LABEL
 
 # Resolve the launcher invocation for an impl, or empty string if not built.
 shen_bin() { # IMPL
+  local suffix=""
+  [ "${OS:-}" = "Windows_NT" ] && suffix=".exe"
   case "$1" in
-    sbcl)  [ -x bin/sbcl/shen ]  && echo "bin/sbcl/shen" ;;
-    clisp) [ -x bin/clisp/shen ] && echo "bin/clisp/shen --clisp-m 10MB" ;;
-    ecl)   [ -x bin/ecl/shen ]   && echo "bin/ecl/shen" ;;
+    sbcl)  [ -x "bin/sbcl/shen$suffix" ]  && echo "bin/sbcl/shen$suffix" ;;
+    clisp) [ -x "bin/clisp/shen$suffix" ] && echo "bin/clisp/shen$suffix --clisp-m 10MB" ;;
+    ecl)   [ -x "bin/ecl/shen$suffix" ]   && echo "bin/ecl/shen$suffix" ;;
   esac
 }
 
@@ -91,6 +93,8 @@ test_impl() { # IMPL
 
   local tmp out ec
   tmp="$(mktemp -d)"
+  # Native Windows Lisps need a Windows path inside the generated Shen forms.
+  if command -v cygpath >/dev/null 2>&1; then tmp="$(cygpath -m "$tmp")"; fi
 
   # --- eval -e EXPR prints the value ---
   out="$(run_bounded 60 $bin eval -e '(+ 1 2)' 2>&1)"

@@ -56,11 +56,13 @@ jobs:
       - name: Self-host kernel + compiler
         run: make precompile SHEN=bin/sbcl/shen
 
-      - name: Upload precompiled Lisp
+      - name: Upload precompiled kernel
         uses: actions/upload-artifact@v4
         with:
-          name: precompiled-lisp
-          path: compiled/*.lsp
+          name: precompiled-kernel
+          path: |
+            compiled/
+            kernel/
           if-no-files-found: error
 
   build:
@@ -76,8 +78,17 @@ jobs:
             platform: linux-aarch64
           - os: macos-14
             platform: macos-arm64
+          - os: windows-2022
+            platform: windows-x86_64
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
+      - name: Keep source line endings (Windows)
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
@@ -106,23 +117,22 @@ jobs:
 
       - uses: ./.github/actions/setup-sbcl
 
-      - name: Fetch ShenOSKernel 42.2 (SHA-256 verified)
-        run: make fetch
-
-      - name: Download precompiled Lisp
+      - name: Download precompiled kernel
         uses: actions/download-artifact@v4
         with:
-          name: precompiled-lisp
-          path: compiled
+          name: precompiled-kernel
 
       - name: Build shen-cl
-        run: make build-sbcl
+        run: make SHELL=bash Slash=/ build-sbcl
 
       - name: Check built version
-        run: bin/sbcl/shen eval -e "(cl.exit (if (= (value *port*) \"$PORT_VERSION\") 0 1))"
+        run: |
+          SHEN=bin/sbcl/shen
+          if [[ "$RUNNER_OS" == Windows ]]; then SHEN="$SHEN.exe"; fi
+          "$SHEN" eval -e "(cl.exit (if (= (value *port*) \"$PORT_VERSION\") 0 1))"
 
       - name: Test
-        run: make test-all
+        run: make SHELL=bash Slash=/ test-all
 
       - name: Package
         shell: bash
@@ -132,12 +142,29 @@ jobs:
           STAGE_NAME="shen-cl-${VERSION}-${{ matrix.platform }}"
           STAGE="$STAGE_PARENT/$STAGE_NAME"
           mkdir -p "$STAGE"
-          cp bin/sbcl/shen "$STAGE/"
+          EXE=shen
+          if [[ "$RUNNER_OS" == Windows ]]; then EXE=shen.exe; fi
+          cp "bin/sbcl/$EXE" "$STAGE/"
           cp LICENSE.txt "$STAGE/"
           cp -R extensions "$STAGE/"
-          ARCHIVE="shen-cl-${VERSION}-${{ matrix.platform }}-prebuilt.tar.gz"
-          COPYFILE_DISABLE=1 tar -czf "release/$ARCHIVE" -C "$STAGE_PARENT" "$STAGE_NAME"
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            ARCHIVE="shen-cl-${VERSION}-${{ matrix.platform }}-prebuilt.zip"
+            7z a -tzip "release/$ARCHIVE" "$STAGE"
+          else
+            ARCHIVE="shen-cl-${VERSION}-${{ matrix.platform }}-prebuilt.tar.gz"
+            COPYFILE_DISABLE=1 tar -czf "release/$ARCHIVE" -C "$STAGE_PARENT" "$STAGE_NAME"
+          fi
           ls -la "release/$ARCHIVE"
+          ARCHIVE_PATH="$PWD/release/$ARCHIVE"
+          SMOKE="$(mktemp -d)"
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            (cd "$SMOKE" && 7z x "$ARCHIVE_PATH")
+          else
+            tar xzf "$ARCHIVE_PATH" -C "$SMOKE"
+          fi
+          cd "$SMOKE/$STAGE_NAME"
+          env -u SBCL_HOME "./$EXE" eval -e "(cl.exit (if (= (value *port*) \"$PORT_VERSION\") 0 1))"
+          env -u SBCL_HOME "./$EXE" script extensions/sha256/tests.shen
 
       - name: Package precompiled sources
         if: matrix.platform == 'linux-x86_64'

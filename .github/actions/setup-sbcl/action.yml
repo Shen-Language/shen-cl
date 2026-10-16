@@ -1,42 +1,39 @@
-name: Set up SBCL 2.6.9
-description: Build and cache the SBCL version used for release validation.
+name: Set up SBCL
+description: Install a recent prebuilt SBCL and report the selected version.
 runs:
   using: composite
   steps:
-    - name: Cache SBCL
-      id: cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ runner.temp }}/sbcl-2.6.9
-        key: sbcl-2.6.9-${{ runner.os }}-${{ runner.arch }}-2
-
-    - name: Install build dependencies (Linux)
-      if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
+    - name: Install SBCL (Linux)
+      if: runner.os == 'Linux'
       shell: bash
       run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends sbcl build-essential zlib1g-dev
+        case "$RUNNER_ARCH" in
+          X64) ARCH=x86-64 ;;
+          ARM64) ARCH=arm64 ;;
+          *) exit 1 ;;
+        esac
+        URL="https://github.com/roswell/sbcl_bin/releases/download/2.6.9/sbcl-2.6.9-${ARCH}-linux-glibc2.39-binary.tar.bz2"
+        curl -fsSL --retry 3 -o "$RUNNER_TEMP/sbcl.tar.bz2" "$URL"
+        mkdir -p "$RUNNER_TEMP/sbcl-distribution"
+        tar xjf "$RUNNER_TEMP/sbcl.tar.bz2" --strip-components=1 -C "$RUNNER_TEMP/sbcl-distribution"
+        cd "$RUNNER_TEMP/sbcl-distribution"
+        INSTALL_ROOT="$RUNNER_TEMP/sbcl" sh install.sh
+        echo "$RUNNER_TEMP/sbcl/bin" >> "$GITHUB_PATH"
+        echo "SBCL_HOME=$RUNNER_TEMP/sbcl/lib/sbcl" >> "$GITHUB_ENV"
 
-    - name: Install bootstrap SBCL (macOS)
-      if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'macOS'
+    - name: Install SBCL (macOS)
+      if: runner.os == 'macOS'
       shell: bash
       run: brew install sbcl
 
-    - name: Build SBCL 2.6.9
-      if: steps.cache.outputs.cache-hit != 'true'
-      shell: bash
+    - name: Install SBCL and make (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
       run: |
-        git clone --quiet --depth 1 --branch sbcl-2.6.9 \
-          https://github.com/sbcl/sbcl.git "$RUNNER_TEMP/sbcl-source"
-        cd "$RUNNER_TEMP/sbcl-source"
-        SBCL_BUILDING_RELEASE_FROM=HEAD sh make.sh
-        INSTALL_ROOT="$RUNNER_TEMP/sbcl-2.6.9" sh install.sh
+        choco install sbcl make -y --no-progress
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        "SBCL_HOME=$env:ProgramFiles\Steel Bank Common Lisp" >> $env:GITHUB_ENV
 
-    - name: Select SBCL 2.6.9
+    - name: Report SBCL version
       shell: bash
-      run: |
-        echo "$RUNNER_TEMP/sbcl-2.6.9/bin" >> "$GITHUB_PATH"
-        echo "SBCL_HOME=$RUNNER_TEMP/sbcl-2.6.9/lib/sbcl" >> "$GITHUB_ENV"
-        VERSION="$("$RUNNER_TEMP/sbcl-2.6.9/bin/sbcl" --version)"
-        echo "$VERSION"
-        test "$VERSION" = 'SBCL 2.6.9'
+      run: sbcl --version

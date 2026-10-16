@@ -53,7 +53,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
   startup, and preserve host overrides when compiling on ECL.
 - Include documentation and optional extensions in source archives, and omit
   macOS archive metadata. Release automation validates the port version and
-  publishes the precompiled source archive alongside platform binaries.
+  publishes the precompiled source archive alongside platform binaries,
+  including a tested Windows x64 ZIP distribution.
 
 ### Added
 
