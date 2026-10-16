@@ -41,6 +41,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
   preserving native conditions and checked successful reads.
 - Apply accessor caching to generated kernel/StLib Lisp, with invalidation
   across writes, unknown calls, branches, and control-flow joins.
+- Simplify accessor rewriting with fresh temporary symbols and a shared
+  sequence walker, preserving mutation invalidation and lexical scope.
 - Use structural dictionary keys with case-sensitive strings and numeric
   equality across representations. Preserve the unchanged public kernel `hash`.
 - Retain dynamic kernel bindings and interactive redefinition. Optimization

@@ -4,13 +4,18 @@
 (defun shen-cl.test-accessors ()
   (let ((count 0))
     (flet ((check (body expected &optional (input (list 1)))
-             (let* ((name (gensym "ACCESSOR-TEST-"))
-                    (form (shen-cl.bind-accessor-chains `(defun ,name (x) ,body))))
-               (unwind-protect
-                    (progn (eval form) (compile name)
-                           (assert (equal expected (funcall name input)))
-                           (incf count))
-                 (fmakunbound name)))))
+             (let* ((form (shen-cl.bind-accessor-chains
+                           `(defun ,(gensym "ACCESSOR-TEST-") (x) ,body)))
+                    (reread (let ((*print-readably* t) (*print-circle* t))
+                              (read-from-string (write-to-string form)))))
+               ;; Generated build files must preserve temporary identity too.
+               (dolist (form (list form reread))
+                 (let ((name (second form)))
+                   (unwind-protect
+                        (progn (eval form) (compile name)
+                               (assert (equal expected (funcall name (copy-tree input))))
+                               (incf count))
+                     (fmakunbound name)))))))
       (check '(progn (car x) (rplaca x 42) (car x)) 42)
       (check '(progn (car x) (if t (rplaca x 42) nil) (car x)) 42)
       (check '(progn (car x) (let ((y x)) (rplaca y 42)) (car x)) 42)
@@ -29,7 +34,19 @@
       (check '(list (car x) (car x) (let ((x (list 7))) (car x)) (car x)) '(1 1 7 1))
       (check '(progn (car x) (|let| y x (rplaca y 42)) (car x)) 42)
       (check '(progn (car x) (|if| '|true| (rplaca x 42) nil) (car x)) 42)
-      (check '(progn (car x) (|and| '|true| (progn (rplaca x 42) '|true|)) (car x)) 42))
+      (check '(progn (car x) (|and| '|true| (progn (rplaca x 42) '|true|)) (car x)) 42)
+      (check '(let ((|shen-cl.acc1| 7)) (list (car x) |shen-cl.acc1| (car x))) '(1 7 1))
+      (check '(let ((acc0 7)) (list (car x) acc0 (car x))) '(1 7 1))
+      (let ((variable (make-symbol "ACC0")))
+        (check `(let ((,variable 7)) (list (car x) ,variable (car x))) '(1 7 1)))
+      (check '(progn (car x) (let ((x (cdr x)) (y (car x))) (list (car x) y)))
+             '(2 1) (list 1 2))
+      (check '(progn (car x) (let* ((x (cdr x)) (y (car x))) (list (car x) y)))
+             '(2 2) (list 1 2))
+      (check '(or (and (null x) (car x)) (car x)) 1)
+      (check '(let ((f (lambda () (car x))))
+                (list (funcall f) (progn (rplaca x 42) (funcall f)))) '(1 42)))
+
     ;; The dictionary's hash and equality must agree for foreign CL values
     ;; as well as ordinary Shen keys. Strings are distinct from char vectors.
     (assert (not (|shen-cl.absequal| "abc" (vector #\a #\b #\c))))

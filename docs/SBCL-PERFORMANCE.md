@@ -143,6 +143,9 @@ This reduces repeated list traversal and the size of the selector expressions
 SBCL must compile. The pass runs on definitions compiled through `eval-kl`
 and the build's copies of generated kernel/StLib Lisp. It
 leaves the kernel distribution and precompiled source files unchanged.
+Temporary variables are fresh, uninterned Lisp symbols, so source bindings cannot
+capture them. Generated files use `*print-circle*` to preserve each temporary's
+identity when the Lisp is written and read back.
 
 Cache reuse depends on where an accessor was actually evaluated and whether
 its input can have changed:

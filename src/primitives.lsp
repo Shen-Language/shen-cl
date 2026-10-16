@@ -145,51 +145,16 @@
                      ((char= c #\|) (write-string "bar!1957" out))
                      (t (write-char c out))))))))
 
-;; ---------------------------------------------------------------------------
-;; Accessor-chain binding pass (fixes super-linear compile cost of large
-;; pattern matches).
-;;
-;; The kernel's pattern compiler re-derives the full hd/tl accessor chain for
-;; every element of a destructured pattern, so kl->lisp emits tests like
-;;
-;;   (AND (CONSP V) (AND (EQ (CAR V) 'record) (AND (CONSP (CDR V))
-;;     (AND (CONSP (CAR (CDR V))) ...))))
-;;
-;; where each deeper test repeats the whole (CAR (CDR ... V)) spine, and the
-;; clause body repeats it again for every bound variable. Generated code size
-;; grows with pattern-size * pattern-depth, and the host compiler's cost grows
-;; far faster than that: on SBCL a ~100-leaf record pattern (a 12k-node form)
-;; consed ~800MB inside COMPILE and exhausted the default 1GB heap.
-;;
-;; This pass rewrites the kl->lisp output for a defun so that each CAR/CDR
-;; step is computed once, bound to a function-local variable via an inline
-;; (SETQ acc-var (CAR ...)) at its first occurrence, and referenced thereafter.
-;; SETQ returns the assigned value, so evaluation order and results are
-;; byte-for-byte identical to the original; a chain is only ever reused at a
-;; point that the original would reach after having evaluated the identical
-;; (pure, immutable-cons) expression. Reuse is scoped by control flow:
-;;
-;;   - within (AND t1 t2 ...): bindings made in t_i are visible in t_j, j > i
-;;     (t_j only evaluates after t_i was true), and in a COND clause body
-;;     guarded by the whole test;
-;;   - across conditional joins, bindings do not escape: skipped expressions
-;;     may not have assigned them, and completed branches may mutate roots;
-;;   - chains are only bound when rooted at a *lexical* variable (defun
-;;     params, LET/let vars, or an earlier accessor binding) -- bare special
-;;     variable references (from KL [value X]) are never CSE'd since their
-;;     value can change between references;
-;;   - closure bodies (LAMBDA / |lambda| / |freeze|) are left untouched: a
-;;     closure can run more than once (or concurrently) with different
-;;     arguments, so caching in a shared function-local would be unsound;
-;;   - any form this compiler does not itself emit (macros / special
-;;     operators reachable only through lisp. escapes) is left completely
-;;     unchanged.
-;;
-;; EVAL-KL and the build's copies of generated kernel/StLib Lisp use this
-;; pass. Writes and calls not known to be pure invalidate accessor bindings.
+;; Bind repeated CAR/CDR chains to function-local temporaries so large
+;; patterns do not repeatedly compile the same nested selector expressions.
+;; Only lexical roots are cached. Reuse follows evaluation order and guards;
+;; writes, unknown calls, joins and scope exits invalidate cached selectors.
+;; Closures are left untouched, and TAGBODY statements start with empty caches.
+;; EVAL-KL and generated kernel/StLib files use the same pass. Fresh symbols
+;; avoid collisions with source bindings; file output preserves their identity
+;; with *PRINT-CIRCLE*.
 
 (defvar shen-cl.*acc-vars* nil)     ; vars allocated for the current defun
-(defvar shen-cl.*acc-counter* 0)
 (defvar shen-cl.*acc-roots* nil)    ; alist: acc var -> root source symbol
 
 (defun shen-cl.acc-root (base)
@@ -197,8 +162,7 @@
     (if r (cdr r) base)))
 
 (defun shen-cl.acc-new-var (base)
-  (let ((v (intern (format nil "shen-cl.acc~D" (incf shen-cl.*acc-counter*))
-                   :shen)))
+  (let ((v (gensym "ACC")))
     (push v shen-cl.*acc-vars*)
     (push (cons v (shen-cl.acc-root base)) shen-cl.*acc-roots*)
     v))
@@ -255,8 +219,10 @@
                    nil nil))
           ((member head '(car cdr))
            (shen-cl.acc-walk-chain head (second e) env scope))
-          ((eq head 'and) (shen-cl.acc-walk-and e env scope))
-          ((eq head 'or) (shen-cl.acc-walk-or e env scope))
+          ((member head '(and or))
+           (multiple-value-bind (forms after)
+               (shen-cl.acc-walk-seq (cdr e) env scope (eq head 'and))
+             (values (cons head forms) nil (and (eq head 'and) after))))
           ((eq head 'if)
            (multiple-value-bind (c ca ct) (shen-cl.acc-walk (second e) env scope)
              (let ((a (shen-cl.acc-walk (third e) ct scope))
@@ -348,30 +314,10 @@
           (let ((hit (shen-cl.acc-lookup op base enva)))
             (if hit
                 (values hit enva enva)
-                (let ((v (shen-cl.acc-new-var base)))
-                  (values (list 'setq v (list op arg2))
-                          (acons (cons op base) v enva)
-                          (acons (cons op base) v enva)))))
+                (let* ((v (shen-cl.acc-new-var base))
+                       (after (acons (cons op base) v enva)))
+                  (values (list 'setq v (list op arg2)) after after))))
           (values (list op arg2) enva enva)))))
-
-(defun shen-cl.acc-walk-and (e env scope)
-  ;; arg j evaluates only if args 1..j-1 were true.
-  (let ((cur env) (out nil))
-    (loop for arg in (cdr e)
-          do (multiple-value-bind (a2 aa at) (shen-cl.acc-walk arg cur scope)
-               (declare (ignore aa))
-               (push a2 out)
-               (setf cur at)))
-    (values (cons 'and (nreverse out)) nil cur)))
-
-(defun shen-cl.acc-walk-or (e env scope)
-  ;; arg j evaluates only if args 1..j-1 were false.
-  (let ((cur env) (out nil))
-    (loop for arg in (cdr e)
-          do (multiple-value-bind (a2 aa) (shen-cl.acc-walk arg cur scope)
-               (push a2 out)
-               (setf cur aa)))
-    (values (cons 'or (nreverse out)) nil nil)))
 
 (defun shen-cl.acc-walk-cond (e env scope)
   ;; test i+1 evaluates only after test i evaluated (to false); a clause body
@@ -415,34 +361,15 @@
         ;; variables, and the body may change outer roots. Nothing escapes.
         (values (list* op (nreverse out) body2) nil nil)))))
 
-(defun shen-cl.acc-walk-seq (forms env scope)
-  "Walk FORMS as a left-to-right always-evaluated sequence.
-Returns (values rewritten-forms env-after)."
+(defun shen-cl.acc-walk-seq (forms env scope &optional when-true)
+  ;; AND carries bindings guaranteed after a true operand. Ordinary sequences
+  ;; and OR carry only bindings guaranteed whenever the operand completes.
   (let ((cur env) (out nil))
     (dolist (f forms)
-      (multiple-value-bind (f2 fa) (shen-cl.acc-walk f cur scope)
+      (multiple-value-bind (f2 always true) (shen-cl.acc-walk f cur scope)
         (push f2 out)
-        (setf cur fa)))
+        (setf cur (if when-true true always))))
     (values (nreverse out) cur)))
-
-(defun shen-cl.acc-scan-counter (form)
-  "Highest N over symbols named shen-cl.accN in FORM (collision avoidance)."
-  (let ((max 0) (stack (list form)) (prefix "shen-cl.acc"))
-    (loop while stack
-          do (let ((y (pop stack)))
-               (cond ((consp y)
-                      (push (car y) stack)
-                      (push (cdr y) stack))
-                     ((symbolp y)
-                      (let ((name (symbol-name y)))
-                        (when (and (> (length name) (length prefix))
-                                   (string= prefix name :end2 (length prefix))
-                                   (every #'digit-char-p
-                                          (subseq name (length prefix))))
-                          (let ((n (parse-integer name
-                                                  :start (length prefix))))
-                            (when (> n max) (setf max n)))))))))
-    max))
 
 (defun shen-cl.bind-accessor-chains (form)
   "Apply the accessor-chain binding pass to a (DEFUN name (params) body) form.
@@ -456,7 +383,7 @@ Any other form is returned unchanged."
            (consp (cdddr form))
            (null (cddddr form)))
       (let ((shen-cl.*acc-vars* nil)
-            (shen-cl.*acc-counter* (shen-cl.acc-scan-counter form))
+            (*gensym-counter* 0)
             (shen-cl.*acc-roots* nil))
         (let ((body2 (shen-cl.acc-walk (fourth form) nil (third form))))
           (if shen-cl.*acc-vars*
