@@ -22,7 +22,7 @@ else
 	OSName=linux
 endif
 
-GitVersion=$(shell git tag -l --contains HEAD)
+GitVersion=$(shell git describe --tags --exact-match 2>/dev/null)
 
 ifeq ("$(GitVersion)","")
 	GitVersion=$(shell git rev-parse --short HEAD)
@@ -270,7 +270,7 @@ ifeq ($(OSName),windows)
 	$(PS) "Compress-Archive -Force -DestinationPath release\\$(ReleaseArchiveName) -LiteralPath $(ShenSBCL), LICENSE.txt, extensions"
 else
 	mkdir -p release
-	tar -vczf release/$(ReleaseArchiveName) -C bin/sbcl $(BinaryName) -C ../.. LICENSE.txt extensions
+	COPYFILE_DISABLE=1 tar -vczf release/$(ReleaseArchiveName) -C bin/sbcl $(BinaryName) -C ../.. LICENSE.txt extensions
 endif
 
 .PHONY: source-release
@@ -283,10 +283,10 @@ ifeq ($(OSName),windows)
 	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName) -Force -Recurse"
 else ifeq ($(OSName),linux)
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src compiled scripts tests extensions assets docs Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?"
+	COPYFILE_DISABLE=1 tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src compiled scripts tests extensions assets docs Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?"
 else
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?" src compiled scripts tests extensions assets docs Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
+	COPYFILE_DISABLE=1 tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?" src compiled scripts tests extensions assets docs Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
 endif
 
 #

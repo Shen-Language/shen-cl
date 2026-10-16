@@ -7,14 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build (blank = build HEAD without releasing)'
+        description: 'Tag to verify (blank = selected branch; never publishes)'
         required: false
 
 permissions:
   contents: write
 
 env:
-  # shen-cl is self-hosting: building it requires an existing Shen kernel-41.1
+  # shen-cl is self-hosting: building it requires an existing Shen
   # executable to precompile the kernel and compiler down to Lisp (`make
   # precompile`). We bootstrap from a previously released prebuilt binary for
   # the same platform. Repoint these at an upstream release once one exists.
@@ -37,6 +37,30 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Check release version
+        shell: bash
+        env:
+          BUILD_TAG: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+        run: |
+          PORT_VERSION="$(sed -n 's/^(defvar |\*port\*| "\([^"]*\)")$/\1/p' src/primitives.lsp)"
+          if [[ ! "$PORT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid port version: $PORT_VERSION" >&2
+            exit 1
+          fi
+          if [[ -n "$BUILD_TAG" ]]; then
+            if [[ "$BUILD_TAG" != "v$PORT_VERSION" ]]; then
+              echo "Tag $BUILD_TAG does not match port version $PORT_VERSION" >&2
+              exit 1
+            fi
+            VERSION="$BUILD_TAG"
+          else
+            VERSION="$(git rev-parse --short HEAD)"
+          fi
+          echo "PORT_VERSION=$PORT_VERSION" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Install SBCL (Linux)
         if: runner.os == 'Linux'
@@ -67,20 +91,22 @@ jobs:
       - name: Build shen-cl
         run: make build-sbcl
 
+      - name: Self-host kernel + compiler
+        run: make precompile SHEN=bin/sbcl/shen
+
+      - name: Rebuild shen-cl
+        run: make build-sbcl
+
+      - name: Check built version
+        run: bin/sbcl/shen eval -e "(cl.exit (if (= (value *port*) \"$PORT_VERSION\") 0 1))"
+
       - name: Test
-        run: make test-sbcl
-
-      - name: Compiler tests
-        run: make test-compiler
-
-      - name: Port, extension, and accessor tests
-        run: make test-port test-extensions test-accessors test-sha256
+        run: make test-all
 
       - name: Package
         shell: bash
         run: |
           mkdir -p release
-          VERSION="${GITHUB_REF_NAME:-$(git rev-parse --short HEAD)}"
           STAGE_PARENT="$(mktemp -d)"
           STAGE_NAME="shen-cl-${VERSION}-${{ matrix.platform }}"
           STAGE="$STAGE_PARENT/$STAGE_NAME"
@@ -89,8 +115,12 @@ jobs:
           cp LICENSE.txt "$STAGE/"
           cp -R extensions "$STAGE/"
           ARCHIVE="shen-cl-${VERSION}-${{ matrix.platform }}-prebuilt.tar.gz"
-          tar -czf "release/$ARCHIVE" -C "$STAGE_PARENT" "$STAGE_NAME"
+          COPYFILE_DISABLE=1 tar -czf "release/$ARCHIVE" -C "$STAGE_PARENT" "$STAGE_NAME"
           ls -la "release/$ARCHIVE"
+
+      - name: Package precompiled sources
+        if: matrix.platform == 'linux-x86_64'
+        run: make source-release GitVersion="$VERSION"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -103,7 +133,7 @@ jobs:
   release:
     name: Publish release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -123,14 +153,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PREV_TAG="$(git tag --sort=-v:refname | sed -n '2p')"
-          if [ -n "$PREV_TAG" ]; then
-            gh release create "${GITHUB_REF_NAME}" release/* \
-              --title "${GITHUB_REF_NAME}" \
-              --generate-notes \
-              --notes-start-tag "$PREV_TAG"
-          else
-            gh release create "${GITHUB_REF_NAME}" release/* \
-              --title "${GITHUB_REF_NAME}" \
-              --generate-notes
+          awk -v version="${GITHUB_REF_NAME#v}" '
+            index($0, "## [" version "]") == 1 { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "No changelog entry for ${GITHUB_REF_NAME}" >&2
+            exit 1
           fi
+          gh release create "${GITHUB_REF_NAME}" release/* \
+            --verify-tag \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md

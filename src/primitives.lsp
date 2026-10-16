@@ -35,7 +35,7 @@
 ;; only the former exits on EOF.
 (defvar |shen-cl.in-repl?| nil)
 (defvar |*language*| "Common Lisp")
-(defvar |*port*| "3.0.3")
+(defvar |*port*| "3.1.0")
 (defvar |*porters*| "Mark Tarver, Robert Koeninger and Bruno Deferrari")
 
 #+clisp

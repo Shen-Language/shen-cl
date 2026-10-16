@@ -61,6 +61,7 @@ The `Makefile` automates all build and test operations.
 | `X`          | Build and run test suite.                    |
 | `run-X`      | Start Shen REPL.                             |
 | `release`    | Creates archive of compiled binaries.        |
+| `source-release` | Creates an archive with precompiled Lisp sources. |
 
 `X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
 
@@ -85,7 +86,7 @@ optimization guide for the binding tradeoff.
 
 ## Building from a precompiled sources release
 
-The precompiled source relases (`shen-cl-vX.Y.Z-sources.{tar.gz,zip}`) contain all the `.lsp` files required to build a working Shen executable (precompiled from `.shen` sources). To do so, run the `build-X` make target:
+The precompiled source releases (`shen-cl-vX.Y.Z-sources.tar.gz`) contain all the `.lsp` files required to build a working Shen executable (precompiled from `.shen` sources). To do so, run the `build-X` make target:
 
 ```shell
 # Produces an executable in bin/sbcl/shen
@@ -104,7 +105,19 @@ When starting Shen via `make`, command line arguments can be passed through like
 
 ## Releasing
 
-Tagged releases are built and published automatically by the [`Release` GitHub Actions workflow](.github/workflows/release.yml). Pushing a `vX.Y.Z` tag builds the SBCL port for Linux (`x86_64`, `aarch64`) and macOS (`arm64`), then attaches the prebuilt archives to the GitHub [releases](https://github.com/Shen-Language/shen-cl/releases) page.
+Before tagging a release, update `*port*` in `src/primitives.lsp` and add a
+matching version section to `CHANGELOG.md`. The port version is separate from
+the kernel version reported by `(version)` and `--version`. Build and run
+`make test-all`, then merge the release preparation before tagging the merged
+commit.
+
+Pushing a `vX.Y.Z` tag runs the [`Release` GitHub Actions workflow](.github/workflows/release.yml).
+It checks that the tag matches `*port*`, builds and tests the SBCL port for
+Linux (`x86_64`, `aarch64`) and macOS (`arm64`), and publishes prebuilt archives
+and a precompiled source archive on the GitHub
+[releases](https://github.com/Shen-Language/shen-cl/releases) page. Release
+notes come from the matching changelog section. A manual workflow run builds
+the selected branch or optional tag for verification without publishing.
 
 Archives can also be produced locally with the `make release` command. They appear under `release/`, named with the operating system and current git tag or short commit hash. Archives include the SBCL executable (named `shen[.exe]`), the license, and the optional host extensions.
 
@@ -112,11 +125,14 @@ To reproduce a release archive locally, build the exact tagged commit:
 
 ```shell
 make pure
-git checkout v3.0.3
+git checkout v3.1.0
 make fetch
 make precompile SHEN=shen-sbcl
-make sbcl
+make build-sbcl
+make precompile SHEN=bin/sbcl/shen
+make build-sbcl test-all
 make release
+make source-release
 ```
 ## Optional Nix environment
 
