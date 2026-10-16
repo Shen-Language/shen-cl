@@ -25,6 +25,29 @@
 (assert-false "pvar? ordinary vector" (shen.pvar? (vector 2)))
 (assert-false "pvar? list" (shen.pvar? [shen.pvar]))
 
+\\ Integer equality and a following inlined vector predicate must not leak
+\\ type constraints across branches (a regression on older SBCL releases).
+(define port-test.numeric-or-pvar
+  X -> zero where (= X 0)
+  X -> pvar where (shen.pvar? X)
+  _ -> other)
+(assert= "literal comparison before pvar? accepts a Prolog variable" pvar
+  (port-test.numeric-or-pvar (shen.make-prolog-variable 12)))
+(assert= "literal comparison before pvar? accepts zero" zero
+  (port-test.numeric-or-pvar 0))
+(assert= "literal comparison before pvar? retains numeric equality" zero
+  (port-test.numeric-or-pvar 0.0))
+(assert= "literal comparison before pvar? rejects other values" other
+  (port-test.numeric-or-pvar other))
+
+(defprolog port-test.total
+  [] 0 <--;
+  [X | Xs] Total <-- (port-test.total Xs Rest) (is Total (+ X Rest));)
+(assert= "Prolog literal base case binds its result" 0
+  (prolog? (port-test.total [] Total) (return Total)))
+(assert= "Prolog literal base case supports recursive continuations" 6
+  (prolog? (port-test.total [1 2 3] Total) (return Total)))
+
 (let P (shen.make-prolog-variable 12)
      Q (shen.make-prolog-variable 12)
   (do (assert-true "constructed Prolog variable has its marker" (shen.pvar? P))

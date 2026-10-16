@@ -58,18 +58,22 @@ without its body at that point would not provide the same opportunity.
 Arithmetic helpers branch on fixnum and double-float inputs, giving SBCL enough
 type information to emit integer and floating-point instructions. Fixnum results
 remain unrestricted integers, so overflow promotes to bignums; floating-point
-errors remain catchable. Other inputs retain the general numeric path.
+errors remain catchable. Overflow follows the host's floating-point trap
+settings; the port does not change those settings. Other inputs retain the
+general numeric path.
 The existing increment/decrement translations use the same input guard while
 preserving their general-number behavior. Numeric normalization returns integers
 and existing double floats directly; it converts other accepted representations
 to double precision. Avoiding conversion of an existing double float also avoids
 boxing another copy of it.
 
-Literal numeric equality uses `eql` when both operands are integers and `=` for
-other numeric representations. The literal operand lets inlining eliminate
-irrelevant tests. Non-numbers still fail the match, and each operand is evaluated
-once. The internal strict Boolean helper is also inline, retaining its error
-branch while avoiding a call for ordinary conditions.
+Literal numeric equality exposes an integer path before the general numeric
+comparison. Both paths use `=`: using `eql` in the integer path makes SBCL 2.2.9
+miscompile a subsequent inlined Prolog-variable predicate. The literal operand
+lets inlining eliminate irrelevant tests and retain direct integer comparisons.
+Non-numbers still fail the match, and each operand is evaluated once. The internal
+strict Boolean helper is also inline, retaining its error branch while avoiding
+a call for ordinary conditions.
 
 `pos` and `n->string` construct a fresh string of length one directly after
 validating their inputs. This exposes the known result size to SBCL and avoids

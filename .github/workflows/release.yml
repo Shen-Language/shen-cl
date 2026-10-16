@@ -14,16 +14,60 @@ permissions:
   contents: write
 
 env:
-  # shen-cl is self-hosting: building it requires an existing Shen
-  # executable to precompile the kernel and compiler down to Lisp (`make
-  # precompile`). We bootstrap from a previously released prebuilt binary for
-  # the same platform. Repoint these at an upstream release once one exists.
-  BOOTSTRAP_REPO: pyrex41/shen-cl
-  BOOTSTRAP_TAG: v3.0.4
+  # Temporary until Shen/CL 3.1.0 is published. Then use this repository's
+  # release, updating the tag and download asset name along with the repo.
+  BOOTSTRAP_REPO: tizoc/shen-scheme
+  BOOTSTRAP_TAG: v0.51
 
 jobs:
+  precompile:
+    name: Precompile portable Lisp
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: ./.github/actions/setup-sbcl
+
+      - name: Fetch ShenOSKernel (SHA-256 verified)
+        run: make fetch
+
+      # Shen/Scheme publishes a Linux x64 bootstrap. Generate portable Lisp
+      # once, then build it natively on every release platform.
+      - name: Download bootstrap Shen
+        shell: bash
+        run: |
+          mkdir -p bootstrap
+          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-scheme-${BOOTSTRAP_TAG}-linux-x64-bin.tar.gz"
+          curl -fsSL -o bootstrap/boot.tar.gz "$URL"
+          tar xzf bootstrap/boot.tar.gz -C bootstrap
+          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen-scheme -type f | head -n1)"
+          test -n "$BOOT_SHEN"
+          chmod +x "$BOOT_SHEN"
+          echo "BOOT_SHEN=$BOOT_SHEN" >> "$GITHUB_ENV"
+
+      - name: Precompile kernel + compiler
+        run: make precompile SHEN="$BOOT_SHEN"
+
+      - name: Build bootstrap shen-cl
+        run: make build-sbcl
+
+      - name: Self-host kernel + compiler
+        run: make precompile SHEN=bin/sbcl/shen
+
+      - name: Upload precompiled kernel
+        uses: actions/upload-artifact@v4
+        with:
+          name: precompiled-kernel
+          path: |
+            compiled/
+            kernel/
+          if-no-files-found: error
+
   build:
     name: Build ${{ matrix.platform }}
+    needs: precompile
     strategy:
       fail-fast: false
       matrix:
@@ -34,8 +78,17 @@ jobs:
             platform: linux-aarch64
           - os: macos-14
             platform: macos-arm64
+          - os: windows-2022
+            platform: windows-x86_64
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
+      - name: Keep source line endings (Windows)
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
@@ -62,46 +115,25 @@ jobs:
           echo "PORT_VERSION=$PORT_VERSION" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Install SBCL (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends sbcl curl
+      - uses: ./.github/actions/setup-sbcl
 
-      - name: Install SBCL (macOS)
-        if: runner.os == 'macOS'
-        run: brew install sbcl
-
-      - name: Fetch ShenOSKernel 42.2 (SHA-256 verified)
-        run: make fetch
-
-      - name: Download bootstrap Shen
-        shell: bash
-        run: |
-          mkdir -p bootstrap
-          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-cl-${BOOTSTRAP_TAG}-${{ matrix.platform }}-prebuilt.tar.gz"
-          echo "Bootstrapping from $URL"
-          curl -fsSL -o bootstrap/boot.tar.gz "$URL"
-          tar xzf bootstrap/boot.tar.gz -C bootstrap
-          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen -type f | head -n1)"
-          chmod +x "$BOOT_SHEN"
-          echo "BOOT_SHEN=$BOOT_SHEN" >> "$GITHUB_ENV"
-
-      - name: Precompile kernel + compiler
-        run: make precompile SHEN="$BOOT_SHEN"
+      - name: Download precompiled kernel
+        uses: actions/download-artifact@v4
+        with:
+          name: precompiled-kernel
 
       - name: Build shen-cl
-        run: make build-sbcl
-
-      - name: Self-host kernel + compiler
-        run: make precompile SHEN=bin/sbcl/shen
-
-      - name: Rebuild shen-cl
-        run: make build-sbcl
+        # Keep Git Bash from converting the make variable's slash to a path.
+        run: MSYS2_ARG_CONV_EXCL='Slash=' make SHELL=bash Slash=/ build-sbcl
 
       - name: Check built version
-        run: bin/sbcl/shen eval -e "(cl.exit (if (= (value *port*) \"$PORT_VERSION\") 0 1))"
+        run: |
+          SHEN=bin/sbcl/shen
+          if [[ "$RUNNER_OS" == Windows ]]; then SHEN="$SHEN.exe"; fi
+          "$SHEN" eval -e "(cl.exit (if (= (value *port*) \"$PORT_VERSION\") 0 1))"
 
       - name: Test
-        run: make test-all
+        run: MSYS2_ARG_CONV_EXCL='Slash=' make SHELL=bash Slash=/ test-all
 
       - name: Package
         shell: bash
@@ -111,12 +143,29 @@ jobs:
           STAGE_NAME="shen-cl-${VERSION}-${{ matrix.platform }}"
           STAGE="$STAGE_PARENT/$STAGE_NAME"
           mkdir -p "$STAGE"
-          cp bin/sbcl/shen "$STAGE/"
+          EXE=shen
+          if [[ "$RUNNER_OS" == Windows ]]; then EXE=shen.exe; fi
+          cp "bin/sbcl/$EXE" "$STAGE/"
           cp LICENSE.txt "$STAGE/"
           cp -R extensions "$STAGE/"
-          ARCHIVE="shen-cl-${VERSION}-${{ matrix.platform }}-prebuilt.tar.gz"
-          COPYFILE_DISABLE=1 tar -czf "release/$ARCHIVE" -C "$STAGE_PARENT" "$STAGE_NAME"
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            ARCHIVE="shen-cl-${VERSION}-${{ matrix.platform }}-prebuilt.zip"
+            7z a -tzip "release/$ARCHIVE" "$STAGE"
+          else
+            ARCHIVE="shen-cl-${VERSION}-${{ matrix.platform }}-prebuilt.tar.gz"
+            COPYFILE_DISABLE=1 tar -czf "release/$ARCHIVE" -C "$STAGE_PARENT" "$STAGE_NAME"
+          fi
           ls -la "release/$ARCHIVE"
+          ARCHIVE_PATH="$PWD/release/$ARCHIVE"
+          SMOKE="$(mktemp -d)"
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            (cd "$SMOKE" && 7z x "$ARCHIVE_PATH")
+          else
+            tar xzf "$ARCHIVE_PATH" -C "$SMOKE"
+          fi
+          cd "$SMOKE/$STAGE_NAME"
+          env -u SBCL_HOME "./$EXE" eval -e "(cl.exit (if (= (value *port*) \"$PORT_VERSION\") 0 1))"
+          env -u SBCL_HOME "./$EXE" script extensions/sha256/tests.shen
 
       - name: Package precompiled sources
         if: matrix.platform == 'linux-x86_64'
@@ -125,7 +174,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}
+          name: ${{ matrix.platform }}-release
           path: release/*
           if-no-files-found: error
           retention-days: 14
@@ -144,6 +193,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release
+          pattern: '*-release'
           merge-multiple: true
 
       - name: List artifacts

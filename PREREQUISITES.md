@@ -11,6 +11,11 @@ Support for Common Lisp implementations varies over different operating systems.
 
 Check the project page for any CL implementation to build from source if necessary.
 
+SBCL 2.6.9 is the primary local validation target. CI uses recent prebuilt
+packages and reports their versions. A distribution's `sbcl` package may provide
+an older version; check `sbcl --version` when
+reproducing builds or performance results.
+
 ## BSD
 
 Below is a summary of currently supported implementations per BSD variant. As always, you should check for yourself the availability of these CLs with the package manager of the particular BSD you are running, e.g., `pkg search sbcl` or `pkg_info -Q sbcl`.
@@ -32,7 +37,8 @@ ECL requires `libffi-dev` to build, which can also be retrieved through `apt`.
 
 There is a [separately available debian package](http://mr.gy/blog/clozure-cl-deb.html) for Clozure. Download and install with `dpkg -i`.
 
-If the version of SBCL available throught `apt` is too old, a sufficiently new version is [available from debian](http://http.us.debian.org/debian/pool/main/s/sbcl/sbcl_1.4.2-1_arm64.deb).
+For SBCL versions newer than your distribution provides, use the
+[official downloads and build instructions](https://www.sbcl.org/getting.html).
 
 ## macOS
 

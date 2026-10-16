@@ -518,11 +518,12 @@ Any other form is returned unchanged."
     (t
      (equal x y))))
 
-;; Literal numeric equality: integer operands need only EQL. Other numeric
-;; representations still compare by value; non-numbers simply do not match.
+;; Keep integer operands visible to the host compiler. EQL here miscompiles a
+;; following inlined pvar test on SBCL 2.2.9; numeric = retains checked lowering.
+;; Other numeric representations compare by value; non-numbers do not match.
 (defun |shen-cl.numeric-equal| (x y)
   (if (and (integerp x) (integerp y))
-      (eql x y)
+      (= x y)
       (and (numberp x) (numberp y) (= x y))))
 
 (defun cf-vectors (x y lx ly)

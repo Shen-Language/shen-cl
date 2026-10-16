@@ -49,11 +49,21 @@
 (assert= "double float arithmetic" 4.5 (prim-test.multiply 1.5 3.0))
 (assert= "double zero product retains integer result" (prim-test.host "(type-of 0)")
   (prim-test.host-type (prim-test.multiply 0.0 2.0)))
-(assert-caught "floating addition overflow remains catchable"
-  (freeze (prim-test.add (prim-test.host "most-positive-double-float")
-                        (prim-test.host "most-positive-double-float"))))
-(assert-caught "floating multiplication overflow remains catchable"
-  (freeze (prim-test.multiply (prim-test.host "most-positive-double-float") 2.0)))
+\\ Host floating-point traps vary. Preserve their behavior without changing
+\\ the runtime's floating-point modes; overflow may signal or return infinity.
+(assert= "floating addition preserves host overflow handling"
+  (trap-error
+    (prim-test.host "(funcall (compile nil '(lambda (x) (+ x x))) most-positive-double-float)")
+    (/. E caught))
+  (trap-error (prim-test.add (prim-test.host "most-positive-double-float")
+                            (prim-test.host "most-positive-double-float"))
+              (/. E caught)))
+(assert= "floating multiplication preserves host overflow handling"
+  (trap-error
+    (prim-test.host "(funcall (compile nil '(lambda (x) (* x 2d0))) most-positive-double-float)")
+    (/. E caught))
+  (trap-error (prim-test.multiply (prim-test.host "most-positive-double-float") 2.0)
+              (/. E caught)))
 (assert= "ratio numeric conversion" 1.5 (prim-test.add (prim-test.host "1/2") 1.0))
 (assert= "increment preserves general numbers" (prim-test.host "3/2")
   (prim-test.increment (prim-test.host "1/2")))

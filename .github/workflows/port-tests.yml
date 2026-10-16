@@ -1,13 +1,12 @@
 name: Port Tests
 
-# Port-authored test suites (ADDITIVE; distinct from the canonical kernel
-# certification suite). Builds shen-cl on SBCL, then runs:
+# Builds and self-hosts shen-cl on SBCL, then runs the canonical kernel
+# certification suite and the port-authored test suites:
+#   - make test-sbcl     : canonical kernel certification suite
 #   - make test-compiler : existing KL->Lisp compiler-output golden tests
 #   - make test-port     : tests/*-tests.shen runtime regression suite
 #   - make test-cli      : scripts/test-cli.sh CLI/launcher parity (SBCL here;
 #                          locally it also exercises clisp + ecl when built)
-# It does NOT run the canonical kernel suite (that lives in the release CI's
-# `make test-sbcl`) and does NOT modify any canonical target.
 
 on:
   push:
@@ -16,11 +15,10 @@ on:
   workflow_dispatch:
 
 env:
-  # shen-cl is self-hosting; building it requires an existing Shen kernel
-  # executable to precompile the kernel + compiler down to Lisp. We bootstrap
-  # from a previously released prebuilt binary, matching release.yml.
-  BOOTSTRAP_REPO: pyrex41/shen-cl
-  BOOTSTRAP_TAG: v3.0.4
+  # Temporary until Shen/CL 3.1.0 is published. Then use this repository's
+  # release, updating the tag and download asset name along with the repo.
+  BOOTSTRAP_REPO: tizoc/shen-scheme
+  BOOTSTRAP_TAG: v0.51
 
 jobs:
   port-tests:
@@ -29,21 +27,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SBCL
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends sbcl curl
+      - uses: ./.github/actions/setup-sbcl
 
-      - name: Fetch ShenOSKernel 42.2 (SHA-256 verified)
+      - name: Fetch ShenOSKernel (SHA-256 verified)
         run: make fetch
 
       - name: Download bootstrap Shen
         shell: bash
         run: |
           mkdir -p bootstrap
-          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-cl-${BOOTSTRAP_TAG}-linux-x86_64-prebuilt.tar.gz"
+          URL="https://github.com/${BOOTSTRAP_REPO}/releases/download/${BOOTSTRAP_TAG}/shen-scheme-${BOOTSTRAP_TAG}-linux-x64-bin.tar.gz"
           echo "Bootstrapping from $URL"
           curl -fsSL -o bootstrap/boot.tar.gz "$URL"
           tar xzf bootstrap/boot.tar.gz -C bootstrap
-          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen -type f | head -n1)"
+          BOOT_SHEN="$(find "$PWD/bootstrap" -name shen-scheme -type f | head -n1)"
+          test -n "$BOOT_SHEN"
           chmod +x "$BOOT_SHEN"
           echo "BOOT_SHEN=$BOOT_SHEN" >> "$GITHUB_ENV"
 
@@ -52,6 +50,15 @@ jobs:
 
       - name: Build shen-cl (SBCL)
         run: make build-sbcl
+
+      - name: Self-host kernel + compiler
+        run: make precompile SHEN=bin/sbcl/shen
+
+      - name: Rebuild shen-cl (SBCL)
+        run: make build-sbcl
+
+      - name: Canonical kernel tests
+        run: make test-sbcl
 
       - name: Compiler tests (existing)
         run: make test-compiler

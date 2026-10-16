@@ -1,0 +1,39 @@
+name: Set up SBCL
+description: Install a recent prebuilt SBCL and report the selected version.
+runs:
+  using: composite
+  steps:
+    - name: Install SBCL (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        case "$RUNNER_ARCH" in
+          X64) ARCH=x86-64 ;;
+          ARM64) ARCH=arm64 ;;
+          *) exit 1 ;;
+        esac
+        URL="https://github.com/roswell/sbcl_bin/releases/download/2.6.9/sbcl-2.6.9-${ARCH}-linux-glibc2.39-binary.tar.bz2"
+        curl -fsSL --retry 3 -o "$RUNNER_TEMP/sbcl.tar.bz2" "$URL"
+        mkdir -p "$RUNNER_TEMP/sbcl-distribution"
+        tar xjf "$RUNNER_TEMP/sbcl.tar.bz2" --strip-components=1 -C "$RUNNER_TEMP/sbcl-distribution"
+        cd "$RUNNER_TEMP/sbcl-distribution"
+        INSTALL_ROOT="$RUNNER_TEMP/sbcl" sh install.sh
+        echo "$RUNNER_TEMP/sbcl/bin" >> "$GITHUB_PATH"
+        echo "SBCL_HOME=$RUNNER_TEMP/sbcl/lib/sbcl" >> "$GITHUB_ENV"
+
+    - name: Install SBCL (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: brew install sbcl
+
+    - name: Install SBCL and make (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        choco install sbcl make -y --no-progress
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        "SBCL_HOME=$env:ProgramFiles\Steel Bank Common Lisp" >> $env:GITHUB_ENV
+
+    - name: Report SBCL version
+      shell: bash
+      run: sbcl --version
