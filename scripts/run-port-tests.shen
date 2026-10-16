@@ -24,5 +24,7 @@
 (load "tests/error-tests.shen")
 (load "tests/reader-tests.shen")
 (load "tests/library-tests.shen")
+(load "tests/pattern-tests.shen")
+(load "tests/kernel-upgrade-tests.shen")
 
 (port-test-report "port runtime tests")

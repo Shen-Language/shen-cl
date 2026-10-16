@@ -86,7 +86,7 @@
 #-ecl
 (defun compile-lsp (file)
   (let ((lsp-file (format nil "~A~A.lsp" binary-path file)))
-    (compile-file lsp-file)))
+    (compile-file lsp-file #+sbcl :block-compile #+sbcl nil)))
 
 #+ecl
 (defun compile-lsp (file)
@@ -106,6 +106,8 @@
         (lsp-file (format nil "~A~A.lsp" binary-path file))
         (fas-file (format nil "~A~A~A" binary-path file compiled-suffix)))
     (|shen-cl.boot-copy-file| src-file lsp-file)
+    (when (equal location compiled-path)
+      (shen-cl.optimize-generated-file lsp-file))
     (compile-lsp file)
     (load fas-file)))
 
@@ -145,9 +147,13 @@
 
 (import-lsp source-path "package")
 (import-lsp source-path "primitives")
+(import-lsp source-path "dictionaries")
 (import-lsp source-path "native")
 (import-lsp source-path "shen-utils")
 (import-lsp compiled-path "compiler")
+;; ShenOSKernel-42.2 (community shen-sources, vendored unmodified). Every .kl
+;; file holds only defuns, so this order is not load-bearing: the environment
+;; is built afterwards by (shen.initialise) from init.kl.
 (import-lsp compiled-path "toplevel")
 (import-lsp compiled-path "core")
 (import-lsp compiled-path "sys")
@@ -167,9 +173,20 @@
 (import-lsp compiled-path "extension-features")
 (import-lsp compiled-path "extension-expand-dynamic")
 (import-lsp compiled-path "extension-launcher")
+(import-lsp compiled-path "extension-programmable-pattern-matching")
+(import-lsp compiled-path "extension-namespaces")
+(import-lsp compiled-path "extension-type-annotations")
 (import-lsp compiled-path "stlib")
+(import-lsp compiled-path "port-init")
 (import-lsp source-path "overwrite")
 
+;; Initialisation, in the order the kernel's port guide prescribes:
+;; shen.initialise (init.kl) builds the global environment, then the port's
+;; own registrations, the features extension, and finally stlib.initialise
+;; (41.1+: a port distributing klambda/stlib.kl must call it after loading).
+;; SBCL/CLISP bake the result into the saved image. ECL's c:build-program
+;; links object files and cannot bake runtime state, so ECL runs the same
+;; sequence at startup in shen-cl.toplevel (src/primitives.lsp).
 #-ecl
 (progn
  (|shen.initialise|)
@@ -180,8 +197,8 @@
    #+sbcl  |shen/cl.sbcl|
    #+ccl   |shen/cl.ccl|
  ))
- ;; Initialise the standard library (maths, vectors, strings, pretty-print).
- (|stlib.initialise|))
+ (|stlib.initialise|)
+ (|shen-cl.initialise-extensions|))
 
 (fmakunbound 'compile-lsp)
 (fmakunbound 'import-lsp)

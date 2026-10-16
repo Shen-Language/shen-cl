@@ -28,6 +28,41 @@
 (assert-false "element? absent"  (element? 9 [1 2 3]))
 (assert-false "element? in empty" (element? a []))
 
+(assert-true "element? symbol in heterogeneous list" (element? a [1 "a" [a] a]))
+(assert-false "element? symbol differs from strings and structures" (element? a [1 "a" [a] (@p a a)]))
+(assert-true "element? empty list is a member" (element? [] [a [] b]))
+(assert-true "element? numeric representations remain equal" (element? (prim-test.host "1d0") [2 1]))
+(assert-true "element? nested numeric equality" (element? [a (prim-test.host "1d0")] [[a 1]]))
+(assert-true "element? vector numeric equality" (element? (@p a (prim-test.host "1d0")) [(@p a 1)]))
+(assert-false "element? strings remain case sensitive" (element? "a" ["A"]))
+(assert-true "element? may match before an improper tail" (element? a [a | tail]))
+(assert-caught "element? rejects an unmatched improper tail" (freeze (element? b [a | tail])))
+(assert-caught "element? rejects a non-list" (freeze (element? a 42)))
+(assert= "element? returns a redefined error function's result" [42 42]
+  (shen-cl.eval-lisp
+    "(let ((saved (symbol-function 'shen::|simple-error|)))
+       (unwind-protect
+         (progn
+           (setf (symbol-function 'shen::|simple-error|) (lambda (message) (declare (ignore message)) 42))
+           (list (shen::|element?| 1 'tail) (shen::|element?| 'shen::|a| '(shen::|b| . tail))))
+         (setf (symbol-function 'shen::|simple-error|) saved)))"))
+(assert= "element? observes list mutation" [false true]
+  (shen-cl.eval-lisp
+    "(let ((items (list 'shen::|b|)))
+       (let ((before (shen::|element?| 'shen::|a| items)))
+         (rplaca items 'shen::|a|)
+         (list before (shen::|element?| 'shen::|a| items))))"))
+(define library-test.member Value List -> (element? Value List))
+(assert= "compiled membership calls observe redefinition" replaced
+  (shen-cl.eval-lisp
+    "(let ((saved (symbol-function 'shen::|element?|)))
+       (unwind-protect
+         (progn
+           (setf (symbol-function 'shen::|element?|)
+                 (lambda (value items) (declare (ignore value items)) 'shen::|replaced|))
+           (shen::|library-test.member| 'shen::|a| '(shen::|a|)))
+         (setf (symbol-function 'shen::|element?|) saved)))"))
+
 \\ --- length / nth (1-indexed) ---
 (assert= "length"   4 (length [1 2 3 4]))
 (assert= "length 0" 0 (length []))

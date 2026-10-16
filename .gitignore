@@ -4,6 +4,7 @@ release/
 .DS_Store
 .claude/
 compiled/
+_build/
 # Scratch files written by the port-authored test suites (tests/io-tests.shen,
 # scripts/test-cli.sh); recreated on every run.
 tests/*.tmp

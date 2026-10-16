@@ -18,6 +18,87 @@
 (assert= "subtract float" 3.5 (- 5.5 2.0))
 (assert= "multiply float" 4.5 (* 1.5 3.0))
 
+\\ Exercise compiled functions with unknown argument types, so constant
+\\ folding cannot hide overflow, numeric conversion, or error paths.
+(define prim-test.host Code -> (eval-kl [lisp. Code]))
+(define prim-test.host-type X -> (eval-kl [lisp.type-of X]))
+(define prim-test.add X Y -> (+ X Y))
+(define prim-test.subtract X Y -> (- X Y))
+(define prim-test.multiply X Y -> (* X Y))
+(define prim-test.increment X -> (+ X 1))
+(define prim-test.decrement X -> (- X 1))
+(define prim-test.equal-one X -> (= X 1))
+(define prim-test.argument X
+  -> (do (set prim-test.*arguments* (+ 1 (value prim-test.*arguments*))) X))
+
+(assert= "add promotes overflow" (prim-test.host "(+ most-positive-fixnum 2)")
+  (prim-test.add (prim-test.host "most-positive-fixnum") 2))
+(assert= "subtract promotes overflow" (prim-test.host "(- most-negative-fixnum 2)")
+  (prim-test.subtract (prim-test.host "most-negative-fixnum") 2))
+(assert= "multiply promotes overflow" (prim-test.host "(* most-positive-fixnum most-positive-fixnum)")
+  (prim-test.multiply (prim-test.host "most-positive-fixnum") (prim-test.host "most-positive-fixnum")))
+(assert= "increment promotes overflow" (prim-test.host "(1+ most-positive-fixnum)")
+  (prim-test.increment (prim-test.host "most-positive-fixnum")))
+(assert= "decrement promotes overflow" (prim-test.host "(1- most-negative-fixnum)")
+  (prim-test.decrement (prim-test.host "most-negative-fixnum")))
+(assert= "large integer arithmetic" (prim-test.host "(* 3 (expt 2 130))")
+  (prim-test.multiply 3 (prim-test.host "(expt 2 130)")))
+(assert= "single float promotes to double" (prim-test.host "'double-float")
+  (prim-test.host-type (prim-test.add (prim-test.host "1.5f0") 2)))
+(assert= "mixed float arithmetic" 3.5 (prim-test.add (prim-test.host "1.5f0") 2))
+(assert= "double float arithmetic" 4.5 (prim-test.multiply 1.5 3.0))
+(assert= "double zero product retains integer result" (prim-test.host "(type-of 0)")
+  (prim-test.host-type (prim-test.multiply 0.0 2.0)))
+(assert-caught "floating addition overflow remains catchable"
+  (freeze (prim-test.add (prim-test.host "most-positive-double-float")
+                        (prim-test.host "most-positive-double-float"))))
+(assert-caught "floating multiplication overflow remains catchable"
+  (freeze (prim-test.multiply (prim-test.host "most-positive-double-float") 2.0)))
+(assert= "ratio numeric conversion" 1.5 (prim-test.add (prim-test.host "1/2") 1.0))
+(assert= "increment preserves general numbers" (prim-test.host "3/2")
+  (prim-test.increment (prim-test.host "1/2")))
+(assert= "decrement preserves general numbers" (prim-test.host "#c(0 2)")
+  (prim-test.decrement (prim-test.host "#c(1 2)")))
+(assert-true "literal equality accepts single float" (prim-test.equal-one (prim-test.host "1f0")))
+(assert-true "literal equality accepts double float" (prim-test.equal-one 1.0))
+(assert-true "literal equality accepts complex number" (prim-test.equal-one (prim-test.host "#c(1d0 0d0)")))
+(assert-false "literal equality rejects string" (prim-test.equal-one "1"))
+(assert-false "literal equality rejects list" (prim-test.equal-one [1]))
+(assert-false "literal equality rejects boolean" (prim-test.equal-one true))
+(assert-caught "invalid addition remains catchable" (freeze (prim-test.add bad 2)))
+(assert-caught "invalid subtraction remains catchable" (freeze (prim-test.subtract 2 bad)))
+(assert-caught "invalid multiplication remains catchable" (freeze (prim-test.multiply bad 0)))
+(assert= "zero multiplication retains short circuit" 0 (prim-test.multiply 0 bad))
+(assert-caught "zero multiplication evaluates arguments"
+  (freeze (prim-test.multiply 0 (simple-error "argument error"))))
+(set prim-test.*arguments* 0)
+(assert-caught "arithmetic evaluates both arguments before validation"
+  (freeze (prim-test.add (prim-test.argument bad) (prim-test.argument 2))))
+(assert= "arithmetic arguments evaluated once" 2 (value prim-test.*arguments*))
+(set prim-test.*arguments* 0)
+(assert-true "literal equality with effectful expression" (= 1 (prim-test.argument 1.0)))
+(assert= "literal equality evaluates expression once" 1 (value prim-test.*arguments*))
+
+(define prim-test.equal-values X Y -> (= X Y))
+(assert-false "uninterned symbols with the same name remain unequal"
+  (prim-test.equal-values
+    (prim-test.host "(make-symbol (symbol-name 'same-name))")
+    (prim-test.host "(make-symbol (symbol-name 'same-name))")))
+(let Symbol (prim-test.host "(make-symbol (symbol-name 'same-name))")
+  (assert-true "shared uninterned symbols retain identity in structural equality"
+    (prim-test.equal-values [Symbol 1] [Symbol 1.0])))
+(assert-false "symbol identity distinguishes packages"
+  (prim-test.equal-values
+    (prim-test.host "'shen::same-name")
+    (prim-test.host "'cl-user::same-name")))
+(let Object (prim-test.host "(make-hash-table)")
+  (assert-true "distinct vectors compare shared opaque elements by identity"
+    (prim-test.equal-values (@v Object <>) (@v Object <>))))
+(assert-false "distinct vector elements retain symbol identity"
+  (prim-test.equal-values
+    (@v (prim-test.host "(make-symbol (symbol-name 'same-name))") <>)
+    (@v (prim-test.host "(make-symbol (symbol-name 'same-name))") <>)))
+
 \\ float comparisons (mirrors shen-go's float comparison coverage)
 (assert-true  "gt float true"  (> 3.5 2.0))
 (assert-false "gt float false" (> 2.0 3.5))
@@ -44,6 +125,47 @@
 (assert-false "string? no"     (string? 1))
 (assert-true  "symbol? yes"    (symbol? hello))
 (assert-false "symbol? no"     (symbol? 1))
+(define prim-test.symbol-p X -> (symbol? X))
+\\ Construct non-ASCII characters independently of source-file encoding.
+(assert-true "symbol validation accepts Unicode letters"
+  (prim-test.symbol-p
+    (prim-test.host "(make-symbol (coerce (mapcar #'code-char '(955 233 19968 25991)) 'string))")))
+(assert-true "symbol validation accepts Unicode digits after a letter"
+  (prim-test.symbol-p
+    (prim-test.host "(make-symbol (coerce (mapcar #'code-char '(97 1633)) 'string))")))
+(assert-true "symbol validation retains punctuation"
+  (prim-test.symbol-p (intern "a_+?b")))
+(assert-false "symbol validation rejects an initial digit"
+  (prim-test.symbol-p (intern "1name")))
+(assert-false "symbol validation rejects invalid later characters"
+  (prim-test.symbol-p (intern "a b")))
+(assert-false "symbol validation rejects an empty name"
+  (prim-test.symbol-p (prim-test.host "(make-symbol (make-string 0))")))
+(assert-false "true remains a Boolean rather than a symbol"
+  (prim-test.symbol-p true))
+(assert-false "false remains a Boolean rather than a symbol"
+  (prim-test.symbol-p false))
+(assert= "symbol validation respects the dynamically bound punctuation list" 1
+  (prim-test.host
+    "(let ((shen::specials (list #\Space)))
+       (if (and (eq (shen::|shen.analyse-symbol?| (symbol-name '|a b|)) 'shen::|true|)
+                (eq (shen::|shen.analyse-symbol?| (symbol-name '|a-b|)) 'shen::|false|))
+           1 0))"))
+(assert= "compiled symbol checks observe validator and str replacement" [false false]
+  (prim-test.host
+    "(let ((analyser (symbol-function 'shen::|shen.analyse-symbol?|))
+           (str (symbol-function 'shen::|str|)))
+       (unwind-protect
+         (progn
+           (setf (symbol-function 'shen::|shen.analyse-symbol?|)
+                 (lambda (s) (declare (ignore s)) 'shen::|false|))
+           (let ((result (shen::|prim-test.symbol-p| 'shen::|hello|)))
+             (setf (symbol-function 'shen::|shen.analyse-symbol?|) analyser
+                   (symbol-function 'shen::|str|)
+                   (lambda (s) (declare (ignore s)) (make-string 0)))
+             (list result (shen::|prim-test.symbol-p| 'shen::|hello|))))
+         (setf (symbol-function 'shen::|shen.analyse-symbol?|) analyser
+               (symbol-function 'shen::|str|) str)))"))
 (assert-true  "variable? upper" (variable? X))
 (assert-false "variable? lower" (variable? x))
 (assert-true  "cons? yes"      (cons? (cons 1 ())))
@@ -65,6 +187,61 @@
 (assert= "pos"        "e"     (pos "hello" 1))
 (assert= "str number" "42"    (str 42))
 (assert= "str symbol" "foo"   (str foo))
+(assert= "str leaves a partial shortest marker unchanged" "bar!195"
+  (str (prim-test.host "'|bar!195|")))
+(assert= "str decodes the shortest complete marker" (n->string 124)
+  (str (prim-test.host "'|bar!1957|")))
+(assert= "str leaves an eight-character partial hash marker unchanged" "_hash195"
+  (str (prim-test.host "'|_hash195|")))
+(assert= "str decodes the complete hash marker" (n->string 35)
+  (str (prim-test.host "'|_hash1957|")))
+(assert= "str decodes the complete quote marker" (n->string 39)
+  (str (prim-test.host "'|_quote1957|")))
+(assert= "str decodes the complete backquote marker" (n->string 96)
+  (str (prim-test.host "'|_backquote1957|")))
+(assert= "str decodes markers inside longer names" "a#|z"
+  (str (prim-test.host "'|a_hash1957bar!1957z|")))
+
+\\ Unknown arguments exercise the compiled constructor paths.
+(define prim-test.pos S N -> (pos S N))
+(define prim-test.nstring N -> (n->string N))
+(assert= "unit string preserves NUL" 0 (string->n (prim-test.nstring 0)))
+(let Code (prim-test.host
+            "(if (and (< 128512 char-code-limit) (code-char 128512)) 128512 65)")
+  (assert= "unit string preserves host character codes" Code
+    (string->n (prim-test.nstring Code))))
+(assert= "pos preserves host character codes"
+  (prim-test.host
+    "(if (and (< 128512 char-code-limit) (code-char 128512)) 128512 65)")
+  (string->n (prim-test.pos
+    (prim-test.host
+      "(string (or (and (< 128512 char-code-limit) (code-char 128512)) #\A))") 0)))
+(assert= "pos supports displaced strings" "c"
+  (prim-test.pos (prim-test.host
+    "(make-array 2 :element-type 'character
+       :displaced-to (coerce '(#\a #\b #\c #\d) 'string)
+       :displaced-index-offset 1)") 1))
+(let S (prim-test.host
+         "(make-array 4 :element-type 'character
+            :initial-contents '(#\a #\b #\c #\d) :fill-pointer 2 :adjustable t)")
+  (do (assert= "pos supports adjustable strings" "b" (prim-test.pos S 1))
+      (assert-caught "pos respects the fill pointer" (freeze (prim-test.pos S 2)))))
+(assert= "unit string constructors return independent strings" [97 97 97]
+  (prim-test.host
+    "(let* ((input (coerce '(#\a #\b) 'string))
+            (a (shen::|prim-test.pos| input 0)) (b (shen::|prim-test.pos| input 0))
+            (c (shen::|prim-test.nstring| 97)) (d (shen::|prim-test.nstring| 97)))
+       (setf (char a 0) #\z (char c 0) #\y)
+       (list (char-code (char input 0)) (char-code (char b 0)) (char-code (char d 0))))"))
+(assert-caught "pos rejects fractional indices" (freeze (prim-test.pos "ab" 0.5)))
+(assert-caught "unit string rejects float codes"
+  (freeze (prim-test.nstring (prim-test.host "65d0"))))
+(assert-caught "unit string rejects the character-code limit"
+  (freeze (prim-test.nstring (prim-test.host "char-code-limit"))))
+(set prim-test.*arguments* 0)
+(assert-caught "pos evaluates arguments before validation"
+  (freeze (prim-test.pos (prim-test.argument bad) (prim-test.argument 0))))
+(assert= "pos evaluates each argument once" 2 (value prim-test.*arguments*))
 
 \\ --- symbols / globals: set then value ---
 (assert= "set returns value" 99 (set prim-test-global 99))

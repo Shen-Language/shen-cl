@@ -28,13 +28,28 @@
 ;;; Kernel 41.1 stream primitives.
 ;;; Character streams (e.g. *standard-input*) need read-char; binary streams
 ;;; (e.g. file streams opened for bytes) use read-byte.
+(declaim (inline |shen-cl.character-stream-p|))
+(defun |shen-cl.character-stream-p| (stream)
+  ;; Native FD streams keep their current type in a slot. Preserve the
+  ;; normal protocol for closed streams and streams with other handlers.
+  (let ((type #+sbcl
+              (if (and (typep stream 'sb-sys:fd-stream)
+                       (eq (sb-impl::ansi-stream-misc stream)
+                           #'sb-impl::fd-stream-misc-routine))
+                  (sb-impl::fd-stream-element-type stream)
+                  (stream-element-type stream))
+              #-sbcl (stream-element-type stream)))
+    (cond ((eq type 'character) t)
+          ((equal type '(unsigned-byte 8)) nil)
+          (t (subtypep type 'character)))))
+
 (defun |shen.char-stinput?| (stream)
-  (if (subtypep (stream-element-type stream) 'character)
+  (if (|shen-cl.character-stream-p| stream)
       '|true|
       '|false|))
 
 (defun |shen.char-stoutput?| (stream)
-  (if (subtypep (stream-element-type stream) 'character)
+  (if (|shen-cl.character-stream-p| stream)
       '|true|
       '|false|))
 
@@ -50,11 +65,60 @@
   (let ((c (read-char stream nil nil)))
     (cond (c (string c))
           ;; EOF on the REPL's standard input (character path used by SBCL/CCL):
-          ;; the session is over, so exit cleanly rather than returning "" — the
+          ;; the session is over, so exit cleanly rather than returning "" -- the
           ;; kernel reader chokes on "" and loops forever otherwise. Scoped to
           ;; the REPL; a program's own char reads still get "" at EOF.
           ((and |shen-cl.in-repl?| (eq stream |*stinput*|)) (|cl.exit| 0))
           (t ""))))
+
+;; Kernel 42.1 requires `read`/`lineread` to process input at EOF without a
+;; trailing newline: shen.read-loop parses its buffered bytes when the stream
+;; yields -1. The kernel's shen.my-read-byte reads a character stream through
+;; (string->n (shen.read-unit-string S)), and shen.read-unit-string can only
+;; signal EOF with "", which string->n rejects ("" is not a unit string) before
+;; the read loop ever sees -1. Read the character directly and report EOF as
+;; -1, matching the byte path.
+;;
+;; REPL stdin: shen-cl exits cleanly when the REPL's stdin reaches EOF (see
+;; shen.repl below). It must still evaluate a final form that has no trailing
+;; newline, so the REPL's lineread counts the non-whitespace input it has
+;; buffered (shen-cl.repl-pending): EOF with pending input yields -1 so the
+;; kernel parses and evaluates it; EOF with nothing pending ends the session.
+(defvar |shen-cl.repl-pending| nil)
+
+(defun |shen-cl.repl-input?| (stream)
+  (and |shen-cl.in-repl?| (eq stream |*stinput*|)))
+
+(defun |shen-cl.note-repl-input| (stream code)
+  (when (and |shen-cl.repl-pending|
+             (|shen-cl.repl-input?| stream)
+             (not (member code '(9 10 12 13 32))))
+    (incf |shen-cl.repl-pending|))
+  code)
+
+(defun |shen-cl.input-eof| (stream)
+  (if (and (|shen-cl.repl-input?| stream)
+           (not (and |shen-cl.repl-pending| (plusp |shen-cl.repl-pending|))))
+      (|cl.exit| 0)
+      -1))
+
+(defun |shen.my-read-byte| (stream)
+  (if (|shen-cl.character-stream-p| stream)
+      (let ((c (read-char stream nil nil)))
+        (if c
+            (|shen-cl.note-repl-input| stream (char-code c))
+            (|shen-cl.input-eof| stream)))
+      (let ((b (read-byte stream nil -1)))
+        (if (eql b -1)
+            (|shen-cl.input-eof| stream)
+            (|shen-cl.note-repl-input| stream b)))))
+
+(setf (symbol-function '|shen-cl.kernel-lineread|) (symbol-function '|lineread|))
+(defun |lineread| (stream)
+  (if (|shen-cl.repl-input?| stream)
+      (let ((|shen-cl.repl-pending| 0))
+        (funcall (symbol-function '|shen-cl.kernel-lineread|) stream))
+      (funcall (symbol-function '|shen-cl.kernel-lineread|) stream)))
 
 ;; Run the kernel REPL with shen-cl.in-repl? bound, so the input layer
 ;; (read-byte / shen.read-unit-string) can exit cleanly when the REPL's stdin
@@ -65,6 +129,21 @@
   (let ((|shen-cl.in-repl?| t))
     (funcall (symbol-function '|shen-cl.kernel-repl|))))
 
+;; Symbol equality is identity. Select the comparison before traversing;
+;; the local macro shares the checked loop without a per-element dispatch.
+(defun |element?| (value list)
+  (macrolet ((search-with (test)
+               `(loop
+                  (cond ((null list) (return '|false|))
+                        ((not (consp list))
+                         (return (|simple-error| "attempt to find an element in a non-list
+")))
+                        ((,test value (car list)) (return '|true|)))
+                  (setf list (cdr list)))))
+    (if (symbolp value)
+        (search-with eq)
+        (search-with |shen-cl.absequal|))))
+
 (defvar |shen-cl.kernel-sysfunc?| (fdefinition '|shen.sysfunc?|))
 
 (defun |shen.sysfunc?| (symbol)
@@ -74,10 +153,24 @@
         (|shen-cl.lisp-prefixed?| symbol)
         (apply |shen-cl.kernel-sysfunc?| (list symbol)))))
 
-(defun shen.pvar? (x)
-  (if (and (arrayp x) (not (stringp x)) (eq (svref x 0) '|shen.pvar|))
+(defun |shen.pvar?| (x)
+  (if (|shen-cl.pvar-p| x)
       '|true|
       '|false|))
+
+(defun |integer?| (x)
+  (if (|shen-cl.integral-p| x) '|true| '|false|))
+
+(defun |boolean?| (x)
+  (if (|shen-cl.boolean-p| x) '|true| '|false|))
+
+;; Since 41.3, source input+ is a macro. Its function value still names
+;; input+, so keep the two-place callable entry as well as the expansion.
+(defun |input+| (type stream)
+  (|shen.input-h+| type stream))
+
+(defun |shen.byte->digit| (code)
+  (- code 48))
 
 (defvar specials (coerce "=*/+-_?$!@~><&%{}:;`#'." 'list))
 
@@ -88,8 +181,8 @@
 (defun |shen.analyse-symbol?| (s)
   (if (and (> (length s) 0)
            (not (digit-char-p (char s 0)))
-           (symbol-characterp (char s 0))
-           (every #'symbol-characterp s))
+           (loop for c across (the string s)
+                 always (symbol-characterp c)))
       '|true|
       '|false|))
 
@@ -113,9 +206,9 @@
       '|true|
       '|false|))
 
-;;; --- Phase 3: Pattern factorization ---
+;;; Pattern factorization
 ;;; Factorises multi-clause cond forms by grouping consecutive clauses
-;;; that share the same leading AND test. Operates on KL forms where
+;;; that share a stable leading parameter test. Operates on KL forms where
 ;;; symbols are in the :SHEN package (|and|, |cond|, |defun|, |true|).
 
 (defun shen-cl.extract-first-test (test)
@@ -127,19 +220,71 @@
       (values (cadr test) (caddr test))
       (values nil nil)))
 
-(defun shen-cl.factorise-cases (cases)
-  "Group consecutive cond cases sharing the same first AND test.
-   When a group has >1 case, emit a nested cond under the shared test,
-   with a (true ...) fallthrough to the remaining cases for correctness."
+(defun shen-cl.stable-pattern-test-p (test args)
+  "Only share parameter tests unaffected by guards mutating their contents."
+  (flet ((literal-p (x)
+           (or (numberp x) (and (symbolp x) (not (member x args))))))
+    (and (consp test)
+         (case (car test)
+           ((|cons?| |number?| |string?| |empty?| |absvector?|)
+            (and (= (length test) 2) (member (cadr test) args)))
+           (|=|
+            (and (= (length test) 3)
+                 (or (and (member (cadr test) args) (literal-p (caddr test)))
+                     (and (literal-p (cadr test)) (member (caddr test) args)))))))))
+
+(defun shen-cl.has-lisp-escape-p (form)
+  ;; Inline Lisp can even reassign parameters; leave such functions alone.
+  (and (consp form)
+       (or (and (symbolp (car form))
+                (let ((name (symbol-name (car form))))
+                  (and (>= (length name) 5)
+                       (string= "lisp." name :end2 5))))
+           (some #'shen-cl.has-lisp-escape-p form))))
+
+(defvar shen-cl.*factorise-label-counter* 0)
+
+(defun shen-cl.fresh-factorise-label ()
+  (intern (format nil "shen-cl.label~D"
+                  (incf shen-cl.*factorise-label-counter*))
+          :shen))
+
+(defun shen-cl.factorise-case (case1 returnp)
+  "Wrap CASE1's body in %%return when RETURNP (see factorise-cases)."
+  (if returnp
+      (list (car case1) (list '|%%return| (cadr case1)))
+      case1))
+
+(defun shen-cl.factorise-cases (cases args)
+  "Group consecutive cond cases sharing a stable first AND test.
+   When a group has >1 case, emit a nested cond under the shared test.
+
+   The remaining cases are needed on two control paths: when the shared
+   test fails, and when it matches but no sub-test does. Splicing them
+   into both paths compounds across consecutive groups (each splice
+   contains the next group's two splices), so code size grew 2^groups: a
+   33-clause function with 16 two-clause groups exhausted SBCL's heap.
+   Instead the remaining cases are emitted ONCE as the label body of a
+   %%let-label join and both paths %%goto-label to it (a CL tagbody/go,
+   as the kernel's original factorise-defun extension did). Because a
+   tagbody discards values, every clause body from the first join onward
+   is wrapped in %%return, escaping through the (block nil ...) that
+   add-block wraps around every factorised defun; clause order and
+   test/body evaluation order are exactly those of the nested-cond
+   emission this replaces."
+  (shen-cl.factorise-cases-h cases nil args))
+
+(defun shen-cl.factorise-cases-h (cases returnp args)
   (if (null cases)
       nil
       (let* ((case1 (car cases))
              (test1 (car case1)))
         (multiple-value-bind (first-test rest-test)
             (shen-cl.extract-first-test test1)
-          (if (null first-test)
-              ;; Not an AND chain (e.g. |true| fallthrough) — pass through
-              (cons case1 (shen-cl.factorise-cases (cdr cases)))
+          (if (not (shen-cl.stable-pattern-test-p first-test args))
+              ;; Repeated guards and mutable selector tests must run again.
+              (cons (shen-cl.factorise-case case1 returnp)
+                    (shen-cl.factorise-cases-h (cdr cases) returnp args))
               ;; Collect consecutive cases sharing this first-test
               (let ((group nil)
                     (remaining (cdr cases)))
@@ -156,22 +301,34 @@
                                (return))))
                 (setf group (nreverse group))
                 (if (= (length group) 1)
-                    ;; Only one case in group — no benefit, keep original
-                    (cons case1 (shen-cl.factorise-cases remaining))
-                    ;; Multiple cases — factor out shared first-test.
-                    ;; The nested cond needs a (true ...) fallthrough to handle
-                    ;; when the shared test matches but no sub-test does.
-                    (let ((factored-remaining (shen-cl.factorise-cases remaining)))
-                      (let ((inner-cond
-                              (append group
-                                      (list (list '|true|
-                                                  (cons '|cond| factored-remaining))))))
-                        (cons (list first-test (cons '|cond| inner-cond))
-                              factored-remaining))))))))))
+                    ;; Only one case in group -- no benefit, keep original
+                    (cons (shen-cl.factorise-case case1 returnp)
+                          (shen-cl.factorise-cases-h remaining returnp args))
+                    ;; Multiple cases -- factor out shared first-test. Emit
+                    ;; the remaining cases once under a label; jump to it
+                    ;; when the shared test fails or no sub-test matches.
+                    (let* ((label (shen-cl.fresh-factorise-label))
+                           (fallthrough (shen-cl.factorise-cases-h remaining t args))
+                           (inner-cond
+                             (append
+                              (mapcar (lambda (c)
+                                        (shen-cl.factorise-case c t))
+                                      group)
+                              (list (list '|true|
+                                          (list '|%%goto-label| label)))))
+                           (dispatch
+                             (list '|cond|
+                                   (list first-test (cons '|cond| inner-cond))
+                                   (list '|true|
+                                         (list '|%%goto-label| label)))))
+                      (list (list '|true|
+                                  (list '|%%let-label| (list label)
+                                        (cons '|cond| fallthrough)
+                                        dispatch)))))))))))
 
 (defun |shen.x.factorise-defun.factorise-defun| (defun-form)
   "Factorise a [defun Name Args [cond | Cases]] form by grouping
-   consecutive clauses that share the same leading AND test."
+   consecutive clauses that share a stable leading parameter test."
   (if (and (consp defun-form)
            (eq (car defun-form) '|defun|)
            (consp (cdr defun-form))
@@ -183,8 +340,10 @@
              (body (cadddr defun-form)))
         (if (and (consp body)
                  (eq (car body) '|cond|)
-                 (> (length (cdr body)) 1))
-            (let ((factored (shen-cl.factorise-cases (cdr body))))
+                 (> (length (cdr body)) 1)
+                 (not (shen-cl.has-lisp-escape-p body)))
+            (let* ((shen-cl.*factorise-label-counter* 0)
+                   (factored (shen-cl.factorise-cases (cdr body) args)))
               (if (equal factored (cdr body))
                   defun-form
                   (list '|defun| name args (cons '|cond| factored))))
@@ -199,7 +358,14 @@
 (defun |<-vector| (vector n)
   (if (zerop n)
     (error "cannot access 0th element of a vector~%")
-    (let ((vector-element (svref vector n)))
+    (let ((vector-element #+sbcl
+                          ;; Keep the native condition without entering a trap.
+                          (if (and (simple-vector-p vector)
+                                   (typep n '(integer 0 #.most-positive-fixnum))
+                                   (>= n (length vector)))
+                              (sb-int:invalid-array-index-error vector n (length vector))
+                              (svref vector n))
+                          #-sbcl (svref vector n)))
       (if (eq vector-element (|fail|))
           (error "vector element not found~%")
           vector-element))))
@@ -217,33 +383,37 @@
 (defun |thaw| (f)
   (funcall f))
 
-(defun |hash| (val bound)
-  (mod (sxhash val) bound))
+;; hash: the kernel's own definition (sys.kl: shen.hashkey + shen.mod, never
+;; 0) is kept deliberately. Under ShenOSKernel-42.2 the property store is a
+;; shen.dict, which this file maps onto a CL hash-table below, so hash is not
+;; used for property lookup, and keeping the kernel version keeps `hash`
+;; identical across SBCL, CLISP and ECL. (Hash values are port-specific in
+;; Shen; e.g. shen-scheme overrides hash natively and returns other values.)
 
 (defun |shen.dict| (size)
-  (make-hash-table :size size))
+  (|shen-cl.make-dict| size))
 
 (defun |shen.dict?| (dict)
   (if (hash-table-p dict) '|true| '|false|))
 
 (defun |shen.dict-count| (dict)
-  (hash-table-count dict))
+  (|shen-cl.dict-size| dict))
 
 (defun |shen.dict->| (dict key value)
- (setf (gethash key dict) value))
+  (|shen-cl.dict-store| dict key value))
 
 (defun |shen.<-dict| (dict key)
-  (multiple-value-bind (result found) (gethash key dict)
+  (multiple-value-bind (result found) (|shen-cl.dict-entry| dict key)
     (if found
         result
         (error "value ~A not found in dict~%" key))))
 
 (defun |shen.dict-rm| (dict key)
-  (progn (remhash key dict) key))
+  (|shen-cl.dict-remove| dict key))
 
 (defun |shen.dict-fold| (f dict init)
   (let ((acc init))
-    (maphash #'(lambda (k v)
+    (|shen-cl.map-dict| #'(lambda (k v)
                  (setf acc (funcall (funcall (funcall f k) v) acc))) dict)
     acc))
 
@@ -272,6 +442,9 @@
 (defun |shen-cl.initialise| ()
   (progn
     (|shen-cl.initialise-compiler|)
+    (|shen-cl.initialise-arities|)
+    (|update-lambda-table| '|shen-cl.load-lisp| 1)
+    (|update-lambda-table| '|shen-cl.eval-lisp| 1)
 
     (|put|      '|cl.exit| '|arity| 1 |*property-vector*|)
     (|put| '|shen-cl.exit| '|arity| 1 |*property-vector*|)
@@ -287,6 +460,11 @@
     ;; mirrors (update-lambda-table 'thread 1) in the official S41.1 build.
     #+sbcl (|update-lambda-table| '|thread| 1)
     #+sbcl (|update-lambda-table| '|terminate| 1)))
+
+(defun |shen-cl.initialise-extensions| ()
+  (|shen.x.programmable-pattern-matching.initialise|)
+  (|shen.x.namespaces.initialise|)
+  (|update-lambda-table| '|shen.x.type-annotations.annotate-kl| 1))
 
 #+(or ccl sbcl)
 (defun |shen.read-char-code| (s)
@@ -349,6 +527,22 @@
 (defun |@p| (x y)
   (vector '|shen.tuple| x y))
 
+;; Ordinary Shen tuples are simple vectors. Avoid the kernel's fallback
+;; machinery for those, retaining its checked address behavior for host arrays.
+;; Keep this global binding replaceable by interactive definitions.
+(defun |tuple?| (x)
+  (if (if (simple-vector-p x)
+          (and (plusp (length x)) (eq (svref x 0) '|shen.tuple|))
+          (and (arrayp x) (not (stringp x))
+               (eq '|shen.tuple|
+                   (|shen-cl.<-address/or| x 0 (lambda () '|shen.not-tuple|)))))
+      '|true| '|false|))
+
+;; Prolog variables have two initialized slots; avoid filling then replacing
+;; both through the general abstract-vector allocator. Keep the global binding.
+(defun |shen.make-prolog-variable| (ticket)
+  (vector '|shen.pvar| ticket))
+
 ;; vectors
 
 (defun |vector| (n)
@@ -380,6 +574,18 @@
   (|intern| (subseq (symbol-name symbol) 5)))
 
 ;;; --- Phase 1: Reader performance overrides ---
+
+;; The kernel constructs a fresh list of punctuation codes for every test.
+;; Keep the common integer case allocation-free, with numeric equality for
+;; other representations (including integral floats and complex numbers).
+;; This remains a global function so compiled readers see later redefinitions.
+(defun |shen.misc?| (x)
+  (if (if (integerp x)
+          (case x ((61 45 42 47 43 95 63 36 33 64 126 46 62 60 38 37 39 35 96) t))
+          (and (numberp x)
+               (member x '(61 45 42 47 43 95 63 36 33 64 126 46 62 60 38 37 39 35 96)
+                       :test #'=)))
+      '|true| '|false|))
 
 ;;; shen.str->bytes: O(N) via char indexing instead of recursive tlstr
 (defun |shen.str->bytes| (s)
@@ -424,27 +630,36 @@
 
 ;;; --- Phase 2: Macro expansion performance overrides ---
 
-;;; macroexpand: extract macro functions once instead of mapping CDR each call
+;;; macroexpand: extract macro functions once instead of mapping CDR each call.
+;;; Kernel 42.1+: source-form handlers (shen.*source-form-handlers*) are passed
+;;; as the fourth argument and run before ordinary macros, exactly as in
+;;; macros.kl's macroexpand.
 (defun |macroexpand| (expr)
   (let ((fns (mapcar #'cdr |*macros*|)))
-    (|shen.macroexpand-h| expr fns fns)))
+    (|shen.macroexpand-h| expr fns fns
+                         (symbol-value '|shen.*source-form-handlers*|))))
 
-;;; shen.macroexpand-h: EQ fast-path before expensive absequal
+;;; shen.macroexpand-h: EQ fast-path before expensive absequal.
 ;;; When a macro function doesn't match, it returns its argument unchanged
 ;;; (same pointer), so EQ succeeds for the vast majority of non-matching cases.
-(defun |shen.macroexpand-h| (expr macros all-macros)
+;;; Kernel 42.1 signature (4 args): HANDLERS is the source-form handler
+;;; registry; the walk is shen.source-macro-walk, which skips sub-forms owned
+;;; by a source-form handler and reduces to shen.walk when HANDLERS is ().
+(defun |shen.macroexpand-h| (expr macros all-macros handlers)
   (if (null macros)
       expr
       (if (consp macros)
-          (let ((walked (|shen.walk| (car macros) expr)))
+          (let ((walked (if (null handlers)
+                            (|shen.walk| (car macros) expr)
+                            (|shen.source-macro-walk| (car macros) expr handlers))))
             (if (eq expr walked)
-                ;; EQ means definitely unchanged — skip absequal entirely
-                (|shen.macroexpand-h| expr (cdr macros) all-macros)
+                ;; EQ means definitely unchanged -- skip absequal entirely
+                (|shen.macroexpand-h| expr (cdr macros) all-macros handlers)
                 ;; Pointers differ; check structural equality
                 (if (|shen-cl.absequal| expr walked)
-                    (|shen.macroexpand-h| expr (cdr macros) all-macros)
+                    (|shen.macroexpand-h| expr (cdr macros) all-macros handlers)
                     ;; Genuinely changed: restart from all macros
-                    (|shen.macroexpand-h| walked all-macros all-macros))))
+                    (|shen.macroexpand-h| walked all-macros all-macros handlers))))
           (|simple-error| "implementation error in shen.macroexpand-h"))))
 
 ;;; Fix atom? to recognise CL T as a valid atom.

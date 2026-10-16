@@ -22,7 +22,7 @@ else
 	OSName=linux
 endif
 
-GitVersion=$(shell git tag -l --contains HEAD)
+GitVersion=$(shell git describe --tags --exact-match 2>/dev/null)
 
 ifeq ("$(GitVersion)","")
 	GitVersion=$(shell git rev-parse --short HEAD)
@@ -65,7 +65,7 @@ endif
 # Set shared variables
 #
 
-KernelVersion=41.2
+KernelVersion=42.2
 
 UrlRoot=https://github.com/Shen-Language/shen-sources/releases/download
 KernelTag=shen-$(KernelVersion)
@@ -116,6 +116,11 @@ run: run-sbcl
 # Dependency retrieval
 #
 
+# `fetch` downloads the community ShenOSKernel-42.2 release
+# (Shen-Language/shen-sources tag shen-42.2), verifies its pinned SHA-256 and
+# extracts it unmodified as `kernel/`. Pass KERNEL_ARCHIVE=path/to/
+# ShenOSKernel-42.2.tar.gz to use a local copy of the release tarball. See
+# docs/KERNEL-PROVENANCE-42.2.md.
 .PHONY: fetch
 fetch:
 ifeq ($(OSName),windows)
@@ -126,11 +131,7 @@ ifeq ($(OSName),windows)
 	$(PS) "if (Test-Path kernel) { Remove-Item kernel -Recurse -Force -ErrorAction Ignore }"
 	$(PS) "Rename-Item $(KernelFolderName) kernel -ErrorAction Ignore"
 else
-	$(FetchCmd) $(KernelArchiveUrl)
-	tar zxf $(KernelArchiveName)
-	rm -f $(KernelArchiveName)
-	rm -rf kernel
-	mv $(KernelFolderName) kernel
+	scripts/fetch-kernel.sh $(KERNEL_ARCHIVE)
 endif
 
 #
@@ -165,7 +166,7 @@ build-ecl:
 
 .PHONY: build-sbcl
 build-sbcl:
-	$(SBCL) --load boot.lsp
+	$(SBCL) --non-interactive --load boot.lsp
 
 #
 # Test an implementation
@@ -223,8 +224,20 @@ test-port:
 test-cli:
 	bash scripts/test-cli.sh
 
+.PHONY: test-accessors
+test-accessors:
+	$(RunSBCL) eval -e '(shen-cl.load-lisp "tests/accessor-tests.lsp")'
+
+.PHONY: test-extensions
+test-extensions:
+	$(RunSBCL) eval -e '(cd "kernel/")' -l tests/extensions/runme.shen
+
+.PHONY: test-sha256
+test-sha256:
+	$(RunSBCL) script extensions/sha256/tests.shen
+
 .PHONY: test-all
-test-all: test-sbcl test-compiler test-port test-cli
+test-all: test-sbcl test-compiler test-port test-cli test-extensions test-accessors test-sha256
 
 #
 # Run an implementation
@@ -254,13 +267,10 @@ run-sbcl:
 release:
 ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
-	$(PS) "Compress-Archive -Force -DestinationPath release\\$(ReleaseArchiveName) -LiteralPath $(ShenSBCL), LICENSE.txt"
-else ifeq ($(OSName),linux)
-	mkdir -p release
-	tar -vczf release/$(ReleaseArchiveName) $(ShenSBCL) LICENSE.txt --transform 's?.*/??g'
+	$(PS) "Compress-Archive -Force -DestinationPath release\\$(ReleaseArchiveName) -LiteralPath $(ShenSBCL), LICENSE.txt, extensions"
 else
 	mkdir -p release
-	tar -vczf release/$(ReleaseArchiveName) -s '?.*/??g' $(ShenSBCL) LICENSE.txt
+	COPYFILE_DISABLE=1 tar -vczf release/$(ReleaseArchiveName) -C bin/sbcl $(BinaryName) -C ../.. LICENSE.txt extensions
 endif
 
 .PHONY: source-release
@@ -268,15 +278,15 @@ source-release:
 ifeq ($(OSName),windows)
 	$(PS) "New-Item -Path release -Force -ItemType Directory"
 	$(PS) "New-Item -Path release\\$(SourceReleaseName) -Force -ItemType Directory"
-	$(PS) "Copy-Item -Path src, compiled, scripts, tests, assets, Makefile, boot.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
+	$(PS) "Copy-Item -Path src, compiled, scripts, tests, extensions, assets, docs, Makefile, boot.lsp, LICENSE.txt, README.md, CHANGELOG.md, INTEROP.md, PREREQUISITES.md -Recurse -Destination release\\$(SourceReleaseName)"
 	$(PS) "cd release; Compress-Archive -Force -DestinationPath $(SourceReleaseName)$(ArchiveSuffix) -LiteralPath $(SourceReleaseName)"
 	$(PS) "Remove-Item -LiteralPath release\\$(SourceReleaseName) -Force -Recurse"
 else ifeq ($(OSName),linux)
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src compiled scripts tests assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?g"
+	COPYFILE_DISABLE=1 tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) src compiled scripts tests extensions assets docs Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md --transform "s?^?$(SourceReleaseName)/?"
 else
 	mkdir -p release
-	tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?g" src compiled scripts tests assets Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
+	COPYFILE_DISABLE=1 tar -vczf release/$(SourceReleaseName)$(ArchiveSuffix) -s "?^?$(SourceReleaseName)/?" src compiled scripts tests extensions assets docs Makefile boot.lsp LICENSE.txt README.md CHANGELOG.md INTEROP.md PREREQUISITES.md
 endif
 
 #

@@ -1,4 +1,4 @@
-[![Shen Version](https://img.shields.io/badge/shen-41.1-blue.svg)](https://github.com/Shen-Language)
+[![Shen Version](https://img.shields.io/badge/shen-42.2-blue.svg)](https://github.com/Shen-Language)
 [![Build Status](https://github.com/Shen-Language/shen-cl/actions/workflows/release.yml/badge.svg)](https://github.com/Shen-Language/shen-cl/actions/workflows/release.yml)
 
 # Shen for Common Lisp
@@ -14,7 +14,9 @@ This codebase currently supports the following implementations:
   * [Embeddable Common Lisp](https://common-lisp.net/project/ecl/)
   * [Steel Bank Common Lisp](http://www.sbcl.org/)
 
-This port acts as the standard implementation of the Shen language. It is also the fastest known port, running the standard test suite in 4-8 seconds on SBCL, depending on hardware.
+SBCL is the primary build and test target. Compiler and runtime optimizations,
+their correctness constraints, and further opportunities are described in
+[docs/SBCL-PERFORMANCE.md](docs/SBCL-PERFORMANCE.md).
 
 Bug reports, fixes and enhancements are welcome. If you intend to port Shen to another variety of Common Lisp, consider doing so as a pull request to this repo.
 
@@ -23,6 +25,13 @@ Bug reports, fixes and enhancements are welcome. If you intend to port Shen to a
 Documentation of native interop functions is in [INTEROP.md](INTEROP.md). These functions allow calling into Lisp from Shen and Shen from Lisp.
 
 Also included is the function `cl.exit`, which takes an exit code, terminates the process, returning the given exit code.
+
+The 42.2 namespace, programmable pattern, and type annotation extensions are
+bundled.
+
+Optional host extensions live under `extensions/`. The
+[SHA-256 extension](extensions/sha256/README.md) is loaded explicitly through
+the existing Lisp interop API.
 
 ## Prerequisites
 
@@ -44,21 +53,40 @@ The `Makefile` automates all build and test operations.
 
 | Target       | Operation                                    |
 |:-------------|:---------------------------------------------|
-| `fetch`      | Download and extract Shen sources.           |
+| `fetch`      | Download and verify the ShenOSKernel 42.2 release. |
 | `precompile` | Precompile kernel and compiler to Lisp code. |
 | `build-X`    | Build executable.                            |
 | `test-X`     | Run test suite.                              |
+| `test-all`   | Kernel, compiler, port, CLI, extension, accessor, and dictionary tests. |
 | `X`          | Build and run test suite.                    |
 | `run-X`      | Start Shen REPL.                             |
 | `release`    | Creates archive of compiled binaries.        |
+| `source-release` | Creates an archive with precompiled Lisp sources. |
 
 `X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
 
-`precompile` is only required when bootstraping Shen/CL from this repository, the source release includes the precompiled files. The `SHEN` variable has to be defined and point to a working Shen executable that will be used to precompile the kernel and compiler code.
+`fetch` downloads the community ShenOSKernel 42.2 release
+(Shen-Language/shen-sources tag `shen-42.2`, the kernel shipped by
+shen-scheme 0.50), checks its pinned SHA-256 and extracts it unmodified as
+`kernel/`. To build offline, pass a local copy of the release tarball:
+`make fetch KERNEL_ARCHIVE=path/to/ShenOSKernel-42.2.tar.gz`. See
+[`docs/KERNEL-PROVENANCE-42.2.md`](docs/KERNEL-PROVENANCE-42.2.md).
+
+`precompile` is only required when bootstrapping Shen/CL from this repository;
+the source release includes the precompiled files. The `SHEN` variable must
+point to a working Shen executable used to precompile the kernel and compiler
+code (an earlier shen-cl, or shen-scheme). The output reaches a fixpoint after
+one self-hosted pass: if you bootstrap from another port, rebuild, run
+`make precompile SHEN=bin/sbcl/shen` once more and rebuild so that the
+compiled kernel was produced by shen-cl itself.
+
+Kernel compilation retains global function bindings and interactive
+redefinition. SBCL block compilation is disabled for the kernel; see the
+optimization guide for the binding tradeoff.
 
 ## Building from a precompiled sources release
 
-The precompiled source relases (`shen-cl-vX.Y.Z-sources.{tar.gz,zip}`) contain all the `.lsp` files required to build a working Shen executable (precompiled from `.shen` sources). To do so, run the `build-X` make target:
+The precompiled source releases (`shen-cl-vX.Y.Z-sources.tar.gz`) contain all the `.lsp` files required to build a working Shen executable (precompiled from `.shen` sources). To do so, run the `build-X` make target:
 
 ```shell
 # Produces an executable in bin/sbcl/shen
@@ -77,17 +105,51 @@ When starting Shen via `make`, command line arguments can be passed through like
 
 ## Releasing
 
-Tagged releases are built and published automatically by the [`Release` GitHub Actions workflow](.github/workflows/release.yml). Pushing a `vX.Y.Z` tag builds the SBCL port for Linux (`x86_64`, `aarch64`) and macOS (`arm64`, plus a best-effort `x86_64`), then attaches the prebuilt archives to the GitHub [releases](https://github.com/Shen-Language/shen-cl/releases) page.
+Before tagging a release, update `*port*` in `src/primitives.lsp` and add a
+matching version section to `CHANGELOG.md`. The port version is separate from
+the kernel version reported by `(version)` and `--version`. Build and run
+`make test-all`, then merge the release preparation before tagging the merged
+commit.
 
-Archives can also be produced locally with the `make release` command. They appear under `release/`, named with the operating system and current git tag or short commit hash. Currently, only the license file and the SBCL build are included (named `shen[.exe]`).
+Pushing a `vX.Y.Z` tag runs the [`Release` GitHub Actions workflow](.github/workflows/release.yml).
+It checks that the tag matches `*port*`, builds and tests the SBCL port for
+Linux (`x86_64`, `aarch64`) and macOS (`arm64`), and publishes prebuilt archives
+and a precompiled source archive on the GitHub
+[releases](https://github.com/Shen-Language/shen-cl/releases) page. Release
+notes come from the matching changelog section. A manual workflow run builds
+the selected branch or optional tag for verification without publishing.
+
+Archives can also be produced locally with the `make release` command. They appear under `release/`, named with the operating system and current git tag or short commit hash. Archives include the SBCL executable (named `shen[.exe]`), the license, and the optional host extensions.
 
 To reproduce a release archive locally, build the exact tagged commit:
 
 ```shell
 make pure
-git checkout v3.0.3
+git checkout v3.1.0
 make fetch
 make precompile SHEN=shen-sbcl
-make sbcl
+make build-sbcl
+make precompile SHEN=bin/sbcl/shen
+make build-sbcl test-all
 make release
+make source-release
 ```
+## Optional Nix environment
+
+Nix is optional; the normal shen-cl build and launcher commands continue to work
+with tools installed by any method. For a pinned development toolchain:
+
+```sh
+nix develop
+```
+
+The flake also exports `packages.toolchain` for composition by
+[Bifrost](https://github.com/pyrex41/bifrost):
+
+```sh
+nix shell .#toolchain
+```
+
+If direnv is installed, `direnv allow` opts this checkout into the same dev
+shell automatically. Nothing activates until that explicit authorization, and
+Nix is never required at runtime.

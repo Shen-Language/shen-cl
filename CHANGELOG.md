@@ -8,34 +8,62 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
-**Updated to Shen Open Source Kernel 41.1**
-
-### Added
-
-- GitHub Actions release workflow that builds and publishes prebuilt SBCL binaries for Linux (`x86_64`, `aarch64`) and macOS (`arm64`, plus a best-effort `x86_64`) on tagged releases.
-- `thread` and `terminate` threading natives on SBCL (ported from the official S41.1 distribution), registered via `update-lambda-table`. The kernel's concurrency library (`kernel/lib/concurrency`) now loads and runs.
+## [3.1.0]
 
 ### Changed
 
-- Build pipeline updated for kernel 41.1: integrated the `stlib` and `extension-expand-dynamic` kernel extensions, and dropped the `factorise-defun` extension (its optimization is now implemented natively).
-- Test target now loads the kernel's `runme.shen` harness.
-- `absvector` now initializes elements to the `(fail)` sentinel, matching the official S41.1 port and Shen/Scheme, so `<-vector` on an unset slot of a raw absvector signals "not found" instead of returning an implementation-defined value.
-- `pos`, `tlstr`, `n->string` and `string->n` validate their arguments and signal the same descriptive errors as the official S41.1 port (e.g. `"ab" is not a unit string`) instead of leaking raw Common Lisp conditions.
+- Upgrade to the unmodified community ShenOSKernel 42.2 release, including
+  its standard library, namespaces, programmable patterns, and type annotations.
+  Kernel downloads verify the pinned SHA-256; a local archive supports offline
+  builds. Integrate pyrex41/shen-cl through `d59bf13`.
+- Share the standard library and initialization sequence across SBCL, CLISP,
+  and ECL. Keep global function bindings and interactive redefinition.
+- Improve SBCL code generation for predicates, literal equality, checked
+  arithmetic, Boolean expressions, and global assignments. Retain general
+  numeric behavior, overflow handling, and runtime checks.
+- Reduce overhead and allocation in equality, dictionary lookup, tuple and
+  Prolog-variable construction, string primitives, symbol classification,
+  stream dispatch, and reader operations. Dictionary keys use Shen structural
+  equality, including case-sensitive strings and equal numeric representations;
+  the public kernel `hash` function is unchanged.
+- Cache repeated pattern accessors in ordinary compilation and generated
+  kernel Lisp, invalidating cached values across mutation, unknown calls,
+  lexical scopes, and control-flow joins. Share pattern fallbacks instead of
+  duplicating generated code. The default factorisation policy is unchanged.
 
 ### Fixed
 
-- Fixed optimizations for addition and subtraction of 1.
-- Fixed code generation for number equality checks when one of the arguments is a known number.
-- `atom?` now recognizes Common Lisp `T` (used for the Shen variable `T`), fixing the Prolog `<hterm>` parser and the `montague.shen` type-checker test.
-- CLisp support restored: `shen-cl.process-number` used a non-conforming `LOOP` (`for` clause after `while`) that indexed past the end of the string on CLISP; added the `shen.char-stoutput?` and `shen.write-string` stream primitives needed by the kernel's `pr` on implementations without the native `pr` override; on macOS the image is saved with `:executable t :script nil` (the `:executable 0` format fails Apple Silicon code-signature checks and is killed at exec).
-- ECL support restored: startup no longer calls the removed `factorise-defun` extension; and every function `overwrite.lsp` redefines is proclaimed `NOTINLINE` before the kernel compiles, since ECL emits direct C calls for intra-file references, which silently bypassed the overrides (e.g. prolog's `atom?`, breaking datatypes mentioning the variable `T`).
+- Preserve guard evaluation order, exception behavior, and tail positions
+  when factorising patterns. Large patterns compile without exponential
+  duplication or repeated accessor chains.
+- Update native macro expansion to the 42.2 source-form handler protocol;
+  derive the port compiler's callable metadata from its definitions.
+- Preserve `(fn input+)`, recognize the Shen variable `T` in `atom?`, correctly
+  name the native `shen.pvar?` override, and accept integral floats in
+  `integer?` without narrowing bignums.
+- Initialize raw vectors with the fail sentinel and preserve checked string
+  and vector errors. Keep Shen vector bounds errors and native SBCL
+  unbound-variable conditions efficient and catchable.
+- Parse final input without a trailing newline and exit cleanly at stdin EOF.
+  Preserve quiet-mode file writes and quote the fail symbol correctly during
+  bootstrapping.
+- Restore CLISP builds under C/POSIX locales, suppress ECL compiler output at
+  startup, and preserve host overrides when compiling on ECL.
+- Include documentation and optional extensions in source archives, and omit
+  macOS archive metadata. Release automation validates the port version and
+  publishes the precompiled source archive alongside platform binaries.
 
-### Performance
+### Added
 
-- O(N) native overrides for the reader primitives `shen.str->bytes`, `shen.bytes->string`, `shen.rfas-h` and `shen.reader-error-message`, replacing O(N²) recursive concatenation.
-- `macroexpand` now extracts the macro functions once and uses an `EQ` fast-path to skip deep-equality checks when a macro leaves its input unchanged.
-- Native KL `cond` factorization that groups consecutive clauses sharing a leading `and` test, reducing redundant guard evaluation.
-- `(length X)` now compiles to Common Lisp's optimized `LIST-LENGTH` instead of the kernel's recursive `length` (ported from the official S41.1 backend).
+- Explicitly loaded SHA-256 host extension under `extensions/sha256/`, with
+  separate documentation, feature registration, and tests.
+- Optional Nix development environment, plus SBCL `thread` and `terminate`
+  primitives for the kernel concurrency library.
+- Regression coverage for the kernel upgrade, compiler, primitives, reader,
+  streams, dictionaries, patterns, accessors, extensions, and command line.
+- [SBCL optimization guide](docs/SBCL-PERFORMANCE.md) describing the retained
+  optimizations, their correctness constraints, and further opportunities.
+  Runtime and allocation investigations were validated on SBCL 2.6.9.
 
 ## [3.0.3] - 2019-12-07
 
@@ -188,7 +216,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Cleaned up `backend.lsp`, as `backend.shen` was removed.
 - Expanded README.
 
-[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.0.3...HEAD
+[Unreleased]: https://github.com/Shen-Language/shen-cl/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/Shen-Language/shen-cl/compare/v3.0.3...v3.1.0
 [3.0.3]: https://github.com/Shen-Language/shen-cl/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/Shen-Language/shen-cl/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/Shen-Language/shen-cl/compare/v3.0.0...v3.0.1

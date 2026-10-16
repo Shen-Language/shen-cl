@@ -64,6 +64,71 @@
               _ (close In)
            B))
 
+(assert= "character stream dispatch preserves Unicode, NUL and EOF"
+  [true true 65 0 955 -1 -1]
+  (shen-cl.eval-lisp
+    "(with-input-from-string (stream (coerce (list (code-char 65) (code-char 0) (code-char 955)) 'string))
+       (list (shen::|shen.char-stinput?| stream) (shen::|shen.char-stoutput?| stream)
+             (shen::|shen.my-read-byte| stream) (shen::|shen.my-read-byte| stream)
+             (shen::|shen.my-read-byte| stream) (shen::|shen.my-read-byte| stream)
+             (shen::|shen.my-read-byte| stream)))"))
+(assert= "byte stream dispatch preserves bytes and EOF" [false false 0 255 -1]
+  (do (set io-test.*dispatch-path* "tests/io-dispatch.tmp")
+    (shen-cl.eval-lisp
+    "(progn (with-open-file (stream (symbol-value 'shen::|io-test.*dispatch-path*|) :direction :output
+                             :element-type '(unsigned-byte 8) :if-exists :supersede)
+       (write-byte 0 stream) (write-byte 255 stream))
+     (with-open-file (stream (symbol-value 'shen::|io-test.*dispatch-path*|) :element-type '(unsigned-byte 8))
+       (list (shen::|shen.char-stinput?| stream) (shen::|shen.char-stoutput?| stream)
+             (shen::|shen.my-read-byte| stream) (shen::|shen.my-read-byte| stream)
+             (shen::|shen.my-read-byte| stream))))")))
+(assert= "wider byte streams retain the subtype fallback" [false 8192 -1]
+  (shen-cl.eval-lisp
+    "(progn (with-open-file (stream (symbol-value 'shen::|io-test.*dispatch-path*|) :direction :output
+                             :element-type '(unsigned-byte 16) :if-exists :supersede)
+       (write-byte 8192 stream))
+     (with-open-file (stream (symbol-value 'shen::|io-test.*dispatch-path*|) :element-type '(unsigned-byte 16))
+       (list (shen::|shen.char-stinput?| stream)
+             (shen::|shen.my-read-byte| stream) (shen::|shen.my-read-byte| stream))))"))
+
+\\ SBCL's native file-stream type shortcut must preserve decoding and the
+\\ ordinary protocol when a stream is closed or has a different handler.
+(if (shen-cl.eval-lisp "#+sbcl 'shen::|true| #-sbcl 'shen::|false|")
+  (do
+    (assert= "SBCL native stream preserves mixed byte and Unicode reads"
+      [true true 65 955 66 -1]
+      (shen-cl.eval-lisp
+        "(let ((path (symbol-value 'shen::|io-test.*dispatch-path*|)))
+           (with-open-file (s path :direction :output :element-type 'character
+                                  :external-format :utf-8 :if-exists :supersede)
+             (write-string (coerce (list (code-char 65) (code-char 955) (code-char 66)) 'string) s))
+           (with-open-file (s path :element-type :default :external-format :utf-8)
+             (list (shen::|shen.char-stinput?| s) (shen::|shen.char-stoutput?| s)
+                   (read-byte s) (shen::|shen.my-read-byte| s)
+                   (read-byte s) (shen::|shen.my-read-byte| s))))"))
+    (assert= "SBCL closed native streams retain protocol errors" true
+      (shen-cl.eval-lisp
+        "(let ((s (open (symbol-value 'shen::|io-test.*dispatch-path*|) :element-type :default)))
+           (close s)
+           (if (every (lambda (f) (handler-case (progn (funcall f s) nil)
+                                   (stream-error () t)))
+                      (list #'shen::|shen.char-stinput?| #'shen::|shen.char-stoutput?|
+                            #'shen::|shen.my-read-byte|))
+               'shen::|true| 'shen::|false|))"))
+    (assert= "SBCL native stream respects a changed type handler" true
+      (shen-cl.eval-lisp
+        "(with-open-file (s (symbol-value 'shen::|io-test.*dispatch-path*|) :element-type :default)
+           (let ((handler (sb-impl::ansi-stream-misc s)))
+             (unwind-protect
+                 (progn
+                   (setf (sb-impl::ansi-stream-misc s)
+                         (lambda (&rest args) (declare (ignore args)) (error (string 'custom-type-handler))))
+                   (handler-case (progn (shen::|shen.char-stinput?| s) 'shen::|false|)
+                     (simple-error (e) (if (string= (princ-to-string e) (string 'custom-type-handler))
+                                           'shen::|true| 'shen::|false|))))
+               (setf (sb-impl::ansi-stream-misc s) handler))))")))
+  skipped)
+
 \\ Lock in the *hush*/pr-to-file divergence as an explicit assertion:
 \\ under *hush* = true, (pr ... FileStream) writes on SBCL but is silenced on
 \\ CLISP; (write-byte ... FileStream) writes on BOTH. We assert only the
