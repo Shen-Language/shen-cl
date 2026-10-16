@@ -57,7 +57,7 @@ The `Makefile` automates all build and test operations.
 | `precompile` | Precompile kernel and compiler to Lisp code. |
 | `build-X`    | Build executable.                            |
 | `test-X`     | Run test suite.                              |
-| `test-all`   | Kernel, compiler, port, CLI, extension, and native artifact tests. |
+| `test-all`   | Kernel, compiler, port, CLI, extension, accessor, and dictionary tests. |
 | `X`          | Build and run test suite.                    |
 | `run-X`      | Start Shen REPL.                             |
 | `release`    | Creates archive of compiled binaries.        |
@@ -104,9 +104,9 @@ When starting Shen via `make`, command line arguments can be passed through like
 
 ## Releasing
 
-Tagged releases are built and published automatically by the [`Release` GitHub Actions workflow](.github/workflows/release.yml). Pushing a `vX.Y.Z` tag builds the SBCL port for Linux (`x86_64`, `aarch64`) and macOS (`arm64`, plus a best-effort `x86_64`), then attaches the prebuilt archives to the GitHub [releases](https://github.com/Shen-Language/shen-cl/releases) page.
+Tagged releases are built and published automatically by the [`Release` GitHub Actions workflow](.github/workflows/release.yml). Pushing a `vX.Y.Z` tag builds the SBCL port for Linux (`x86_64`, `aarch64`) and macOS (`arm64`), then attaches the prebuilt archives to the GitHub [releases](https://github.com/Shen-Language/shen-cl/releases) page.
 
-Archives can also be produced locally with the `make release` command. They appear under `release/`, named with the operating system and current git tag or short commit hash. Currently, only the license file and the SBCL build are included (named `shen[.exe]`).
+Archives can also be produced locally with the `make release` command. They appear under `release/`, named with the operating system and current git tag or short commit hash. Archives include the SBCL executable (named `shen[.exe]`), the license, and the optional host extensions.
 
 To reproduce a release archive locally, build the exact tagged commit:
 
