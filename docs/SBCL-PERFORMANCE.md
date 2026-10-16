@@ -58,7 +58,9 @@ without its body at that point would not provide the same opportunity.
 Arithmetic helpers branch on fixnum and double-float inputs, giving SBCL enough
 type information to emit integer and floating-point instructions. Fixnum results
 remain unrestricted integers, so overflow promotes to bignums; floating-point
-errors remain catchable. Other inputs retain the general numeric path.
+errors remain catchable. Overflow follows the host's floating-point trap
+settings; the port does not change those settings. Other inputs retain the
+general numeric path.
 The existing increment/decrement translations use the same input guard while
 preserving their general-number behavior. Numeric normalization returns integers
 and existing double floats directly; it converts other accepted representations
