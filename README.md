@@ -1,4 +1,3 @@
-[![Shen Version](https://img.shields.io/badge/shen-42.2-blue.svg)](https://github.com/Shen-Language)
 [![Build Status](https://github.com/Shen-Language/shen-cl/actions/workflows/release.yml/badge.svg)](https://github.com/Shen-Language/shen-cl/actions/workflows/release.yml)
 
 # Shen for Common Lisp
@@ -26,7 +25,7 @@ Documentation of native interop functions is in [INTEROP.md](INTEROP.md). These 
 
 Also included is the function `cl.exit`, which takes an exit code, terminates the process, returning the given exit code.
 
-The 42.2 namespace, programmable pattern, and type annotation extensions are
+The namespace, programmable pattern, and type annotation extensions are
 bundled.
 
 Optional host extensions live under `extensions/`. The
@@ -53,7 +52,7 @@ The `Makefile` automates all build and test operations.
 
 | Target       | Operation                                    |
 |:-------------|:---------------------------------------------|
-| `fetch`      | Download and verify the ShenOSKernel 42.2 release. |
+| `fetch`      | Download and verify the configured ShenOSKernel release. |
 | `precompile` | Precompile kernel and compiler to Lisp code. |
 | `build-X`    | Build executable.                            |
 | `test-X`     | Run test suite.                              |
@@ -65,12 +64,11 @@ The `Makefile` automates all build and test operations.
 
 `X` can be `clisp`, `ccl`, `ecl`, `sbcl` or it can be `all`, which will run the command for all of the preceding.
 
-`fetch` downloads the community ShenOSKernel 42.2 release
-(Shen-Language/shen-sources tag `shen-42.2`, the kernel shipped by
-shen-scheme 0.50), checks its pinned SHA-256 and extracts it unmodified as
-`kernel/`. To build offline, pass a local copy of the release tarball:
-`make fetch KERNEL_ARCHIVE=path/to/ShenOSKernel-42.2.tar.gz`. See
-[`docs/KERNEL-PROVENANCE-42.2.md`](docs/KERNEL-PROVENANCE-42.2.md).
+`fetch` downloads the kernel from
+[Shen-Language/shen-sources](https://github.com/Shen-Language/shen-sources)
+and extracts it unmodified as `kernel/`. The release and checksum are pinned
+in [scripts/fetch-kernel.sh](scripts/fetch-kernel.sh). To build offline, pass
+a matching release tarball: `make fetch KERNEL_ARCHIVE=path/to/kernel.tar.gz`.
 
 `precompile` is only required when bootstrapping Shen/CL from this repository;
 the source release includes the precompiled files. The `SHEN` variable must
@@ -111,9 +109,8 @@ the kernel version reported by `(version)` and `--version`. Build and run
 `make test-all`, then merge the release preparation before tagging the merged
 commit.
 
-CI uses recent prebuilt SBCL packages and temporarily bootstraps from
-[`tizoc/shen-scheme` v0.51](https://github.com/tizoc/shen-scheme/releases/tag/v0.51).
-After publishing 3.1.0, the bootstrap can switch to this repository's release.
+CI uses recent prebuilt SBCL packages. Its bootstrap source is configured by
+`BOOTSTRAP_REPO` and `BOOTSTRAP_TAG` in the [workflows](.github/workflows/).
 The release workflow generates portable Lisp once on Linux x64, then builds
 and tests it natively on each target platform.
 
@@ -127,11 +124,12 @@ the selected branch or optional tag for verification without publishing.
 
 Archives can also be produced locally with the `make release` command. They appear under `release/`, named with the operating system and current git tag or short commit hash. Archives include the SBCL executable (named `shen[.exe]`), the license, and the optional host extensions.
 
-To reproduce a release archive locally, build the exact tagged commit:
+To reproduce a release archive locally, build the exact tagged commit
+(replace `vX.Y.Z` with the desired release tag):
 
 ```shell
 make pure
-git checkout v3.1.0
+git checkout vX.Y.Z
 make fetch
 make precompile SHEN=shen-sbcl
 make build-sbcl

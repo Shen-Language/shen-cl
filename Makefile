@@ -116,11 +116,8 @@ run: run-sbcl
 # Dependency retrieval
 #
 
-# `fetch` downloads the community ShenOSKernel-42.2 release
-# (Shen-Language/shen-sources tag shen-42.2), verifies its pinned SHA-256 and
-# extracts it unmodified as `kernel/`. Pass KERNEL_ARCHIVE=path/to/
-# ShenOSKernel-42.2.tar.gz to use a local copy of the release tarball. See
-# docs/KERNEL-PROVENANCE-42.2.md.
+# Fetch the configured kernel release, unmodified, into `kernel/`.
+# Pass KERNEL_ARCHIVE=path/to/kernel.tar.gz to use a local release tarball.
 .PHONY: fetch
 fetch:
 ifeq ($(OSName),windows)

@@ -11,10 +11,9 @@ Support for Common Lisp implementations varies over different operating systems.
 
 Check the project page for any CL implementation to build from source if necessary.
 
-SBCL 2.6.9 is the primary local validation target. CI uses recent prebuilt
-packages and reports their versions. A distribution's `sbcl` package may provide
-an older version; check `sbcl --version` when
-reproducing builds or performance results.
+Use a recent SBCL release. CI installs prebuilt packages and reports their
+versions. A distribution's `sbcl` package may provide an older version; check
+`sbcl --version` when reproducing builds or performance results.
 
 ## BSD
 

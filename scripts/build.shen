@@ -46,11 +46,8 @@
        "extension-type-annotations"
        "stlib"
        ])
-\\ ShenOSKernel-42.2 (community shen-sources) is compiled unmodified. Every
-\\ .kl file holds only defuns, so load order is not load-bearing; the
-\\ environment is built by (shen.initialise) from init.kl and the standard
-\\ library by (stlib.initialise) from stlib.kl, both called from boot.lsp
-\\ (or at startup on ECL). See docs/KERNEL-PROVENANCE-42.2.md.
+\\ Compile the kernel sources unmodified. boot.lsp runs the kernel and
+\\ standard library initializers after loading them (or at startup on ECL).
 
 (set *shen-cl-files* ["compiler"])
 

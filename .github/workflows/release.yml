@@ -14,8 +14,8 @@ permissions:
   contents: write
 
 env:
-  # Temporary until Shen/CL 3.1.0 is published. Then use this repository's
-  # release, updating the tag and download asset name along with the repo.
+  # Temporary bootstrap until a current Shen/CL release is published.
+  # Then use this repository's release, updating the tag and asset name.
   BOOTSTRAP_REPO: tizoc/shen-scheme
   BOOTSTRAP_TAG: v0.51
 
