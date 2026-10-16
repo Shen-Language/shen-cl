@@ -8,7 +8,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{ runner.temp }}/sbcl-2.6.9
-        key: sbcl-2.6.9-${{ runner.os }}-${{ runner.arch }}-1
+        key: sbcl-2.6.9-${{ runner.os }}-${{ runner.arch }}-2
 
     - name: Install build dependencies (Linux)
       if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
@@ -29,7 +29,7 @@ runs:
         git clone --quiet --depth 1 --branch sbcl-2.6.9 \
           https://github.com/sbcl/sbcl.git "$RUNNER_TEMP/sbcl-source"
         cd "$RUNNER_TEMP/sbcl-source"
-        sh make.sh
+        SBCL_BUILDING_RELEASE_FROM=HEAD sh make.sh
         INSTALL_ROOT="$RUNNER_TEMP/sbcl-2.6.9" sh install.sh
 
     - name: Select SBCL 2.6.9
