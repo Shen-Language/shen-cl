@@ -30,7 +30,7 @@ jobs:
 
       - uses: ./.github/actions/setup-sbcl
 
-      - name: Fetch ShenOSKernel 42.2 (SHA-256 verified)
+      - name: Fetch ShenOSKernel (SHA-256 verified)
         run: make fetch
 
       # Shen/Scheme publishes a Linux x64 bootstrap. Generate portable Lisp
