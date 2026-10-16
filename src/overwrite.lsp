@@ -25,7 +25,7 @@
 
 (in-package :shen)
 
-;;; Kernel 41.1 stream primitives.
+;;; S43.1 public character stream interfaces.
 ;;; Character streams (e.g. *standard-input*) need read-char; binary streams
 ;;; (e.g. file streams opened for bytes) use read-byte.
 (declaim (inline |shen-cl.character-stream-p|))
@@ -43,12 +43,7 @@
           ((equal type '(unsigned-byte 8)) nil)
           (t (subtypep type 'character)))))
 
-(defun |shen.char-stinput?| (stream)
-  (if (|shen-cl.character-stream-p| stream)
-      '|true|
-      '|false|))
-
-(defun |shen.char-stoutput?| (stream)
+(defun |char-stream?| (stream)
   (if (|shen-cl.character-stream-p| stream)
       '|true|
       '|false|))
@@ -56,12 +51,12 @@
 ;; The kernel's pr calls this on character output streams. On SBCL/CCL the
 ;; native |pr| override below bypasses it; other implementations (CLisp,
 ;; ECL) run the kernel's KL pr and need it defined.
-(defun |shen.write-string| (string stream)
+(defun |write-string| (string stream)
   (write-string string stream)
   (force-output stream)
   string)
 
-(defun |shen.read-unit-string| (stream)
+(defun |read-unit-string| (stream)
   (let ((c (read-char stream nil nil)))
     (cond (c (string c))
           ;; EOF on the REPL's standard input (character path used by SBCL/CCL):
@@ -74,7 +69,7 @@
 ;; Kernel 42.1 requires `read`/`lineread` to process input at EOF without a
 ;; trailing newline: shen.read-loop parses its buffered bytes when the stream
 ;; yields -1. The kernel's shen.my-read-byte reads a character stream through
-;; (string->n (shen.read-unit-string S)), and shen.read-unit-string can only
+;; (string->n (read-unit-string S)), and read-unit-string can only
 ;; signal EOF with "", which string->n rejects ("" is not a unit string) before
 ;; the read loop ever sees -1. Read the character directly and report EOF as
 ;; -1, matching the byte path.
@@ -121,7 +116,7 @@
       (funcall (symbol-function '|shen-cl.kernel-lineread|) stream)))
 
 ;; Run the kernel REPL with shen-cl.in-repl? bound, so the input layer
-;; (read-byte / shen.read-unit-string) can exit cleanly when the REPL's stdin
+;; (read-byte / read-unit-string) can exit cleanly when the REPL's stdin
 ;; reaches EOF (a closed pipe / Ctrl-D). Canonical Shen loops forever here;
 ;; this is a deliberate, documented improvement, matching the other ports.
 (setf (symbol-function '|shen-cl.kernel-repl|) (symbol-function '|shen.repl|))
@@ -384,7 +379,7 @@
   (funcall f))
 
 ;; hash: the kernel's own definition (sys.kl: shen.hashkey + shen.mod, never
-;; 0) is kept deliberately. Under ShenOSKernel-42.2 the property store is a
+;; 0) is kept deliberately. The kernel property store is a
 ;; shen.dict, which this file maps onto a CL hash-table below, so hash is not
 ;; used for property lookup, and keeping the kernel version keeps `hash`
 ;; identical across SBCL, CLISP and ECL. (Hash values are port-specific in

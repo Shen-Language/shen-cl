@@ -1,4 +1,4 @@
-\\ Shen 42.2 integration, numeric predicates, and structural dictionary keys.
+\\ Shen kernel integration, numeric predicates, and structural dictionary keys.
 
 (assert= "input+ expands its type as syntax"
   [shen.input-h+ number [stinput]] (macroexpand [input+ number]))

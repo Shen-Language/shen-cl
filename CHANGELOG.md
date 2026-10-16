@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- Upgrade to the community ShenOSKernel 43.1 kernel and its standard library
+  and extensions, preserving the unmodified kernel archive and hash checks.
+- Expose `char-stream?`, `read-unit-string`, and `write-string` under their
+  public S43.1 names. Reuse native character stream detection and Unicode I/O,
+  retaining the reader's EOF and final-input handling.
+
 ## [3.1.0]
 
 ### Changed

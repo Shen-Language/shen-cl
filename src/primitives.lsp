@@ -30,7 +30,7 @@
 (defvar |*sterror*| *error-output*)
 
 ;; Bound to T only for the dynamic extent of the REPL (see shen.repl in
-;; overwrite.lsp). It lets the input layer (read-byte / shen.read-unit-string)
+;; overwrite.lsp). It lets the input layer (read-byte / read-unit-string)
 ;; tell the REPL's command input apart from a program's own reads of stdin, so
 ;; only the former exits on EOF.
 (defvar |shen-cl.in-repl?| nil)
