@@ -203,6 +203,22 @@
  (shen-cl.kl->lisp [cond [false 1] [true 2] [[> 1 2] 3]])
  [(shen-cl.cl cond) [(shen-cl.cl t) 2]])
 
+(assert-equal
+ (shen-cl.kl->lisp [cond [false 1]])
+ [(shen-cl.cl cond) [(shen-cl.cl t) [simple-error "condition failure"]]])
+
+(assert-equal
+ (shen-cl.optimise-boolean-check [shen-cl.equal? x [(shen-cl.cl quote) [1 2]]])
+ [shen-cl.absequal x [(shen-cl.cl quote) [1 2]]])
+
+(assert-equal
+ (shen-cl.optimise-boolean-check [shen-cl.equal? [(shen-cl.cl quote) [1 2]] x])
+ [shen-cl.absequal [(shen-cl.cl quote) [1 2]] x])
+
+(assert-equal
+ (shen-cl.optimise-boolean-check [shen-cl.equal? x [(shen-cl.cl quote) symbol]])
+ [(shen-cl.cl eq) x [(shen-cl.cl quote) symbol]])
+
 \\ (thaw Exp) compiles to a direct funcall of the thunk, not a call through
 \\ the `thaw` function (ported from Shen/Scheme).
 (assert-equal

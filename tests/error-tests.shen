@@ -18,6 +18,21 @@
 \\ message parity. Loaded after tests/test-harness.shen by run-port-tests.shen.
 
 \\ --- (1) every documented error path is catchable ---
+(define error-test.cond X -> (cond ((= X 1) a) ((= X 2) b)))
+(define error-test.nested-cond X -> (let Y X (cond ((= Y 1) a))))
+(assert= "cond first matching clause" a (error-test.cond 1))
+(assert= "cond later matching clause" b (error-test.cond 2))
+(assert-msg "cond exhaustion" "condition failure" (freeze (error-test.cond 3)))
+(assert-msg "nested cond exhaustion" "condition failure"
+  (freeze (error-test.nested-cond 2)))
+(assert-msg "empty KL cond" "condition failure" (freeze (eval-kl [cond])))
+(assert-msg "false-only KL cond" "condition failure"
+  (freeze (eval-kl [cond [false 1]])))
+(assert= "true cond skips later tests" ok
+  (cond (true ok) ((simple-error "unreachable test") unreachable)))
+(assert-caught "cond requires boolean tests"
+  (freeze (eval-kl [cond [42 yes] [true no]])))
+
 (assert-caught "apply unbound symbol"
                (freeze (overflow->str)))
 (assert-caught "apply undefined function with args"

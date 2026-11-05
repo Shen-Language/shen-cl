@@ -21,6 +21,15 @@
 \\ Exercise compiled functions with unknown argument types, so constant
 \\ folding cannot hide overflow, numeric conversion, or error paths.
 (define prim-test.host Code -> (eval-kl [lisp. Code]))
+\\ Quoted host data must retain structural equality inside a Boolean test.
+(assert= "host quoted-list equality" true
+  (prim-test.host "(|shen-cl.equal?| (list 1 2) (quote (1 2)))"))
+(assert= "host quoted-list equality in if" yes
+  (eval-kl [if [lisp. "(|shen-cl.equal?| (list 1 2) (quote (1 2)))"] yes no]))
+(assert= "host quoted-list equality reversed in if" yes
+  (eval-kl [if [lisp. "(|shen-cl.equal?| (quote (1 2)) (list 1 2))"] yes no]))
+(assert= "host quoted-string equality in if" yes
+  (eval-kl [if [lisp. "(|shen-cl.equal?| (copy-seq (quote c#34;abcc#34;)) (quote c#34;abcc#34;))"] yes no]))
 (define prim-test.host-type X -> (eval-kl [lisp.type-of X]))
 (define prim-test.add X Y -> (+ X Y))
 (define prim-test.subtract X Y -> (- X Y))

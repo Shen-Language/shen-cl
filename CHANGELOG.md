@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Raise a catchable error when an explicit `cond` has no matching clause.
+  Reported by @pyrex41.
+- Restrict quoted-data identity comparisons to symbols and the empty list;
+  retain structural equality for other quoted values.
+  Reported by @pyrex41.
+
 ## [3.2.0] - 2026-10-16
 
 ### Changed
