@@ -122,8 +122,10 @@
   [equal? X S] -> [(cl equal) X S]  where (string? S)
   [equal? X N] -> [(kl numeric-equal) X N]    where (number? N)
   [equal? N X] -> [(kl numeric-equal) X N]    where (number? N)
-  [equal? X [Quote S]] -> [(cl eq) X [Quote S]]    where (= (cl quote) Quote)
-  [equal? [Quote S] X] -> [(cl eq) X [Quote S]]    where (= (cl quote) Quote)
+  [equal? X [Quote S]] -> [(cl eq) X [Quote S]]
+      where (and (= (cl quote) Quote) (or (= S []) (symbol? S)))
+  [equal? [Quote S] X] -> [(cl eq) X [Quote S]]
+      where (and (= (cl quote) Quote) (or (= S []) (symbol? S)))
   [equal? X Y] -> [(kl absequal) X Y]
   [greater? X Y] -> [(cl >) X Y]
   [greater-than-or-equal-to? X Y] -> [(cl >=) X Y]
@@ -191,7 +193,7 @@
   Clauses Scope -> [(cl cond) | (emit-cond-clauses Clauses Scope)])
 
 (define emit-cond-clauses
-  [] _ -> []
+  [] _ -> [[(cl t) [(kl simple-error) "condition failure"]]]
   \\ A literal-false test never fires: drop the clause.
   [[false _] | Rest] Scope -> (emit-cond-clauses Rest Scope)
   \\ A literal-true test always fires: emit it and drop the dead tail.
