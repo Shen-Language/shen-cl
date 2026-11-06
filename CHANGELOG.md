@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Fixed
 
+- End the REPL at stdin EOF in the REPL's own read, as Shen/JIT does, instead
+  of exiting from inside `read-byte` and `read-unit-string`. A program run at
+  the REPL that reads `(stinput)` now gets `-1` from `read-byte` and an
+  "empty stream" error from `read` and `lineread`, which `trap-error` can
+  catch. Previously each of these ended the REPL with exit status 0.
 - Raise a catchable error when an explicit `cond` has no matching clause.
   Reported by @pyrex41.
 - Restrict quoted-data identity comparisons to symbols and the empty list;
