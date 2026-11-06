@@ -21,11 +21,9 @@
 # impl is skipped gracefully. SBCL is the reference impl and is required.
 #
 # Documented cross-impl DIVERGENCES locked in below (not faked parity):
-#   * piped-stdin EOF: shen-go's REPL exits cleanly on EOF; the shen-cl /
-#     Shen-41.x REPL LOOPS forever on stdin EOF (a known kernel gotcha -- the
-#     supported clean exit is (cl.exit)). We assert the documented clean-exit
-#     path works and that an EOF'd REPL is bounded by a timeout, rather than
-#     asserting shen-go's clean-EOF behaviour the port does not have.
+#   * piped-stdin EOF: the REPL's own read exits 0 at EOF on the first byte of
+#     a line, as Shen/JIT does; a program evaluated at the REPL that reads
+#     (stinput) sees read-byte = -1 and read/lineread "empty stream" errors.
 #   * bad subcommand: shen-go exits non-zero; the shen-cl launcher prints
 #     "Invalid argument" but exits 0. We assert the message (the real contract).
 #   * quiet (-q) pr-to-file: SBCL writes pr to file streams regardless of -q;
@@ -65,6 +63,12 @@ assert_contains() { # NEEDLE HAYSTACK LABEL
   case "$2" in
     *"$1"*) ok "$3" ;;
     *)      bad "$3 -- expected to contain [$1], got:"; printf '%s\n' "$2" | sed 's/^/          | /' ;;
+  esac
+}
+assert_not_contains() { # NEEDLE HAYSTACK LABEL
+  case "$2" in
+    *"$1"*) bad "$3 -- expected not to contain [$1], got:"; printf '%s\n' "$2" | sed 's/^/          | /' ;;
+    *)      ok "$3" ;;
   esac
 }
 assert_eq() { # EXPECTED ACTUAL LABEL
@@ -194,6 +198,25 @@ test_impl() { # IMPL
     ok "clisp: bare-EOF REPL reaches the known non-TTY driver-frame abort"
   else
     assert_eq "0" "$ec" "$impl: bare-EOF REPL exits cleanly"
+  fi
+
+  # --- REPL EOF: only the REPL's own read exits; a program's reads do not ---
+  if [ "$impl" != "clisp" ]; then  # clisp: piped REPL aborts (see above)
+    printf '' | run_bounded 20 $bin > "$tmp/e0.out" 2>&1; ec=$?
+    assert_eq "0" "$ec" "$impl: empty stdin REPL exits 0"
+    assert_not_contains "empty stream" "$(cat "$tmp/e0.out")" "$impl: empty stdin REPL reports no error"
+    printf '(read-byte (stinput))\n' | run_bounded 20 $bin > "$tmp/e1.out" 2>&1; ec=$?
+    assert_eq "0" "$ec" "$impl: program read-byte at EOF, REPL exits 0"
+    assert_contains "-1" "$(cat "$tmp/e1.out")" "$impl: program read-byte at EOF gets -1"
+    printf '(read (stinput))\n' | run_bounded 20 $bin > "$tmp/e2.out" 2>&1; ec=$?
+    assert_eq "0" "$ec" "$impl: program read at EOF, REPL exits 0"
+    assert_contains "empty stream" "$(cat "$tmp/e2.out")" "$impl: program read at EOF reports empty stream"
+    printf '(lineread (stinput))\n' | run_bounded 20 $bin > "$tmp/e3.out" 2>&1; ec=$?
+    assert_eq "0" "$ec" "$impl: program lineread at EOF, REPL exits 0"
+    assert_contains "empty stream" "$(cat "$tmp/e3.out")" "$impl: program lineread at EOF reports empty stream"
+    printf '(trap-error (read (stinput)) (/. E caught))\n' | run_bounded 20 $bin > "$tmp/e4.out" 2>&1; ec=$?
+    assert_eq "0" "$ec" "$impl: trapped program read at EOF, REPL exits 0"
+    assert_contains "caught" "$(cat "$tmp/e4.out")" "$impl: program can catch its own read at EOF"
   fi
 
   # --- kernel 42.1: read / lineread at EOF without a trailing newline ---

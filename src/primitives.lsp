@@ -29,11 +29,6 @@
 (defvar |*stoutput*| *standard-output*)
 (defvar |*sterror*| *error-output*)
 
-;; Bound to T only for the dynamic extent of the REPL (see shen.repl in
-;; overwrite.lsp). It lets the input layer (read-byte / read-unit-string)
-;; tell the REPL's command input apart from a program's own reads of stdin, so
-;; only the former exits on EOF.
-(defvar |shen-cl.in-repl?| nil)
 (defvar |*language*| "Common Lisp")
 (defvar |*port*| "3.2.0")
 (defvar |*porters*| "Mark Tarver, Robert Koeninger and Bruno Deferrari")
@@ -543,14 +538,7 @@ Any other form is returned unchanged."
   (write-byte byte s))
 
 (defun |read-byte| (s)
-  (let ((b (read-byte s nil -1)))
-    ;; EOF on the REPL's standard input ends the session -> exit cleanly,
-    ;; instead of returning -1 and letting the kernel reader loop forever on
-    ;; "empty stream". Scoped to the REPL so a program's own stdin reads (and
-    ;; all file reads) still see -1 at EOF as the primitive contract requires.
-    (if (and (eql b -1) |shen-cl.in-repl?| (eq s |*stinput*|))
-        (|cl.exit| 0)
-        b)))
+  (read-byte s nil -1))
 
 (defun |open| (string direction)
   (let ((path (format nil "~A~A" |*home-directory*| string)))

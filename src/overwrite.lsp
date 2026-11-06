@@ -56,15 +56,12 @@
   (force-output stream)
   string)
 
+;; EOF is "" for a character read, and a program that reads (stinput) sees
+;; what any program sees: read-byte gets -1, read and lineread raise "empty
+;; stream".
 (defun |read-unit-string| (stream)
   (let ((c (read-char stream nil nil)))
-    (cond (c (string c))
-          ;; EOF on the REPL's standard input (character path used by SBCL/CCL):
-          ;; the session is over, so exit cleanly rather than returning "" -- the
-          ;; kernel reader chokes on "" and loops forever otherwise. Scoped to
-          ;; the REPL; a program's own char reads still get "" at EOF.
-          ((and |shen-cl.in-repl?| (eq stream |*stinput*|)) (|cl.exit| 0))
-          (t ""))))
+    (if c (string c) "")))
 
 ;; Kernel 42.1 requires `read`/`lineread` to process input at EOF without a
 ;; trailing newline: shen.read-loop parses its buffered bytes when the stream
@@ -73,56 +70,26 @@
 ;; signal EOF with "", which string->n rejects ("" is not a unit string) before
 ;; the read loop ever sees -1. Read the character directly and report EOF as
 ;; -1, matching the byte path.
-;;
-;; REPL stdin: shen-cl exits cleanly when the REPL's stdin reaches EOF (see
-;; shen.repl below). It must still evaluate a final form that has no trailing
-;; newline, so the REPL's lineread counts the non-whitespace input it has
-;; buffered (shen-cl.repl-pending): EOF with pending input yields -1 so the
-;; kernel parses and evaluates it; EOF with nothing pending ends the session.
-(defvar |shen-cl.repl-pending| nil)
-
-(defun |shen-cl.repl-input?| (stream)
-  (and |shen-cl.in-repl?| (eq stream |*stinput*|)))
-
-(defun |shen-cl.note-repl-input| (stream code)
-  (when (and |shen-cl.repl-pending|
-             (|shen-cl.repl-input?| stream)
-             (not (member code '(9 10 12 13 32))))
-    (incf |shen-cl.repl-pending|))
-  code)
-
-(defun |shen-cl.input-eof| (stream)
-  (if (and (|shen-cl.repl-input?| stream)
-           (not (and |shen-cl.repl-pending| (plusp |shen-cl.repl-pending|))))
-      (|cl.exit| 0)
-      -1))
-
 (defun |shen.my-read-byte| (stream)
   (if (|shen-cl.character-stream-p| stream)
       (let ((c (read-char stream nil nil)))
-        (if c
-            (|shen-cl.note-repl-input| stream (char-code c))
-            (|shen-cl.input-eof| stream)))
-      (let ((b (read-byte stream nil -1)))
-        (if (eql b -1)
-            (|shen-cl.input-eof| stream)
-            (|shen-cl.note-repl-input| stream b)))))
+        (if c (char-code c) -1))
+      (read-byte stream nil -1)))
 
-(setf (symbol-function '|shen-cl.kernel-lineread|) (symbol-function '|lineread|))
-(defun |lineread| (stream)
-  (if (|shen-cl.repl-input?| stream)
-      (let ((|shen-cl.repl-pending| 0))
-        (funcall (symbol-function '|shen-cl.kernel-lineread|) stream))
-      (funcall (symbol-function '|shen-cl.kernel-lineread|) stream)))
+;; The REPL's own read, and only it, ends the session at EOF: -1 as the first
+;; byte of a line exits cleanly, as Ctrl-D does. Later bytes go to the kernel's
+;; shen.read-loop as in lineread, so a final form without a newline still runs.
+(defun |shen-cl.repl-read| (stream)
+  (let ((byte (|shen.my-read-byte| stream)))
+    (if (eql byte -1)
+        (progn (|nl| 1) (|cl.exit| 0))
+        (|shen.read-loop| stream byte '() (|lambda| z (|shen.return?| z))))))
 
-;; Run the kernel REPL with shen-cl.in-repl? bound, so the input layer
-;; (read-byte / read-unit-string) can exit cleanly when the REPL's stdin
-;; reaches EOF (a closed pipe / Ctrl-D). Canonical Shen loops forever here;
-;; this is a deliberate, documented improvement, matching the other ports.
-(setf (symbol-function '|shen-cl.kernel-repl|) (symbol-function '|shen.repl|))
-(defun |shen.repl| ()
-  (let ((|shen-cl.in-repl?| t))
-    (funcall (symbol-function '|shen-cl.kernel-repl|))))
+(defun |shen.read-evaluate-print| ()
+  (let* ((package |shen.*package*|)
+         (lineread (|shen.package-user-input| package (|shen-cl.repl-read| (|stinput|))))
+         (history (|shen.update-history|)))
+    (|shen.evaluate-lineread| lineread history |shen.*tc*|)))
 
 ;; Symbol equality is identity. Select the comparison before traversing;
 ;; the local macro shares the checked loop without a per-element dispatch.
